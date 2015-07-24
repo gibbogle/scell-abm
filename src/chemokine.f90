@@ -25,10 +25,8 @@ type chemokine_type
 	real(REAL_KIND) :: medium_diff_coef	! diffusion coefficient in the medium
 	real(REAL_KIND) :: diff_reduction_factor
 !	Fine grid
-!	real(REAL_KIND), allocatable :: Cave(:,:,:)
-!	real(REAL_KIND), allocatable :: Cex(:,:,:)
 	real(REAL_KIND), allocatable :: Cprev(:,:,:)
-	real(REAL_KIND), allocatable :: Fprev(:,:,:)	!, Fcurr(:,:,:)
+	real(REAL_KIND), allocatable :: Fprev(:,:,:)
 !	Coarse grid
 	real(REAL_KIND), allocatable :: Cave_b(:,:,:)
 	real(REAL_KIND), allocatable :: Cprev_b(:,:,:)
