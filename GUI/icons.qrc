@@ -1,0 +1,14 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>cell2.png</file>
+        <file>Display2.png</file>
+        <file>001_23.png</file>
+        <file>001_07.png</file>
+        <file>001_29.png</file>
+        <file>001_43.png</file>
+        <file>001_45.png</file>
+        <file>001_59.png</file>
+        <file>color.jpg</file>
+        <file>FACS_234.png</file>
+    </qresource>
+</RCC>
