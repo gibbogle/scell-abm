@@ -5,6 +5,7 @@
 #include <QMessageBox>
 #include <QtGui>
 #include <QMouseEvent>
+#include "global.h"
 #include "plot.h"
 #include "myqgraphicsview.h"
 
@@ -18,8 +19,17 @@ struct old_field_data {
     double volume;
     double conc[MAX_CONC+NEXTRA+1];    // added CFSE, dVdt, volume, O2byVol
 };
-
 typedef old_field_data old_FIELD_DATA;
+
+struct field_data {
+    int NX, NY, NZ;
+    int NCONST;
+    double DX;
+    double *Cave;   //conc[MAX_CONC+NEXTRA+1];    // added CFSE, dVdt, volume, O2byVol
+    int ncells;
+    CELL_DATA *cell_data;
+};
+typedef field_data FIELD_DATA;
 
 #define X_AXIS 1
 #define Y_AXIS 2
@@ -31,6 +41,7 @@ typedef old_field_data old_FIELD_DATA;
 extern "C" {
     void get_old_fieldinfo(int *, int *, double *, int *, int *, int *, int *);
     void get_old_fielddata(int *, double *, int *, int *, old_FIELD_DATA *, int *);
+    void get_fielddata(int *, double *, FIELD_DATA *, int *);
 }
 
 //class Field : public QMainWindow
@@ -85,6 +96,7 @@ public:
     bool useVolPlot;
     bool useOxyPlot;
     old_FIELD_DATA *data;
+    FIELD_DATA fdata;
     Plot *pGconc, *pGvol, *pGoxy;
     bool executing;
     char msg[1024];

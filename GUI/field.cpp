@@ -245,9 +245,10 @@ void Field::displayField(int hr, int *res)
     QGraphicsScene* scene = new QGraphicsScene(QRect(0, 0, CANVAS_WIDTH, CANVAS_WIDTH));
     QBrush brush;
     int i, xindex, yindex, ix, iy, w, rgbcol[3], ichemo;
-    double xp, yp, d0, d, volume, scale, cmin, cmax, rmax;
-    double a, b, Wc;
-    int Nc;
+    double xp, yp, x, y, d0, d, volume, scale, cmin, cmax, rmax;
+    double a, b, Wc, dx, Wx, radius, r;
+    int Nc, nx;
+    double beta = 1.0;
 
     ichemo = Global::GUI_to_DLL_index[constituent];
     LOG_QMSG("displayField: " + QString::number(constituent) + "-->" + QString::number(ichemo));
@@ -255,6 +256,7 @@ void Field::displayField(int hr, int *res)
     *res = 0;
     hour = hr;
 	if (slice_changed) {
+        /*
 //        old_get_fieldinfo(&NX, &axis, &fraction, &nsites, &nconst, const_used, res);    // Note: const_used[] is no longer used
         if (*res != 0) {
             printf("Error: get_fieldinfo: FAILED\n");
@@ -275,44 +277,52 @@ void Field::displayField(int hr, int *res)
             free(this->data);
         }
         this->data = (old_FIELD_DATA *)malloc(nsites*sizeof(old_FIELD_DATA));
+        */
 //        old_get_fielddata(&axis, &fraction, &nsites, &nconst, this->data, res);
+        get_fielddata(&axis, &fraction, &fdata, res);
         if (*res != 0) {
             LOG_MSG("Error: get_fielddata: FAILED");
             return;
         }
+        sprintf(msg,"fdata: %d %d %d %d ncells: %d",fdata.NX,fdata.NY,fdata.NZ,fdata.NCONST,fdata.ncells);
+        LOG_MSG(msg);
         slice_changed = false;
     }
 
-    if (axis == X_AXIS) {           // Y-Z plane
-        xindex = 1;
-        yindex = 2;
-    } else if (axis == Y_AXIS) {   // X-Z plane
-        xindex = 0;
-        yindex = 2;
-    } else if (axis == Z_AXIS) {   // X-Y plane
-        xindex = 0;
-        yindex = 1;
-    }
+//    if (axis == X_AXIS) {           // Y-Z plane
+//        xindex = 1;
+//        yindex = 2;
+//    } else if (axis == Y_AXIS) {   // X-Z plane
+//        xindex = 0;
+//        yindex = 2;
+//    } else if (axis == Z_AXIS) {   // X-Y plane
+//        xindex = 0;
+//        yindex = 1;
+//    }
+    nx = fdata.NX;
+    dx = fdata.DX;
+    xindex = 0;
+    yindex = 1;
 
 /*
- NX = size of lattice
- Nc = # of sites to fill the canvas from side to side (or top to bottom) = (2/3)NX
+ Wx = size of grid = (nx-1)*dx
+ beta = fraction of grid that fills the canvas from side to side (or top to bottom)
  Wc = canvas width (pixels)
- w = site width = Wc/Nc
- xp = a.ix + b
- yp = a.iy + b
- blob centre at (NX/2,NX/2) maps to canvas centre at (Wc/2,Wc/2)
- => Wc/2 = a.NX/2 + b
- The width of Nc sites maps to the canvas width
- => Wc = a.Nc
- => a = Wc/Nc, b = Wc/2 - a.NX/2
+ xp = a.x + b
+ yp = a.y + b
+ blob centre at (Wx/2,Wx/2) maps to canvas centre at (Wc/2,Wc/2)
+ => Wc/2 = a.Wx/2 + b
+ The fraction beta maps to the canvas width
+ => Wc = a.beta.Wx
+ => a = Wc/(beta.Wx), b = Wc/2 - a.Wx/2
 */
-    Nc = (2*NX)/3;
+    Wx = (nx-1)*dx;
     Wc = CANVAS_WIDTH;
-    w = Wc/Nc;
-    a = w;
-    b = Wc/2 - a*NX/2;
-    d0 = w*Global::dfraction;
+    a = Wc/(beta*Wx);
+    b = Wc/2 - a*Wx/2;
+    sprintf(msg,"Nc: %d Wc: %f w: %d a: %f b: %f",Nc,Wc,w,a,b);
+    LOG_MSG(msg);
+    /*
     cmin = 1.0e10;
     cmax = 0;
     rmax = 0;
@@ -323,26 +333,52 @@ void Field::displayField(int hr, int *res)
         // Flip it
 //        data[i].site[yindex] = NX - data[i].site[yindex];
     }
+    */
     brush.setStyle(Qt::SolidPattern);
     brush.setColor(QColor(0,0,0));
     scene->addRect(0,0,CANVAS_WIDTH,CANVAS_WIDTH,Qt::NoPen, brush);
     view->setScene(scene);
     view->setGeometry(QRect(0, 0, 700, 700));
-    if (cmax == 0) {
-        view->show();
-        return;
-    }
-    for (i=0; i<nsites; i++) {
-        ix = this->data[i].site[xindex];
-        iy = this->data[i].site[yindex];
-        xp = int(a*ix + b - w);
-        yp = int(a*iy + b - w);
-        chooseFieldColor(data[i].conc[ichemo],cmin,cmax,use_log,rgbcol);
+//    if (cmax == 0) {
+//        view->show();
+//        return;
+//    }
+
+//    for (i=0; i<nsites; i++) {
+//        ix = this->data[i].site[xindex];
+//        iy = this->data[i].site[yindex];
+    rgbcol[0] = 128;
+    rgbcol[1] = 64;
+    rgbcol[2] = 32;
+    w = a*dx + 0.5;
+    for (ix=0; ix<nx-1; ix++) {
+        x = ix*dx;
+        for (iy=0; iy<nx-1; iy++) {
+            y = iy*dx;
+            xp = int(a*x + b);
+            yp = int(a*y + b);
+//        chooseFieldColor(data[i].conc[ichemo],cmin,cmax,use_log,rgbcol);
 //        sprintf(msg,"c: %f %f %f rgbcol: %d %d %d",data[i].conc[constituent],cmin,cmax,rgbcol[0],rgbcol[1],rgbcol[2]);
 //        LOG_MSG(msg);
-        brush.setColor(QColor(rgbcol[0],rgbcol[1],rgbcol[2]));
-        scene->addRect(xp,yp,w,w,Qt::NoPen, brush);
+            brush.setColor(QColor(rgbcol[0],rgbcol[1],rgbcol[2]));
+            scene->addRect(xp,yp,w,w,Qt::NoPen, brush);
+        }
     }
+
+    rgbcol[0] = 0;
+    rgbcol[1] = 200;
+    rgbcol[2] = 32;
+    for (i=0; i<fdata.ncells; i++) {
+        x = fdata.cell_data[i].centre[0];
+        y = fdata.cell_data[i].centre[1];
+        radius = fdata.cell_data[i].radius;
+        xp = a*x + b;
+        yp = a*y + b;
+        d = 2*a*radius;
+        brush.setColor(QColor(rgbcol[0],rgbcol[1],rgbcol[2]));
+        scene->addEllipse(xp,yp,d,d,Qt::NoPen, brush);
+    }
+    /*
     for (i=0; i<nsites; i++) {
         ix = this->data[i].site[xindex];
         iy = this->data[i].site[yindex];
@@ -358,7 +394,10 @@ void Field::displayField(int hr, int *res)
             scene->addEllipse(xp+(w-d)/2,yp+(w-d)/2,d,d,Qt::NoPen, brush);
         }
     }
+    */
     view->show();
+    return;
+
     if (save_images) {
         scene->clearSelection();                                                  // Selections would also render to the file
         scene->setSceneRect(scene->itemsBoundingRect());                          // Re-shrink the scene to it's bounding contents

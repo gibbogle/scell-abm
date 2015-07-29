@@ -190,8 +190,8 @@ void ExecThread::run()
         return;
     }
 
-    test_get_array();
-    return;
+//    test_get_array();
+//    return;
 
 	paused = false;
     LOG_MSG("call execute");

@@ -10,6 +10,7 @@ implicit none
 contains
 
 !-----------------------------------------------------------------------------------------
+! Note: the only requirement is that the array has the SAVE attribute
 !-----------------------------------------------------------------------------------------
 !subroutine test_array(array) bind(C)
 subroutine test_array(narr1, narr2, cptr) bind(C)
@@ -23,7 +24,7 @@ use, intrinsic :: iso_c_binding
 !TYPE (PASS), INTENT(INOUT) :: array
 integer(c_int) :: narr1, narr2
 TYPE (C_PTR)    :: cptr
-!real(c_double), allocatable, target, save :: a(:,:)
+!real(c_double), allocatable, save :: a(:,:)
 real(c_double), save :: a(4,3)
 integer :: i1, i2
 integer :: n1=4, n2=3
@@ -40,6 +41,67 @@ narr2 = n2
 cptr = c_loc(a)
 write(*,'(4f6.0)') a
 
+end subroutine
+
+!-----------------------------------------------------------------------------------------
+! Distances are still all cm
+!-----------------------------------------------------------------------------------------
+subroutine get_fielddata(axis, fraction, fdata, res) bind(C)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_fielddata
+use, intrinsic :: iso_c_binding
+integer(c_int) :: axis, res
+real(c_double) :: fraction
+type (fielddata_type)    :: fdata
+type(celldata_type), save :: cdata(1000)
+type(cell_type), pointer :: cp
+real(REAL_KIND) :: x, y, z, c(3), r, rad
+integer :: i, kcell, nc
+
+fdata%NX = NX
+fdata%NY = NY
+fdata%NZ = NZ
+fdata%NCONST = NCONST
+fdata%DX = DELTA_X
+fdata%conc_ptr = c_loc(Caverage)
+fdata%cell_ptr = c_loc(cdata)
+nc = 0
+! start by fixing on central plane, ignoring fraction
+if (axis == X_AXIS) then
+	x = ((NX-1)/2)*DELTA_X		
+elseif (axis == Y_AXIS) then
+	y = ((NY-1)/2)*DELTA_X 
+elseif (axis == Z_AXIS) then
+	z = ((NZ-1)/2)*DELTA_X 
+endif
+do kcell = 1,nlist
+	cp => cell_list(kcell)
+	if (cp%state == DEAD) cycle
+	do i = 1,cp%nspheres
+		c = cp%centre(:,i)
+		r = cp%radius(i)
+		if (axis == X_AXIS) then
+			if (c(1) + r < x .or. c(1) - r > x) cycle
+			rad = sqrt(r**2-(c(1)-x)**2)
+			nc = nc + 1
+			cdata(nc)%radius = rad
+			cdata(nc)%centre(1:2) = [c(2),c(3)]		! always use centre(1:2) to store the 2D coordinates
+		elseif (axis == Y_AXIS) then
+			if (c(2) + r < y .or. c(2) - r > y) cycle
+			rad = sqrt(r**2-(c(2)-y)**2)
+			nc = nc + 1
+			cdata(nc)%radius = rad
+			cdata(nc)%centre(1:2) = [c(1),c(3)]		! always use centre(1:2) to store the 2D coordinates
+		elseif (axis == Z_AXIS) then
+			if (c(3) + r < z .or. c(3) - r > z) cycle
+			rad = sqrt(r**2-(c(3)-z)**2)
+			nc = nc + 1
+			cdata(nc)%radius = rad
+			cdata(nc)%centre(1:2) = [c(1),c(2)]		! always use centre(1:2) to store the 2D coordinates
+		endif
+	enddo
+enddo		
+fdata%ncells = nc
+res = 0
 end subroutine
 
 !-----------------------------------------------------------------------------------------

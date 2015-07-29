@@ -17,6 +17,10 @@ integer, parameter :: EXPONENTIAL_DIST = 3
 integer, parameter :: CONSTANT_DIST    = 4
 integer, parameter :: MAX_CELLTYPES = 4
 
+integer, parameter :: X_AXIS = 1
+integer, parameter :: Y_AXIS = 2
+integer, parameter :: Z_AXIS = 3
+
 integer, parameter :: DRUG_EVENT = 1
 integer, parameter :: RADIATION_EVENT = 2
 integer, parameter :: MEDIUM_EVENT = 3
@@ -88,6 +92,15 @@ type, bind(C) :: celldata_type
 	integer(c_int) :: highlight
 end type
 
+type, bind(C) :: fielddata_type
+    integer(c_int) :: NX, NY, NZ, NCONST
+    real(c_double) :: DX
+    type(c_ptr) :: Conc_ptr   !conc[MAX_CONC+NEXTRA+1];    // added CFSE, dVdt, volume, O2byVol
+    integer(c_int) :: ncells
+    type(c_ptr) :: cell_ptr
+end type
+
+
 type cell_type
 !	real(REAL_KIND) :: V_n          ! "normal" volume
 !	integer :: varindex
@@ -115,10 +128,6 @@ type cell_type
 	real(REAL_KIND) :: wt(8)
 	
 	integer :: nbrs
-!	integer, allocatable :: nbrlist(:,:)	! nbrlist(k,1) = index of near cell
-!											! nbrlist(k,2) = 1 if in contact, 0 otherwise
-!											! this determines location on the interaction-energy hysteresis loop
-!	type(neighbour_type), allocatable :: nbrlist(:)
 	type(neighbour_type) :: nbrlist(100)
 	real(REAL_KIND) :: Cin(NCONST)
 	real(REAL_KIND) :: Cex(NCONST)
