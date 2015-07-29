@@ -5,7 +5,7 @@ implicit none
 integer :: ncpu, res, summarydata(100)
 character*(128) :: infile, outfile, runfile
 integer :: status, nlen, cnt, i, inbuflen, outbuflen
-integer :: jstep, hour, irun, nsumm_interval
+integer :: jstep, hour, ntot, ncog, inflow, irun, i_hypoxia_cutoff,i_growth_cutoff, nsumm_interval
 character*(128) :: b, c, progname
 real :: vasc
 logical :: update_vtk
@@ -58,6 +58,8 @@ do i = 1, cnt
     endif
 end do
 
+i_hypoxia_cutoff = 2
+i_growth_cutoff = 2
 	inbuflen = len(infile)
 	outbuflen = len(outfile)
 	write(*,*) 'call execute'
@@ -67,10 +69,18 @@ end do
     call system_clock(count_0, count_rate, count_max)
     t1 = count_0*1.0/count_rate
 	write(*,*) 'did execute: nsteps, DELTA_T: ',nsteps, DELTA_T
+	nsumm_interval = (60*60)/DELTA_T   ! number of time steps per hour
+	write(*,*) 'nsumm_interval: ',nsumm_interval
 	do jstep = 1,Nsteps
 		call simulate_step(res)
-		if (res /= 0) stop
+		if (res /= 0) then
+			stop
+		endif
+		if (mod(jstep,nsumm_interval) == 0) then
+			call get_summary(summarydata,i_hypoxia_cutoff,i_growth_cutoff)
+		endif
 	enddo
+	write(*,*) 'call terminate_run'
 	call terminate_run(res)
 !	call cpu_time(t2)
 !	t2 = wtime()

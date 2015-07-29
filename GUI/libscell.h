@@ -28,6 +28,8 @@ void get_constituents(int *, int *, int *, char *, int *);
 
 //void get_profile_oxygen(double *, double *, int *);
 
+void test_array(int *, int *, double **);   // To test accessing a Fortran 2D array.
+                                            // This returns a pointer to the array, which must be 'allocatable, target'.
 //
 //
 #ifdef __cplusplus

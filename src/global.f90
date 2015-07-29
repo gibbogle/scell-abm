@@ -15,6 +15,12 @@ integer, parameter :: NORMAL_DIST      = 1
 integer, parameter :: LOGNORMAL_DIST   = 2
 integer, parameter :: EXPONENTIAL_DIST = 3
 integer, parameter :: CONSTANT_DIST    = 4
+integer, parameter :: MAX_CELLTYPES = 4
+
+integer, parameter :: DRUG_EVENT = 1
+integer, parameter :: RADIATION_EVENT = 2
+integer, parameter :: MEDIUM_EVENT = 3
+
 
 !real(REAL_KIND), parameter :: dx = 3.0e-3			! (cm) = 30 um
 integer, parameter :: NRF = 4
@@ -25,16 +31,31 @@ real(REAL_KIND), parameter :: PI = 4*atan(1.d0)
 real(REAL_KIND), parameter :: BIG = 1.0d10
 real(REAL_KIND), parameter :: um3_cm3 = 1.0e-12
 real(REAL_KIND), parameter :: small_d = 0.1e-4		! 0.1 um -> cm
+real(REAL_KIND), parameter :: CFSE_std = 0.05
 
 integer, parameter :: ALIVE = 0
 integer, parameter :: DEAD = 1
 integer, parameter :: TERMINAL_MITOSIS   = 1
 integer, parameter :: CONTINUOUS_MITOSIS = 2
-integer, parameter :: MAX_CHEMO = 5
-integer, parameter :: NCONST = 2
+!integer, parameter :: MAX_CHEMO = 5
 integer, parameter :: OXYGEN = 1
 integer, parameter :: GLUCOSE = 2
 integer, parameter :: TRACER = 3
+integer, parameter :: DRUG_A = 4
+integer, parameter :: TPZ_DRUG = DRUG_A
+integer, parameter :: TPZ_DRUG_METAB_1 = TPZ_DRUG + 1
+integer, parameter :: TPZ_DRUG_METAB_2 = TPZ_DRUG + 2
+integer, parameter :: DRUG_B = DRUG_A + 3
+integer, parameter :: DNB_DRUG = DRUG_B
+integer, parameter :: DNB_DRUG_METAB_1 = DNB_DRUG + 1
+integer, parameter :: DNB_DRUG_METAB_2 = DNB_DRUG + 2
+integer, parameter :: MAX_CHEMO = DNB_DRUG_METAB_2
+integer, parameter :: GROWTH_RATE = MAX_CHEMO + 1	! (not used here, used in the GUI)
+integer, parameter :: CELL_VOLUME = MAX_CHEMO + 2
+integer, parameter :: O2_BY_VOL = MAX_CHEMO + 3
+
+integer, parameter :: N_EXTRA = O2_BY_VOL - MAX_CHEMO	! = 3 = total # of variables - MAX_CHEMO
+integer, parameter :: NCONST = MAX_CHEMO
 
 integer, parameter :: MITOSIS_MODE = TERMINAL_MITOSIS
 
@@ -70,22 +91,29 @@ end type
 type cell_type
 !	real(REAL_KIND) :: V_n          ! "normal" volume
 !	integer :: varindex
+	integer :: ID
+	integer :: celltype
 	integer :: state
 	logical :: Iphase
     integer :: nspheres             ! =1 for Iphase, =2 for Mphase
     integer :: site(3)				! this is the gridcell = (i,j,k) then cell is in: i-i+1, j-j+1, k-k+1
-    real(REAL_KIND) :: gamma(3)		! fractional positions: xlocal = gamma(1)*DELTA_X, x = (i-1)*DELTA_X + xlocal, ...
 	real(REAL_KIND) :: V			! actual volume (um3) -> cm3
 	real(REAL_KIND) :: dVdt
 	real(REAL_KIND) :: radius(2)	! sphere radii (um) -> cm
 	real(REAL_KIND) :: centre(3,2)  ! sphere centre positions
 	real(REAL_KIND) :: d			! centre separation distance (um) -> cm
 	real(REAL_KIND) :: birthtime
-	real(REAL_KIND) :: growthrate
+!	real(REAL_KIND) :: growthrate
 	real(REAL_KIND) :: V_divide
+!	real(REAL_KIND) :: t_divide_last
+	real(REAL_KIND) :: t_hypoxic
+	real(REAL_KIND) :: t_anoxia_die
 	real(REAL_KIND) :: t_start_mitosis
 	real(REAL_KIND) :: mitosis		! level of mitosis (0 - 1)
 	real(REAL_KIND) :: d_divide		! centre separation distance at the end of mitosis
+	integer :: cnr(3,8)
+	real(REAL_KIND) :: wt(8)
+	
 	integer :: nbrs
 !	integer, allocatable :: nbrlist(:,:)	! nbrlist(k,1) = index of near cell
 !											! nbrlist(k,2) = 1 if in contact, 0 otherwise
@@ -95,41 +123,155 @@ type cell_type
 	real(REAL_KIND) :: Cin(NCONST)
 	real(REAL_KIND) :: Cex(NCONST)
 	real(REAL_KIND) :: dMdt(NCONST)	! mumol/s
+	real(REAL_KIND) :: CFSE
+	logical :: radiation_tag, drugA_tag, drugB_tag, anoxia_tag
+	real(REAL_KIND) :: p_death
 end type
 
 type XYZ_type
     real(REAL_KIND) :: x, y, z
 end type
 
+type treatment_type
+	integer :: ichemo
+	integer :: n
+!	character*(16) :: name
+	real(REAL_KIND), allocatable :: tstart(:)
+	real(REAL_KIND), allocatable :: tend(:)
+	real(REAL_KIND), allocatable :: conc(:)
+	real(REAL_KIND), allocatable :: dose(:)
+	logical, allocatable :: started(:)
+	logical, allocatable :: ended(:)
+end type
+
+type event_type
+	integer :: etype
+	real(REAL_KIND) :: time
+	integer :: ichemo			! DRUG
+	real(REAL_KIND) :: volume	! DRUG MEDIUM
+	real(REAL_KIND) :: conc		! DRUG
+	real(REAL_KIND) :: dose		! RADIATION
+	logical :: done
+end type	
+
+type SN30K_type
+	integer :: nmetabolites
+	real(REAL_KIND) :: diff_coef
+	real(REAL_KIND) :: medium_diff_coef
+	real(REAL_KIND) :: membrane_diff
+	real(REAL_KIND) :: halflife
+	real(REAL_KIND) :: metabolite_halflife
+	real(REAL_KIND) :: Kmet0(MAX_CELLTYPES)
+!	real(REAL_KIND) :: C1(MAX_CELLTYPES)
+	real(REAL_KIND) :: C2(MAX_CELLTYPES)
+	real(REAL_KIND) :: KO2(MAX_CELLTYPES)
+!	real(REAL_KIND) :: gamma(MAX_CELLTYPES)
+	real(REAL_KIND) :: Klesion(MAX_CELLTYPES)
+	integer         :: kill_model(MAX_CELLTYPES)
+	real(REAL_KIND) :: kill_O2(MAX_CELLTYPES)
+	real(REAL_KIND) :: kill_drug(MAX_CELLTYPES)
+	real(REAL_KIND) :: kill_duration(MAX_CELLTYPES)
+	real(REAL_KIND) :: kill_fraction(MAX_CELLTYPES)
+	real(REAL_KIND) :: Kd(MAX_CELLTYPES)
+end type
+
+type TPZ_type
+	character*(16) :: name
+	integer :: nmetabolites
+	logical :: use_metabolites
+	real(REAL_KIND) :: diff_coef(0:2)
+	real(REAL_KIND) :: medium_diff_coef(0:2)
+	real(REAL_KIND) :: membrane_diff_in(0:2)
+	real(REAL_KIND) :: membrane_diff_out(0:2)
+	real(REAL_KIND) :: halflife(0:2)
+	real(REAL_KIND) :: Kmet0(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: C2(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: KO2(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: Vmax(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: Km(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: Klesion(MAX_CELLTYPES,0:2)
+	integer         :: kill_model(MAX_CELLTYPES)
+	real(REAL_KIND) :: kill_O2(MAX_CELLTYPES)
+	real(REAL_KIND) :: kill_drug(MAX_CELLTYPES)
+	real(REAL_KIND) :: kill_duration(MAX_CELLTYPES)
+	real(REAL_KIND) :: kill_fraction(MAX_CELLTYPES)
+	real(REAL_KIND) :: Kd(MAX_CELLTYPES)
+end type
+
+
+type DNB_type
+	character*(16) :: name
+	integer :: nmetabolites
+	logical :: use_metabolites
+	real(REAL_KIND) :: diff_coef(0:2)
+	real(REAL_KIND) :: medium_diff_coef(0:2)
+	real(REAL_KIND) :: membrane_diff_in(0:2)
+	real(REAL_KIND) :: membrane_diff_out(0:2)
+	real(REAL_KIND) :: halflife(0:2)
+	real(REAL_KIND) :: Kmet0(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: C2(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: KO2(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: Vmax(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: Km(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: Klesion(MAX_CELLTYPES,0:2)
+	integer         :: kill_model(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: kill_O2(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: kill_drug(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: kill_duration(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: kill_fraction(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: Kd(MAX_CELLTYPES,0:2)
+end type
+
+type LQ_type
+	real(REAL_KIND) :: OER_am, OER_bm
+	real(REAL_KIND) :: alpha_H, beta_H
+	real(REAL_KIND) :: K_ms
+	real(REAL_KIND) :: death_prob
+end type
+
 integer, parameter :: nflog=10, nfin=11, nfout=12, nfres=13, nfcell=14
 integer, parameter :: MAX_NLIST = 100000
 integer, parameter :: MAX_NBRS = 100
 integer, parameter :: ndt_max = 30
-real(REAL_KIND), parameter :: Raverage = 5.0e-4*1.5**(1./3)		! average cells radius (um) -> cm
+real(REAL_KIND), parameter :: Raverage = 0.66e-3	! as in spheroid-abm.  was: 5.0e-4*1.5**(1./3)		! average cells radius (um) -> cm
 
 character*(128) :: inputfile
 character*(128) :: outputfile
 character*(12) :: dll_version, dll_run_version
 character*(12) :: gui_version, gui_run_version
 
-integer :: Mnodes, ncpu_input, ncells, ncells_mphase, nlist, nsteps
+integer :: Mnodes, ncpu_input, ncells, ncells_mphase, nlist, nsteps, nevents
 integer :: NX, NY, NZ, NXB, NYB, NZB
 integer :: Ndim(3)
-integer :: NT_CONC, NT_GUI_OUT, initial_count, ntries, ncelltypes
+integer :: nt_saveprofiledata, it_saveprofiledata
+integer :: NT_CONC, NT_GUI_OUT, initial_count, ntries, Ncelltypes, Ncells_type(MAX_CELLTYPES)
 integer :: istep, ndt, ndtotal, ndtotal_last, ichemo_curr
 integer :: seed(2)
 integer :: jumpvec(3,27)
-real(REAL_KIND) :: DELTA_X, DELTA_T, tnow, t_simulation
+real(REAL_KIND) :: DELTA_X, DELTA_T, tnow, t_simulation, dt_saveprofiledata
 real(REAL_KIND) :: blobcentre(3)	! blob centre
 real(REAL_KIND) :: epsilon, es_e, sqr_es_e, shift, Dfactor
 real(REAL_KIND) :: alpha_v, k_detach
 real(REAL_KIND) :: dr_mitosis, mitosis_hours, mitosis_duration
 real(REAL_KIND) :: test_growthrate
-real(REAL_KIND) :: Vdivide0, dVdivide, Rdivide0, MM_THRESHOLD
+real(REAL_KIND) :: Vdivide0, dVdivide, Rdivide0, MM_THRESHOLD, medium_volume0, total_volume
 real(REAL_KIND) :: t_anoxic_limit, anoxia_death_delay, ANOXIA_THRESHOLD, anoxia_tag_hours, anoxia_death_hours
-real(REAL_KIND) :: divide_time_median, divide_time_shape, divide_time_mean, celltype_fraction(2)
+real(REAL_KIND) :: divide_time_median(MAX_CELLTYPES), divide_time_shape(MAX_CELLTYPES), divide_time_mean(MAX_CELLTYPES), celltype_fraction(MAX_CELLTYPES)
+type(dist_type) :: divide_dist(MAX_CELLTYPES)
 real(REAL_KIND) :: d_nbr_limit
-type(dist_type) :: divide_dist
+
+logical :: use_dropper
+integer :: Ndrop
+real(REAL_KIND) :: alpha_shape, beta_shape	! squashed sphere shape parameters
+real(REAL_KIND) :: adrop, bdrop, cdrop		! drop shape transformation parameters
+integer :: zmin     						! drop lower bound at drop time = lower limit of blob thereafter
+logical :: is_dropped
+
+integer :: NdrugA_tag(MAX_CELLTYPES), NdrugB_tag(MAX_CELLTYPES), Nradiation_tag(MAX_CELLTYPES), Nanoxia_tag(MAX_CELLTYPES)
+integer :: NdrugA_dead(MAX_CELLTYPES), NdrugB_dead(MAX_CELLTYPES), Nradiation_dead(MAX_CELLTYPES), Nanoxia_dead(MAX_CELLTYPES)
+real(REAL_KIND) :: O2cutoff(3)
+real(REAL_KIND) :: growthcutoff(3)
+
 
 ! From react_diff
 real(REAL_KIND) :: dxf, dxb, dx3, dxb3, Rcell, Vcell
@@ -137,12 +279,13 @@ real(REAL_KIND), allocatable :: Vin(:,:,:), dVindt(:,:,:)
 integer, allocatable :: ngcells(:,:,:)
 real(REAL_KIND), allocatable :: afull(:,:)
 
-real(REAL_KIND) :: a_separation
+real(REAL_KIND) :: a_separation, kdrag, frandom
 real(REAL_KIND) :: a_force, b_force, c_force, x0_force, x1_force, xcross1_force, xcross2_force
-real(REAL_KIND) :: t_fmover, delta_tmove, dt_min, delta_min, delta_max, kdrag, frandom
+real(REAL_KIND) :: t_fmover, delta_tmove, dt_min, delta_min, delta_max
 
 real(REAL_KIND) :: C_O2_bdry
 !real(REAL_KIND) :: Kmemb(NCONST)
+real(REAL_KIND) :: total_dMdt
 
 integer :: show_progeny
 logical :: use_V_dependence, randomise_initial_volume
@@ -155,20 +298,38 @@ logical :: stopped, clear_to_send
 
 character*(128) :: logfile
 character*(2048) :: logmsg
+character*(128) :: profiledatafilebase
 
 type(cell_type), allocatable, target :: cell_list(:)
 type(grid_type), allocatable, target :: grid(:,:,:)
 integer, allocatable :: perm_index(:)
 type(stencil_type), allocatable :: stencil(:,:,:)
-real(REAL_KIND), allocatable, target :: Cextra(:,:,:,:)
+real(REAL_KIND), allocatable, target :: Cextra_all(:,:,:,:)
 real(REAL_KIND), allocatable, target :: Caverage(:,:,:,:)
 real(REAL_KIND), allocatable, target :: Cflux(:,:,:,:)
 real(REAL_KIND), allocatable, target :: Cflux_prev(:,:,:,:)
 
+type(treatment_type), allocatable :: protocol(:)
+type(event_type), allocatable :: event(:)
+
+
+type(TPZ_type) :: TPZ
+type(DNB_type) :: DNB
+type(LQ_type) :: LQ(MAX_CELLTYPES)
+
+logical :: use_events = .true.
+logical :: use_radiation, use_treatment
+logical :: saveprofiledata
+logical :: use_death = .true.
+logical :: use_extracellular_O2 = .false.
+logical :: use_migration = .false.
+logical :: suppress_growth = .false.
 logical :: use_hysteresis = .false.
 logical :: use_permute = .false.
 logical :: use_SS = .true.
 logical :: dbug = .false.
+
+integer :: kcell_now
 
 !dec$ attributes dllexport :: nsteps, DELTA_T
 

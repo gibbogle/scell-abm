@@ -1,5 +1,5 @@
 /****************************************************************************
- spheroid_GUI
+ scell_GUI
 ****************************************************************************/
 
 #include <QtGui>
@@ -48,6 +48,7 @@ MainWindow::MainWindow(QWidget *parent)
 	setupUi(this);
     LOG_MSG("did setupUi");
     showMaximized();
+    setWindowTitle("Tumour Spheroid ABM - off-lattice");
 
     QString currPath = QDir::currentPath();
     LOG_QMSG("starting path: " + currPath);
@@ -62,7 +63,7 @@ MainWindow::MainWindow(QWidget *parent)
     nDistPts = 200;
 	nTicks = 1000;
 	tickVTK = 100;	// timer tick for VTK in milliseconds
-    ndistplots = 1;
+    ndistplots = 2;
     paramSaved = false;
 	paused = false;
 	posdata = false;
@@ -325,8 +326,12 @@ void MainWindow::createLists()
 
 	QwtPlot *qp;
 
-    qp = (QwtPlot *)qFindChild<QObject *>(this, "qwtPlot_DIVIDE_TIME");
+//    qp = (QwtPlot *)qFindChild<QObject *>(this, "qwtPlot_DIVIDE_TIME");
+//    distplot_list[0] = qp;
+    qp = (QwtPlot *)qFindChild<QObject *>(this, "qwtPlot_DIVIDE_TIME_1");
     distplot_list[0] = qp;
+    qp = (QwtPlot *)qFindChild<QObject *>(this, "qwtPlot_DIVIDE_TIME_2");
+    distplot_list[1] = qp;
 }
 
 
@@ -426,6 +431,7 @@ void MainWindow:: stopRecorderFACS()
     LOG_QMSG("stopRecorderFACS");
 }
 
+/*
 //--------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------
 void MainWindow:: drawDistPlots()
@@ -464,9 +470,57 @@ void MainWindow:: drawDistPlots()
 		qp->replot();
 	}
 	delete [] x;
-	x = NULL;
+    x = NULL;
 	delete [] prob;
 	prob = NULL;
+}
+*/
+
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
+void MainWindow:: drawDistPlots()
+{
+    double *x, *prob;
+    x = new double[nDistPts];
+    prob = new double[nDistPts];
+    QwtPlot *qp;
+    string name_str;
+    QString median_qstr, shape_qstr;
+    double median, shape;
+
+    for (int j=0; j<ndistplots; j++) {
+        qp = distplot_list[j];
+        QString name = qp->objectName();
+        if (j == 0) {
+            qp->setTitle("Type 1 division time (hrs)");
+            median_qstr = line_DIVIDE_TIME_1_MEDIAN->text();
+            shape_qstr = line_DIVIDE_TIME_1_SHAPE->text();
+        } else if (j == 1) {
+            qp->setTitle("Type 2 division time (hrs)");
+            median_qstr = line_DIVIDE_TIME_2_MEDIAN->text();
+            shape_qstr = line_DIVIDE_TIME_2_SHAPE->text();
+        }
+        median = median_qstr.toDouble();
+        shape = shape_qstr.toDouble();
+        create_lognorm_dist(median,shape,nDistPts,x,prob);
+
+        int n = dist_limit(prob,nDistPts);
+        double xmax = x[n];
+        sprintf(msg,"%f %f %d",median,shape,n);
+        for (int i=0;i<40;i++) {
+            sprintf(msg,"%d %f %f",i,x[i],prob[i]);
+        }
+        qp->setAxisScale(QwtPlot::xBottom, 0.0, xmax, 0.0);
+        QwtPlotCurve *curve = new QwtPlotCurve("title");
+        curve->attach(qp);
+        curve->setData(x, prob, n);
+        curve_list[j] = curve;
+        qp->replot();
+    }
+    delete [] x;
+    x = NULL;
+    delete [] prob;
+    prob = NULL;
 }
 
 //--------------------------------------------------------------------------------------------------------
@@ -2132,8 +2186,8 @@ void MainWindow::showSummary(int hr)
     int n, res;
     QString tag;
 
-//    sprintf(msg,"showSummary: step: %d",step);
-//    LOG_MSG(msg);
+    sprintf(msg,"showSummary: step: %d",step);
+    LOG_MSG(msg);
     step++;
     if (step >= newR->nsteps) {
 		LOG_MSG("ERROR: step >= nsteps");
@@ -2177,7 +2231,7 @@ void MainWindow::showSummary(int hr)
         double yscale = grph->get_yscale(i);
         pGraph[i]->redraw(newR->tnow, newR->pData[i], step+1, casename, tag, yscale, false);
     }
-//    LOG_QMSG("did ts graphs");
+    LOG_QMSG("did ts graphs");
 
     // Profile plots
 //    int nvars = 1 + Global::MAX_CHEMO + Global::N_EXTRA;
@@ -2189,6 +2243,7 @@ void MainWindow::showSummary(int hr)
             double x[100], y[100];
             double xscale, yscale;
             tag = grph->get_tag(i);
+            LOG_QMSG("tag: " + tag);
             int k = grph->get_dataIndex(i);
             if (k == MULTI) {
                 ivar = field->constituent;
@@ -2199,9 +2254,13 @@ void MainWindow::showSummary(int hr)
             }
             n = Global::conc_nc;
             int offset = k*n;
+            sprintf(msg,"n: %d offset: %d",n,offset);
+            LOG_MSG(msg);
             for (int j=0; j<n; j++) {
                 x[j] = j*Global::conc_dx*1.0e4;
                 y[j] = Global::concData[offset+j];
+                sprintf(msg,"%d %f %f",j,x[j],y[j]);
+                LOG_MSG(msg);
             }
             xscale = grph->get_xscale(x[n-1]);
             double maxval = 0;
@@ -2219,7 +2278,7 @@ void MainWindow::showSummary(int hr)
             pGraph[i]->redraw(x, y, n, casename, tag, yscale, true);
         }
     }
-//    LOG_QMSG("did profile graphs");
+    LOG_QMSG("did profile graphs");
     /*
     // Distribution plots
     for (int i=0; i<nGraphs; i++) {
@@ -3205,7 +3264,7 @@ void MainWindow::setupConstituents()
 
     narraylen = 1000;
     name_array = (char *)malloc(narraylen*sizeof(char));
-//    get_constituents(&Global::nvars_used, Global::GUI_to_DLL_index, &nvarlen, name_array, &narraylen);
+    get_constituents(&Global::nvars_used, Global::GUI_to_DLL_index, &nvarlen, name_array, &narraylen);
     for (ichemo=0; ichemo<32; ichemo++)
         Global::DLL_to_GUI_index[ichemo] = -1;
     for (ivar=0; ivar<Global::nvars_used; ivar++)

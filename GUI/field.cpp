@@ -255,7 +255,7 @@ void Field::displayField(int hr, int *res)
     *res = 0;
     hour = hr;
 	if (slice_changed) {
-//        get_fieldinfo(&NX, &axis, &fraction, &nsites, &nconst, const_used, res);    // Note: const_used[] is no longer used
+//        old_get_fieldinfo(&NX, &axis, &fraction, &nsites, &nconst, const_used, res);    // Note: const_used[] is no longer used
         if (*res != 0) {
             printf("Error: get_fieldinfo: FAILED\n");
             LOG_MSG("Error: get_fieldinfo: FAILED");
@@ -274,8 +274,8 @@ void Field::displayField(int hr, int *res)
         if (this->data) {
             free(this->data);
         }
-        this->data = (FIELD_DATA *)malloc(nsites*sizeof(FIELD_DATA));
-//        get_fielddata(&axis, &fraction, &nsites, &nconst, this->data, res);
+        this->data = (old_FIELD_DATA *)malloc(nsites*sizeof(old_FIELD_DATA));
+//        old_get_fielddata(&axis, &fraction, &nsites, &nconst, this->data, res);
         if (*res != 0) {
             LOG_MSG("Error: get_fielddata: FAILED");
             return;

@@ -2,3 +2,8 @@ Build/
 Docs/
 Execution/
 scell_GUI-build/
+/GUI/scell_GUI.pro
+/GUI/scell_GUI.pro.user
+/src/scell-backup.f90
+/src/nbr1.f90
+/src/unused.f90

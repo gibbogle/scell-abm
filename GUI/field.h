@@ -12,14 +12,14 @@
 #define MAX_CONC 9  // must = MAX_CHEMO in DLL
 #define NEXTRA 3    // must = N_EXTRA in DLL
 
-struct field_data {
+struct old_field_data {
     int site[3];
     int state;
     double volume;
     double conc[MAX_CONC+NEXTRA+1];    // added CFSE, dVdt, volume, O2byVol
 };
 
-typedef field_data FIELD_DATA;
+typedef old_field_data old_FIELD_DATA;
 
 #define X_AXIS 1
 #define Y_AXIS 2
@@ -29,8 +29,8 @@ typedef field_data FIELD_DATA;
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
 extern "C" {
-    void get_fieldinfo(int *, int *, double *, int *, int *, int *, int *);
-    void get_fielddata(int *, double *, int *, int *, FIELD_DATA *, int *);
+    void get_old_fieldinfo(int *, int *, double *, int *, int *, int *, int *);
+    void get_old_fielddata(int *, double *, int *, int *, old_FIELD_DATA *, int *);
 }
 
 //class Field : public QMainWindow
@@ -84,7 +84,7 @@ public:
     bool useConcPlot;
     bool useVolPlot;
     bool useOxyPlot;
-    FIELD_DATA *data;
+    old_FIELD_DATA *data;
     Plot *pGconc, *pGvol, *pGoxy;
     bool executing;
     char msg[1024];

@@ -24,6 +24,7 @@ type chemokine_type
 	real(REAL_KIND) :: Hill_N
 	real(REAL_KIND) :: medium_diff_coef	! diffusion coefficient in the medium
 	real(REAL_KIND) :: diff_reduction_factor
+	real(REAL_KIND) :: medium_Cext		! far-field concentration
 !	Fine grid
 	real(REAL_KIND), allocatable :: Cprev(:,:,:)
 	real(REAL_KIND), allocatable :: Fprev(:,:,:)
@@ -119,17 +120,6 @@ do ichemo = 1,MAX_CHEMO
 enddo
 end subroutine
 
-!-----------------------------------------------------------------------------------------
-! Use %bdry_conc for the initial values
-!-----------------------------------------------------------------------------------------
-subroutine SetInitialConcs
-integer :: ichemo
-
-do ichemo = 1,NCONST
-	Cextra(:,:,:,ichemo) = chemo(ichemo)%bdry_conc
-enddo
-end subroutine
-
 !----------------------------------------------------------------------------------------
 ! Consumption rate = Rmax*C/(MM_C0 + C)  (Michaelis-Menten)
 ! where Km = MM_C0 >= Rmax*T*10^6/Vextra_cm3 is the O2 concentration at which cell uptake is halved,
@@ -197,19 +187,19 @@ end function
 !call logger(logmsg)
 !do ic = 1,MAX_CHEMO
 !	if (chemo(ic)%used) then
-!		if (allocated(chemo(ic)%conc)) then
-!			call logger("chemo(ic)%conc already allocated")
-!			deallocate(chemo(ic)%conc)
+!		if (allocated(chemo(ic)%Cin)) then
+!			call logger("chemo(ic)%Cin already allocated")
+!			deallocate(chemo(ic)%Cin)
 !!			stop
 !		endif
-!		allocate(chemo(ic)%conc(NX,NY,NZ))
+!		allocate(chemo(ic)%Cin(NX,NY,NZ))
 !		if (allocated(chemo(ic)%grad)) then
 !			call logger("chemo(ic)%grad already allocated")
 !			deallocate(chemo(ic)%grad)
 !!			stop
 !		endif
 !		allocate(chemo(ic)%grad(3,NX,NY,NZ))
-!		chemo(ic)%conc = chemo(ic)%bdry_conc	
+!		chemo(ic)%Cin = chemo(ic)%bdry_conc	
 !	endif
 !enddo
 !write(logmsg,*) 'did AllocateConcArrays'
@@ -225,7 +215,7 @@ end function
 !
 !do ichemo = 1,MAX_CHEMO
 !	if (chemo(ichemo)%used) then
-!		chemo(ichemo)%conc(site(1),site(2),site(3)) = chemo(ichemo)%bdry_conc
+!		chemo(ichemo)%Cin(site(1),site(2),site(3)) = chemo(ichemo)%bdry_conc
 !	endif
 !enddo
 !end subroutine

@@ -29,24 +29,34 @@ The shape value must be greater than 1, and values close to 1 give distributions
 "Fine grid size",
 "Dimension of the fine grid (number of grid pts in X,Y and Z directions).  Must be a multiple of 8 plus 1."},
 
-{"NXB", 35, 0, 0,
-"Coarse grid size",
-"Dimension of the coarse grid (number of grid pts in X,Y and Z directions).  Grid spacing is 4 times fine grid spacing."},
-
-{"DELTA_X", 30, 0, 0,
-"Fine grid spacing",
-"Grid-cell size in um.  Constituent transport and consumption/production is computed on this grid."},
-
 {"INITIAL_COUNT", 100, 0, 0,
 "Initial number of tumour cells",
 "Initial number of tumour cells"},
 
-{"DIVIDE_TIME_MEDIAN", 24, 0, 0,
+//{"DIVIDE_TIME_MEDIAN", 24, 0, 0,
+//"Division time median parameter",
+//"The time taken for tumour cell division has a lognormal distribution, described by the median and shape parameters. \n\
+//[hours]"},
+
+//{"DIVIDE_TIME_SHAPE", 1.2, 0, 0,
+//"Division time shape parameter",
+//"The time taken for tumour cell division has a lognormal distribution, described by the median and shape parameters."},
+
+{"DIVIDE_TIME_1_MEDIAN", 24, 0, 0,
+"Median (h)",
+"The time taken for tumour cell division has a lognormal distribution, described by the median and shape parameters. \n\
+[hours]"},
+
+{"DIVIDE_TIME_1_SHAPE", 1.2, 0, 0,
+"Shape parameter",
+"The time taken for tumour cell division has a lognormal distribution, described by the median and shape parameters."},
+
+{"DIVIDE_TIME_2_MEDIAN", 24, 0, 0,
 "Division time median parameter",
 "The time taken for tumour cell division has a lognormal distribution, described by the median and shape parameters. \n\
 [hours]"},
 
-{"DIVIDE_TIME_SHAPE", 1.2, 0, 0,
+{"DIVIDE_TIME_2_SHAPE", 1.2, 0, 0,
 "Division time shape parameter",
 "The time taken for tumour cell division has a lognormal distribution, described by the median and shape parameters."},
 
@@ -67,6 +77,14 @@ The shape value must be greater than 1, and values close to 1 give distributions
 "Time step",
 "Length of main time step, for cell death, division, etc.  Should be a divisor of 3600. \n\
 [secs]"},
+
+{"NXB", 35, 0, 0,
+"Coarse grid size",
+"Dimension of the coarse grid (number of grid pts in X,Y and Z directions).  Grid spacing is 4 times fine grid spacing."},
+
+{"DELTA_X", 30, 0, 0,
+"Fine grid spacing",
+"Grid-cell size in um.  Constituent transport and consumption/production is computed on this grid."},
 
 {"A_SEPARATION", 1.0, 0, 0,
 "Separation force factor",
@@ -90,7 +108,7 @@ The parameter 'b' is calculated by setting the minimum value of F(x) (which occu
 The function F(x) is zero at two points, xc1 and xc2.  There is a hysteresis loop for x > xc1: for two cells not in contact, the force is zero for x > xc1. \n\
 After contact is made the force is non-zero until x > xc2 - this is the effect of cell-cell adhesion."},
 
-{"X0_FORCE", 0.7, 0, 0,
+{"X0_FORCE", 0.85, 0, 0,
 "Left asymptote 'x0'",
 "The cell-cell force is a function of x = distance/(sum of radii): x = d/(R1+R2). \n\
 The force function is: F(x) = a/((x-x0)(x1-x)) + b, where x0 and x1 are the locations of the bounding asymptotes. \n\
@@ -98,7 +116,7 @@ The parameter 'b' is calculated by setting the minimum value of F(x) (which occu
 The function F(x) is zero at two points, xc1 and xc2.  There is a hysteresis loop for x > xc1: for two cells not in contact, the force is zero for x > xc1. \n\
 After contact is made the force is non-zero until x > xc2 - this is the effect of cell-cell adhesion."},
 
-{"X1_FORCE", 1.3, 0, 0,
+{"X1_FORCE", 1.4, 0, 0,
 "Right asymptote 'x1'",
 "The cell-cell force is a function of x = distance/(sum of radii): x = d/(R1+R2). \n\
 The force function is: F(x) = a/((x-x0)(x1-x)) + b, where x0 and x1 are the locations of the bounding asymptotes. \n\
@@ -126,11 +144,11 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 "Fluid fraction",
 "Fraction of non-necrotic tumour that is extracellular fluid."},
 
-{"MEDIUM_VOLUME", 1.0, 0, 0,
+{"MEDIUM_VOLUME", 0.074, 0, 0,
 "Medium volume",
 "Volume of the medium in which the spheroid is growing."},
 
-{"UNSTIRRED_LAYER", 0.005, 0, 0,
+{"UNSTIRRED_LAYER", 0.0005, 0, 0,
 "Unstirred layer width",
 "Thickness of the unstirred layer around the spheroid (cm)."},
 
@@ -217,7 +235,7 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
  "Medium diffusion coeff",
  "Constituent diffusion coefficient in the medium"},
 
-{"OXYGEN_CELL_DIFF", 20, 0, 0,
+{"OXYGEN_CELL_DIFF", 600, 0, 0,
  "Membrane diff constant",
  "Cell membrane diffusion constant Kd"},
 
@@ -245,7 +263,7 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 "Use Glucose?",
 "Glucose is simulated"},
 
-{"GLUCOSE_DIFF_COEF", 6.0e-7, 0, 0,
+{"GLUCOSE_DIFF_COEF", 3.0e-6, 0, 0,
  "Spheroid diffusion coeff",
  "GLUCOSE diffusion coefficient"},
 
@@ -253,7 +271,7 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
  "Medium diffusion coeff",
  "Constituent diffusion coefficient in the medium"},
 
-{"GLUCOSE_CELL_DIFF", 10, 0, 0,
+{"GLUCOSE_CELL_DIFF", 100, 0, 0,
  "Membrane diff constant",
  "Cell membrane diffusion coefficient Kd"},
 
@@ -951,51 +969,79 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
  "Klesion  ",
  "DNB-type drug Klesion is the parameter that converts total metabolite into lesion level"},
 
-    // Cell type 2 DNB metabolite 2 kill experiment parameters
+// Cell type 2 DNB metabolite 2 kill experiment parameters
 
-    {"DNB_KILL_MODEL_CELL2_MET2", 4, 0, 0,
-     "Kill model",
-     "Model of DNB-type drug killing: 1 = K x metabolism, 2 = K x Ci x metabolism, 3 = K x metabolism^2"},
+{"DNB_KILL_MODEL_CELL2_MET2", 4, 0, 0,
+ "Kill model",
+ "Model of DNB-type drug killing: 1 = K x metabolism, 2 = K x Ci x metabolism, 3 = K x metabolism^2"},
 
-    {"DNB_KILL_O2_CONC_CELL2_MET2", 0.0, 0, 0,
-     "O2 conc",
-     "DNB-type drug constant O2 concentration in kill experiment"},
+{"DNB_KILL_O2_CONC_CELL2_MET2", 0.0, 0, 0,
+ "O2 conc",
+ "DNB-type drug constant O2 concentration in kill experiment"},
 
-    {"DNB_KILL_DRUG_CONC_CELL2_MET2", 0.01, 0, 0,
-     "Drug conc",
-     "DNB-type drug constant drug concentration in kill experiment"},
+{"DNB_KILL_DRUG_CONC_CELL2_MET2", 0.01, 0, 0,
+ "Drug conc",
+ "DNB-type drug constant drug concentration in kill experiment"},
 
-    {"DNB_KILL_DURATION_CELL2_MET2", 60, 0, 0,
-     "Duration",
-     "DNB-type drug duration of kill experiment"},
+{"DNB_KILL_DURATION_CELL2_MET2", 60, 0, 0,
+ "Duration",
+ "DNB-type drug duration of kill experiment"},
 
-    {"DNB_KILL_FRACTION_CELL2_MET2", 0.9, 0, 0,
-     "Kill fraction",
-     "DNB-type drug fraction of cells killed in the experiment"},
+{"DNB_KILL_FRACTION_CELL2_MET2", 0.9, 0, 0,
+ "Kill fraction",
+ "DNB-type drug fraction of cells killed in the experiment"},
 
 //==========================
 // Radiotherapy parameters
 //==========================
 
-{"RADIATION_ALPHA_H", 0.0473, 0, 0,
+{"RADIATION_ALPHA_H_1", 0.0473, 0, 0,
 "Alpha (hypoxia)",
 "alpha for irradiation of cells under anoxia (zero oxygen)"},
 
-{"RADIATION_BETA_H", 0.0017, 0, 0,
+{"RADIATION_BETA_H_1", 0.0017, 0, 0,
 "Beta (hypoxia)",
 "beta for irradiation of cells under anoxia (zero oxygen)"},
 
-{"RADIATION_OER_ALPHA", 2.5, 0, 0,
+{"RADIATION_OER_ALPHA_1", 2.5, 0, 0,
 "OER alpha",
 "Maximum oxygen enhancement ratio for alpha component of radiosensitivity "},
 
-{"RADIATION_OER_BETA", 3.0, 0, 0,
+{"RADIATION_OER_BETA_1", 3.0, 0, 0,
 "OER beta",
 "Maximum oxygen enhancement ratio for beta component of radiosensitivity"},
 
-{"RADIATION_KM", 4.3e-3, 0, 0,
+{"RADIATION_KM_1", 4.3e-3, 0, 0,
 "Km for radiosensitivity",
 "Oxygen concentration for half maximal radiosensitivity relative to hypoxic cell exposure"},
+
+{"RADIATION_DEATH_PROB_1", 1.0, 0, 0,
+"Death prob",
+"Probability of death at mitosis for a cell tagged for damage by radiation"},
+
+{"RADIATION_ALPHA_H_2", 0.0473, 0, 0,
+"Alpha (hypoxia)",
+"alpha for irradiation of cells under anoxia (zero oxygen)"},
+
+{"RADIATION_BETA_H_2", 0.0017, 0, 0,
+"Beta (hypoxia)",
+"beta for irradiation of cells under anoxia (zero oxygen)"},
+
+{"RADIATION_OER_ALPHA_2", 2.5, 0, 0,
+"OER alpha",
+"Maximum oxygen enhancement ratio for alpha component of radiosensitivity "},
+
+{"RADIATION_OER_BETA_2", 3.0, 0, 0,
+"OER beta",
+"Maximum oxygen enhancement ratio for beta component of radiosensitivity"},
+
+{"RADIATION_KM_2", 4.3e-3, 0, 0,
+"Km for radiosensitivity",
+"Oxygen concentration for half maximal radiosensitivity relative to hypoxic cell exposure"},
+
+{"RADIATION_DEATH_PROB_2", 1.0, 0, 0,
+"Death prob",
+"Probability of death at mitosis for a cell tagged for damage by radiation"},
 
 
 {"HYPOXIA_1", 0.1, 0, 0,

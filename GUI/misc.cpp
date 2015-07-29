@@ -142,6 +142,19 @@ ExecThread::ExecThread(QString infile)
 }
 
 //-----------------------------------------------------------------------------------------
+// Note: the Fortran array must be SAVEd
+//-----------------------------------------------------------------------------------------
+void test_get_array()
+{
+    int i;
+    int narr1, narr2;
+    double *farr;
+    test_array(&narr1, &narr2, &farr);
+    for (i=0;i<narr1*narr2; i++)
+        printf("%d %f\n",i,farr[i]);
+}
+
+//-----------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
 void ExecThread::run()
 {
@@ -176,6 +189,10 @@ void ExecThread::run()
         emit(badDLL(dll_version));
         return;
     }
+
+    test_get_array();
+    return;
+
 	paused = false;
     LOG_MSG("call execute");
     execute(&ncpu,const_cast<char *>(infile),&len_infile,const_cast<char *>(outfile),&len_outfile,Global::blobcentre);
@@ -189,9 +206,9 @@ void ExecThread::run()
     Global::conc_nc = 0;
     hour = 0;
 
-//    mutex1.lock();
-//    emit setupC();
-//    mutex1.unlock();
+    mutex1.lock();
+    emit setupC();
+    mutex1.unlock();
 
 //    mutex1.lock();
 //    get_summary(Global::summaryData, &Global::i_hypoxia_cutoff, &Global::i_growth_cutoff);
@@ -218,25 +235,30 @@ void ExecThread::run()
             LOG_MSG("simulate_step: res != 0");
             break;
         }
-
-//        if (i%summary_interval == 0) {
-//			mutex1.lock();
-//            get_summary(Global::summaryData, &Global::i_hypoxia_cutoff, &Global::i_growth_cutoff);
+        LOG_MSG("did simulate_step");
+        if (i%summary_interval == 0) {
+            LOG_MSG("before get_summary");
+            mutex1.lock();
+            LOG_MSG("did get_summary");
+            get_summary(Global::summaryData, &Global::i_hypoxia_cutoff, &Global::i_growth_cutoff);
 //            get_volprob(&Global::vol_nv, &Global::vol_v0, &Global::vol_dv, Global::volProb);
 //            get_oxyprob(&Global::oxy_nv, &Global::oxy_v0, &Global::oxy_dv, Global::oxyProb);
-//            get_concdata(&Global::conc_nvars, &Global::conc_nc, &Global::conc_dx, Global::concData);
+            LOG_MSG("call get_concdata");
+            get_concdata(&Global::conc_nvars, &Global::conc_nc, &Global::conc_dx, Global::concData);
+            LOG_MSG("did get_concdata");
 //            if (Global::showingFACS || Global::recordingFACS) {
 //                getFACS();
 //            }
-//            mutex1.unlock();
+            mutex1.unlock();
 //            if (Global::showingFACS || Global::recordingFACS) {
 //                emit facs_update();
 //                emit histo_update();
 //            }
-//            hour++;
-//            emit summary(hour);		// Emit signal to update summary plots, at hourly intervals
-//            summary_done.wait(&mutex3);
-//        }
+            hour++;
+            LOG_MSG("emit summary");
+            emit summary(hour);		// Emit signal to update summary plots, at hourly intervals
+            summary_done.wait(&mutex3);
+        }
 
         if (stopped) {
             res = -1;

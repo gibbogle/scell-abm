@@ -19,6 +19,8 @@ use fmotion
 use nbr
 use chemokine
 use react_diff
+use transfer
+use cellstate
 
 #include "../src/version.h"
 
@@ -37,7 +39,7 @@ call RngInitialisation
 if (allocated(cell_list)) deallocate(cell_list)
 if (allocated(grid)) deallocate(grid)
 if (allocated(perm_index)) deallocate(perm_index)
-if (allocated(Cextra)) deallocate(Cextra)
+if (allocated(Cextra_all)) deallocate(Cextra_all)
 if (allocated(Caverage)) deallocate(Caverage)
 if (allocated(Cflux)) deallocate(Cflux)
 if (allocated(Cflux_prev)) deallocate(Cflux_prev)
@@ -46,7 +48,7 @@ call logger('did deallocation')
 allocate(cell_list(MAX_NLIST))
 allocate(grid(NX,NY,NZ))
 allocate(perm_index(MAX_NLIST))
-allocate(Cextra(NX,NY,NZ,NCONST))
+allocate(Cextra_all(NX,NY,NZ,NCONST))
 allocate(Caverage(NX,NY,NZ,NCONST))
 allocate(Cflux(NX,NY,NZ,NCONST))
 allocate(Cflux_prev(NX,NY,NZ,NCONST))
@@ -62,27 +64,34 @@ end subroutine
 !-----------------------------------------------------------------------------------------
 subroutine ReadCellParams(ok)
 logical :: ok
-integer :: iV_depend, iV_random, Nmm3, itestcase, ictype, ishow_progeny
-integer :: iuse_oxygen, iuse_glucose, iuse_tracer, iconstant
-real(REAL_KIND) :: days, percent, fluid_fraction, medium_volume0, d_layer, sigma, Vsite_cm3
+integer :: i, idrug, nmetab, im, ichemo
+integer :: Nmm3, itestcase, ictype, ishow_progeny
+integer :: iuse_oxygen, iuse_glucose, iuse_tracer, iuse_drug, iuse_metab, iV_depend, iV_random
+integer :: iuse_extra, iuse_relax, iuse_par_relax
+real(REAL_KIND) :: days, percent, fluid_fraction, d_layer, sigma(MAX_CELLTYPES), Vsite_cm3, bdry_conc, spcrad_value
+integer :: iuse_drop, iconstant, isaveprofiledata
+logical :: use_metabolites
+character*(12) :: drug_name
+character*(1) :: numstr
 
 ok = .true.
-!chemo(:)%used = .false.
 
 open(nfcell,file=inputfile,status='old')
 
 read(nfcell,*) gui_run_version				! program run version number
 read(nfcell,*) dll_run_version				! DLL run version number
 read(nfcell,*) NX							! size of fine grid
-read(nfcell,*) NXB							! size of coarse grid
-read(nfcell,*) DELTA_X						! grid size (um)
 read(nfcell,*) initial_count				! initial number of tumour cells
-read(nfcell,*) divide_time_median			! hours
-read(nfcell,*) divide_time_shape
+read(nfcell,*) divide_time_median(1)
+read(nfcell,*) divide_time_shape(1)
+read(nfcell,*) divide_time_median(2)
+read(nfcell,*) divide_time_shape(2)
 read(nfcell,*) iV_depend
 read(nfcell,*) iV_random
 read(nfcell,*) days							! number of days to simulate
 read(nfcell,*) DELTA_T						! time step size (sec)
+read(nfcell,*) NXB							! size of coarse grid
+read(nfcell,*) DELTA_X						! grid size (um)
 read(nfcell,*) a_separation
 read(nfcell,*) a_force
 read(nfcell,*) c_force
@@ -153,6 +162,170 @@ read(nfcell,*) chemo(TRACER)%max_cell_rate
 read(nfcell,*) chemo(TRACER)%MM_C0
 read(nfcell,*) chemo(TRACER)%Hill_N
 
+do i = 1,2			! currently allowing for just two different drugs: 1 = TPZ-type, 2 = DNB-type
+	read(nfcell,*) iuse_drug
+	read(nfcell,'(a12)') drug_name
+	read(nfcell,*) bdry_conc
+	read(nfcell,*) iconstant
+	read(nfcell,*) iuse_metab
+	call getIndices(i, idrug, nmetab)
+	if (idrug < 0 .and. iuse_drug /= 0) then
+		write(logmsg,*) 'Unrecognized drug name: ',drug_name
+		call logger(logmsg)
+		ok = .false.
+		return
+	endif
+	if (idrug == 0) cycle
+	chemo(idrug)%name = drug_name
+	chemo(idrug)%used = (iuse_drug == 1)
+	chemo(idrug)%bdry_conc = bdry_conc
+	chemo(idrug)%constant = (iconstant == 1)
+!	chemo(idrug)%decay = (idrug_decay == 1)
+	if (chemo(idrug)%used) then
+		use_metabolites = (iuse_metab == 1)
+		write(nflog,*) 'drug: ',idrug,'  name: ',chemo(idrug)%name,' use_metabolites: ',use_metabolites
+	else
+		use_metabolites = .false.
+	endif
+!	chemo(imetab)%decay = (imetab_decay == 1)
+	if (idrug == TPZ_DRUG) then
+		TPZ%name = drug_name
+		TPZ%nmetabolites = nmetab
+		TPZ%use_metabolites = use_metabolites
+		do im = 0,nmetab
+			read(nfcell,*) TPZ%diff_coef(im)
+			read(nfcell,*) TPZ%medium_diff_coef(im)
+			read(nfcell,*) TPZ%membrane_diff_in(im)
+			TPZ%membrane_diff_in(im) = TPZ%membrane_diff_in(im)*Vsite_cm3/60		! /min -> /sec
+			read(nfcell,*) TPZ%membrane_diff_out(im)
+			TPZ%membrane_diff_out(im) = TPZ%membrane_diff_out(im)*Vsite_cm3/60	! /min -> /sec
+			read(nfcell,*) TPZ%halflife(im)
+			ichemo = idrug + im
+			if (im > 0) then
+				write(numstr,'(i1)') im
+				chemo(ichemo)%name = 'TPZ_metab_'//numstr
+			endif
+			chemo(ichemo)%diff_coef = TPZ%diff_coef(im)
+			chemo(ichemo)%medium_diff_coef = TPZ%medium_diff_coef(im)
+			chemo(ichemo)%membrane_diff_in = TPZ%membrane_diff_in(im)
+			chemo(ichemo)%membrane_diff_out = TPZ%membrane_diff_out(im)
+			chemo(ichemo)%halflife = TPZ%halflife(im)
+		enddo
+		do ictype = 1,Ncelltypes
+			do im = 0,nmetab
+				read(nfcell,*) TPZ%Kmet0(ictype,im)
+				read(nfcell,*) TPZ%C2(ictype,im)
+				read(nfcell,*) TPZ%KO2(ictype,im)
+				read(nfcell,*) TPZ%Vmax(ictype,im)
+				read(nfcell,*) TPZ%Km(ictype,im)
+				read(nfcell,*) TPZ%Klesion(ictype,im)
+				if (im == 0) then
+					read(nfcell,*) TPZ%kill_model(ictype)
+					read(nfcell,*) TPZ%kill_O2(ictype)
+					read(nfcell,*) TPZ%kill_drug(ictype)
+					read(nfcell,*) TPZ%kill_duration(ictype)
+					read(nfcell,*) TPZ%kill_fraction(ictype)
+				endif
+			enddo
+			TPZ%Kmet0(ictype,:) = TPZ%Kmet0(ictype,:)/60				! /min -> /sec
+			TPZ%KO2(ictype,:) = 1.0e-3*TPZ%KO2(ictype,:)                ! um -> mM
+			TPZ%kill_duration(ictype) = 60*TPZ%kill_duration(ictype)    ! minutes -> seconds
+		enddo
+
+	elseif (idrug == DNB_DRUG) then
+		DNB%name = drug_name
+		DNB%nmetabolites = nmetab
+		DNB%use_metabolites = use_metabolites
+		do im = 0,nmetab
+			read(nfcell,*) DNB%diff_coef(im)
+			read(nfcell,*) DNB%medium_diff_coef(im)
+			read(nfcell,*) DNB%membrane_diff_in(im)
+			DNB%membrane_diff_in(im) = DNB%membrane_diff_in(im)*Vsite_cm3/60		! /min -> /sec
+			read(nfcell,*) DNB%membrane_diff_out(im)
+			DNB%membrane_diff_out(im) = DNB%membrane_diff_out(im)*Vsite_cm3/60	! /min -> /sec
+			read(nfcell,*) DNB%halflife(im)
+			ichemo = idrug + im
+			if (im > 0) then
+				write(numstr,'(i1)') im
+				chemo(ichemo)%name = 'DNB_metab_'//numstr
+			endif
+			chemo(ichemo)%diff_coef = DNB%diff_coef(im)
+			chemo(ichemo)%medium_diff_coef = DNB%medium_diff_coef(im)
+			chemo(ichemo)%membrane_diff_in = DNB%membrane_diff_in(im)
+			chemo(ichemo)%membrane_diff_out = DNB%membrane_diff_out(im)
+			chemo(ichemo)%halflife = DNB%halflife(im)	
+		enddo
+		do ictype = 1,Ncelltypes
+			do im = 0,nmetab
+				read(nfcell,*) DNB%Kmet0(ictype,im)
+				read(nfcell,*) DNB%C2(ictype,im)
+				read(nfcell,*) DNB%KO2(ictype,im)
+				read(nfcell,*) DNB%Vmax(ictype,im)
+				read(nfcell,*) DNB%Km(ictype,im)
+				read(nfcell,*) DNB%Klesion(ictype,im)
+				read(nfcell,*) DNB%kill_model(ictype,im)
+				read(nfcell,*) DNB%kill_O2(ictype,im)
+				read(nfcell,*) DNB%kill_drug(ictype,im)
+				read(nfcell,*) DNB%kill_duration(ictype,im)
+				read(nfcell,*) DNB%kill_fraction(ictype,im)
+			enddo
+			DNB%Kmet0(ictype,:) = DNB%Kmet0(ictype,:)/60					! /min -> /sec
+			DNB%KO2(ictype,:) = 1.0e-3*DNB%KO2(ictype,:)					! um -> mM
+			DNB%kill_duration(ictype,:) = 60*DNB%kill_duration(ictype,:)    ! minutes -> seconds
+		enddo
+	endif
+	do im = 0,nmetab
+		ichemo = idrug + im
+		chemo(ichemo)%decay = (chemo(ichemo)%halflife > 0)
+		if (chemo(ichemo)%used .and. chemo(ichemo)%decay) then
+			chemo(ichemo)%decay_rate = DecayRate(chemo(ichemo)%halflife)
+		else
+			chemo(ichemo)%decay_rate = 0
+		endif
+!		if (chemo(imetab)%used .and. chemo(imetab)%decay) then
+!			chemo(imetab)%decay_rate = DecayRate(chemo(imetab)%halflife)
+!		else
+!			chemo(imetab)%decay_rate = 0
+!		endif
+	enddo
+enddo
+
+read(nfcell,*) LQ(1)%alpha_H
+read(nfcell,*) LQ(1)%beta_H
+read(nfcell,*) LQ(1)%OER_am
+read(nfcell,*) LQ(1)%OER_bm
+read(nfcell,*) LQ(1)%K_ms
+read(nfcell,*) LQ(1)%death_prob
+read(nfcell,*) LQ(2)%alpha_H
+read(nfcell,*) LQ(2)%beta_H
+read(nfcell,*) LQ(2)%OER_am
+read(nfcell,*) LQ(2)%OER_bm
+read(nfcell,*) LQ(2)%K_ms
+read(nfcell,*) LQ(2)%death_prob
+read(nfcell,*) O2cutoff(1)
+read(nfcell,*) O2cutoff(2)
+read(nfcell,*) O2cutoff(3)
+read(nfcell,*) growthcutoff(1)
+read(nfcell,*) growthcutoff(2)
+read(nfcell,*) growthcutoff(3)
+read(nfcell,*) spcrad_value
+read(nfcell,*) iuse_extra
+read(nfcell,*) iuse_relax
+read(nfcell,*) iuse_par_relax
+read(nfcell,*) iuse_drop
+read(nfcell,*) Ndrop
+read(nfcell,*) alpha_shape
+read(nfcell,*) beta_shape
+read(nfcell,*) isaveprofiledata
+read(nfcell,*) profiledatafilebase
+read(nfcell,*) dt_saveprofiledata
+read(nfcell,*) nt_saveprofiledata
+
+if (use_events) then
+	call ReadProtocol(nfcell)
+	use_treatment = .false.
+endif
+
 close(nfcell)
 
 if (chemo(OXYGEN)%Hill_N /= 1 .and. chemo(OXYGEN)%Hill_N /= 2) then
@@ -175,7 +348,7 @@ NZB = NXB
 Kdrag = 1.0e5*Kdrag
 MM_THRESHOLD = MM_THRESHOLD/1000					! uM -> mM
 ANOXIA_THRESHOLD = ANOXIA_THRESHOLD/1000			! uM -> mM
-!O2cutoff = O2cutoff/1000							! uM -> mM
+O2cutoff = O2cutoff/1000							! uM -> mM
 chemo(OXYGEN)%used = (iuse_oxygen == 1)
 chemo(GLUCOSE)%used = (iuse_glucose == 1)
 chemo(TRACER)%used = (iuse_tracer == 1)
@@ -187,25 +360,168 @@ nsteps = days*24*3600./DELTA_T
 write(logmsg,*) 'nsteps: ',nsteps
 call logger(logmsg)
 
-divide_dist%class = LOGNORMAL_DIST
-divide_time_median = 60*60*divide_time_median		! hours -> seconds
-sigma = log(divide_time_shape)
+divide_dist(1:2)%class = LOGNORMAL_DIST
+divide_time_median(1:2) = 60*60*divide_time_median(1:2)		! hours -> seconds
+sigma(1:2) = log(divide_time_shape(1:2))
 !divide_dist%p1 = log(divide_time_mean/exp(sigma*sigma/2))	
-divide_dist%p1 = log(divide_time_median)	
-divide_dist%p2 = sigma
-divide_time_mean = exp(divide_dist%p1 + 0.5*divide_dist%p2**2)	! mean = median.exp(sigma^2/2)
-write(logmsg,'(a,2e12.4)') 'shape, sigma: ',divide_time_shape,sigma
+divide_dist(1:2)%p1 = log(divide_time_median(1:2))	
+divide_dist(1:2)%p2 = sigma(1:2)
+divide_time_mean(1:2) = exp(divide_dist(1:2)%p1 + 0.5*divide_dist(1:2)%p2**2)	! mean = median.exp(sigma^2/2)
+write(logmsg,'(a,24e12.4)') 'shape, sigma: ',divide_time_shape(1:2),sigma(1:2)
 call logger(logmsg)
-write(logmsg,'(a,2e12.4)') 'Median, mean divide time: ',divide_time_median/3600,divide_time_mean/3600
+write(logmsg,'(a,4e12.4)') 'Median, mean divide time: ',divide_time_median(1:2)/3600,divide_time_mean(1:2)/3600
 call logger(logmsg)
+
 use_V_dependence = (iV_depend == 1)
-!randomise_initial_volume = (iV_random == 1)
-!use_extracellular_O2 = (iuse_extra == 1)
-!randomise_initial_volume = (iV_random == 1)
-!relax = (iuse_relax == 1)
-!use_parallel = (iuse_par_relax == 1)
+saveprofiledata = (isaveprofiledata == 1)
+dt_saveprofiledata = 60*dt_saveprofiledata			! mins -> seconds
+use_dropper = (iuse_drop == 1)
 
+randomise_initial_volume = (iV_random == 1)
+use_extracellular_O2 = (iuse_extra == 1)
 
+open(nfout,file=outputfile,status='replace')
+write(nfout,'(a,a)') 'GUI version: ',gui_run_version
+write(nfout,'(a,a)') 'DLL version: ',dll_run_version
+write(nfout,*)
+
+write(nflog,*)
+write(nflog,'(a,a)') 'GUI version: ',gui_run_version
+write(nflog,'(a,a)') 'DLL version: ',dll_run_version
+write(nflog,*)
+
+open(nfres,file='scell_ts.out',status='replace')
+write(nfres,'(a,a)') 'GUI version: ',gui_run_version
+write(nfres,'(a,a)') 'DLL version: ',dll_run_version
+write(nfres,*)
+write(nfres,'(a)') 'istep hour vol_mm3 diam_um Ncells(2) &
+Nanoxia_dead(2) NdrugA_dead(2) NdrugB_dead(2) Nradiation_dead(2) &
+Ntagged_anoxia(2) Ntagged_drugA(2) Ntagged_drugB(2) Ntagged_radiation(2) &
+f_hypox_1 f_hypox_2 f_hypox_3 f_growth_1 f_growth_2 f_growth_3 f_necrot plating_efficiency(2) &
+medium_oxygen medium_glucose medium_TPZ medium_DNB'
+
+write(logmsg,*) 'Opened nfout: ',outputfile
+call logger(logmsg)
+call DetermineKd
+ok = .true.
+
+end subroutine
+
+!-----------------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------------------
+subroutine getIndices(indx, idrug, nmetab)
+integer :: indx, idrug, nmetab
+
+if (indx == 1) then
+	idrug = TPZ_DRUG
+	nmetab = 2
+elseif (indx == 2) then
+	idrug = DNB_DRUG
+	nmetab = 2
+else
+	idrug = 0
+	nmetab = 0
+endif
+end subroutine
+
+!-----------------------------------------------------------------------------------------
+! Skip lines until the 'PROTOCOL' line
+!-----------------------------------------------------------------------------------------
+subroutine ReadProtocol(nf)
+integer :: nf
+integer :: itime, ntimes, kevent, ichemo, im
+character*(64) :: line
+real(REAL_KIND) :: t, dt, vol, conc, dose
+type(event_type) :: E
+
+chemo(TRACER+1:)%used = .false.
+do
+	read(nf,'(a)') line
+	if (trim(line) == 'PROTOCOL') exit
+enddo
+read(nf,*) ntimes
+if (allocated(event)) deallocate(event)
+allocate(event(2*ntimes))
+kevent = 0
+do itime = 1,ntimes
+	read(nf,'(a)') line
+	if (trim(line) == 'DRUG') then
+		kevent = kevent + 1
+		event(kevent)%etype = DRUG_EVENT
+		read(nf,'(a)') line
+		if (trim(line) == 'SN30000' .or. trim(line) == 'TPZ') then
+			ichemo = TPZ_DRUG
+		elseif (trim(line) == 'PR104A') then
+			ichemo = DNB_DRUG
+		endif
+		read(nf,*) t
+		read(nf,*) dt
+		read(nf,*) vol
+		read(nf,*) conc
+		event(kevent)%time = t
+		event(kevent)%ichemo = ichemo
+		event(kevent)%volume = vol
+		event(kevent)%conc = conc
+		event(kevent)%dose = 0
+		chemo(ichemo)%used = .true.
+		if (ichemo == TPZ_DRUG .and. TPZ%use_metabolites) then
+			do im = 1,TPZ%nmetabolites
+				chemo(ichemo+im)%used = .true.
+			enddo
+		endif
+		if (ichemo == DNB_DRUG .and. DNB%use_metabolites) then
+			do im = 1,DNB%nmetabolites
+				chemo(ichemo+im)%used = .true.
+			enddo
+		endif
+		kevent = kevent + 1
+		event(kevent)%etype = MEDIUM_EVENT
+		event(kevent)%time = t + dt
+		event(kevent)%ichemo = 0
+		event(kevent)%volume = medium_volume0*1.0e3		! -> uL for consistency
+		event(kevent)%conc = 0
+		event(kevent)%dose = 0
+	elseif (trim(line) == 'MEDIUM') then
+		kevent = kevent + 1
+		event(kevent)%etype = MEDIUM_EVENT
+		read(nf,*) t
+		read(nf,*) vol
+		event(kevent)%time = t
+		event(kevent)%volume = vol	
+		event(kevent)%ichemo = 0
+		event(kevent)%conc = 0
+		event(kevent)%dose = 0
+	elseif (trim(line) == 'RADIATION') then
+		kevent = kevent + 1
+		event(kevent)%etype = RADIATION_EVENT
+		read(nf,*) t
+		read(nf,*) dose
+		event(kevent)%time = t
+		event(kevent)%dose = dose	
+		event(kevent)%ichemo = 0
+		event(kevent)%volume = 0
+		event(kevent)%conc = 0
+	endif
+enddo
+Nevents = kevent
+! Set events not done
+! convert time from hours to seconds
+! convert volume from uL to cm^3
+do kevent = 1,Nevents
+	event(kevent)%done = .false.
+	event(kevent)%time = event(kevent)%time*60*60
+	event(kevent)%volume = event(kevent)%volume*1.0e-3
+	E = event(kevent)
+!	write(*,'(a,i3,f8.0,2i3,3f8.4)') 'event: ',kevent,E%time,E%etype,E%ichemo,E%volume,E%conc,E%dose
+enddo
+! Check that events are sequential
+do kevent = 1,Nevents-1
+	if (event(kevent)%time >= event(kevent+1)%time) then
+		write(logmsg,*) 'Error: non-sequential event: ',kevent,event(kevent)%time
+		call logger(logmsg)
+		stop
+	endif
+enddo
 end subroutine
 
 !-----------------------------------------------------------------------------------------
@@ -263,7 +579,6 @@ call logger('did ArrayInitialisation')
 
 call SetupChemo
 call logger('did SetupChemo')
-!call SetInitialConcs
 
 ! Assume that Raverage is for cells midway in growth, i.e. between 0.8 and 1.6, at 1.2
 ! as a fraction of the average cell volume, (or, equivalently, between 1.0 and 2.0, at 1.5)
@@ -279,12 +594,12 @@ d_nbr_limit = 1.5*2*Rdivide0	! 1.5 is an arbitrary choice - was 1.2
 
 if (MITOSIS_MODE == TERMINAL_MITOSIS) then
 	mitosis_duration = 2*3600
-	test_growthrate = Vdivide0/(2*(divide_time_median - mitosis_duration))	! um3/sec
+	test_growthrate = Vdivide0/(2*(divide_time_median(1) - mitosis_duration))	! um3/sec
 else
 	mitosis_duration = 0
-	test_growthrate = Vdivide0/(2*divide_time_median)	! um3/sec
+	test_growthrate = Vdivide0/(2*divide_time_median(1))	! um3/sec
 endif
-write(logmsg,'(a,2f8.2,e12.3)') 'Raverage,Vdivide0,test_growthrate: ',Raverage,Vdivide0,test_growthrate
+write(logmsg,'(a,2e12.3)') 'Raverage,Vdivide0: ',Raverage,Vdivide0
 call logger(logmsg)
 
 call setup_force_parameters
@@ -306,6 +621,7 @@ ntries = 1
 t_fmover = 0
 ndtotal = 0
 ndtotal_last = 0
+total_dMdt = 0
 
 k_v = 2/alpha_v - sqr_es_e + sqrt(es_e - shift/epsilon)
 k_detach = k_v*alpha_v/2
@@ -321,6 +637,111 @@ call logger('did setup_react_diff')
 call logger('completed Setup')
 end subroutine
 
+!-----------------------------------------------------------------------------------------
+! SN30000 CT model
+! ----------------
+! The rate of cell killing, which becomes a cell death probability rate, is inferred from
+! the cell kill experiment.
+! The basic assumption is that the rate of killing depends on the drug metabolism rate.
+! There are five models:
+! kill_model = 1:
+!   killing rate = c = Kd.dM/dt
+! kill_model = 2:
+!   killing rate = c = Kd.Ci.dM/dt
+! kill_model = 3:
+!   killing rate = c = Kd.(dM/dt)^2
+! kill_model = 4:
+!   killing rate = c = Kd.Ci
+! kill_model = 5:
+!   killing rate = c = Kd.Ci^2
+! where dM/dt = F(O2).kmet0.Ci
+! In the kill experiment both O2 and Ci are held constant:
+! O2 = CkillO2, Ci = Ckill
+! In this case c is constant and the cell population N(t) is given by:
+! N(t) = N(0).exp(-ct), i.e.
+! c = -log(N(T)/N(0))/T where T is the duration of the experiment
+! N(T)/N(0) = 1 - f, where f = kill fraction
+! kill_model = 1:
+!   c = Kd.F(CkillO2).kmet0.Ckill => Kd = -log(1-f)/(T.F(CkillO2).kmet0.Ckill)
+! kill_model = 2:
+!   c = Kd.F(CkillO2).kmet0.Ckill^2 => Kd = -log(1-f)/(T.F(CkillO2).kmet0.Ckill^2)
+! kill_model = 3:
+!   c = Kd.(F(CkillO2).kmet0.Ckill)^2 => Kd = -log(1-f)/(T.(F(CkillO2).kmet0.Ckill)^2)
+! kill_model = 4:
+!   c = Kd.Ckill => Kd = -log(1-f)/(T.Ckill)
+! kill_model = 5:
+!   c = Kd.Ckill^2 => Kd = -log(1-f)/(T.Ckill^2)
+!-----------------------------------------------------------------------------------------
+subroutine DetermineKd
+real(REAL_KIND) :: C2, KO2, Kmet0, kmet 
+real(REAL_KIND) :: f, T, Ckill, Ckill_O2, Kd
+integer :: idrug, i, im, kill_model
+
+do idrug = 1,2
+	if (idrug == 1 .and. .not.chemo(TPZ_DRUG)%used) cycle
+	if (idrug == 2 .and. .not.chemo(DNB_DRUG)%used) cycle
+	do i = 1,Ncelltypes
+		do im = 0,2
+			if (idrug == 1) then		! TPZ
+				if (im /= 0) cycle
+				C2 = TPZ%C2(i,im)
+				KO2 = TPZ%KO2(i,im)
+				Kmet0 = TPZ%Kmet0(i,im)
+				kill_model = TPZ%kill_model(i)
+				Ckill_O2 = TPZ%kill_O2(i)
+				f = TPZ%kill_fraction(i)
+				T = TPZ%kill_duration(i)
+				Ckill = TPZ%kill_drug(i)
+			elseif (idrug == 2) then	! DNB
+				C2 = DNB%C2(i,im)
+				KO2 = DNB%KO2(i,im)
+				Kmet0 = TPZ%Kmet0(i,im)
+				kill_model = DNB%kill_model(i,im)
+				Ckill_O2 = DNB%kill_O2(i,im)
+				f = DNB%kill_fraction(i,im)
+				T = DNB%kill_duration(i,im)
+				Ckill = DNB%kill_drug(i,im)
+			endif
+			kmet = (1 - C2 + C2*KO2/(KO2 + Ckill_O2))*Kmet0
+			if (kill_model == 1) then
+				Kd = -log(1-f)/(T*kmet*Ckill)
+			elseif (kill_model == 2) then
+				Kd = -log(1-f)/(T*kmet*Ckill**2)
+			elseif (kill_model == 3) then
+				Kd = -log(1-f)/(T*(kmet*Ckill)**2)
+			elseif (kill_model == 4) then
+				Kd = -log(1-f)/(T*Ckill)
+			elseif (kill_model == 5) then
+				Kd = -log(1-f)/(T*Ckill**2)
+			endif
+			if (idrug == 1) then
+				TPZ%Kd(i) = Kd
+			elseif (idrug == 2) then
+				DNB%Kd(i,im) = Kd
+			endif
+		enddo
+	enddo
+enddo
+
+!if (chemo(TPZ_DRUG)%used) then
+!	do i = 1,Ncelltypes
+!		kmet = (1 - TPZ%C2(i,0) + TPZ%C2(i,0)*TPZ%KO2(i,0)/(TPZ%KO2(i,0) + TPZ%kill_O2(i)))*TPZ%Kmet0(i,0)
+!		kill_model = TPZ%kill_model(i)
+!		if (kill_model == 1) then
+!			Kd = -log(1-TPZ%kill_fraction(i))/(TPZ%kill_duration(i)*kmet*TPZ%kill_drug(i))
+!		elseif (kill_model == 2) then
+!			Kd = -log(1-TPZ%kill_fraction(i))/(TPZ%kill_duration(i)*kmet*TPZ%kill_drug(i)**2)
+!		elseif (kill_model == 3) then
+!			Kd = -log(1-TPZ%kill_fraction(i))/(TPZ%kill_duration(i)*(kmet*TPZ%kill_drug(i))**2)
+!		elseif (kill_model == 4) then
+!			Kd = -log(1-TPZ%kill_fraction(i))/(TPZ%kill_duration(i)*TPZ%kill_drug(i))
+!		elseif (kill_model == 5) then
+!			Kd = -log(1-TPZ%kill_fraction(i))/(TPZ%kill_duration(i)*TPZ%kill_drug(i)**2)
+!		endif
+!		TPZ%Kd(i) = Kd
+!	enddo
+!endif
+end subroutine
 
 
 !-----------------------------------------------------------------------------------------
@@ -334,7 +755,7 @@ real(REAL_KIND) :: Radius, d, r2lim, r2, rad(3), rsite(3)
 logical, allocatable :: occup(:,:,:)
 
 blobcentre = DELTA_X*[NX/2,NY/2,NZ/2]
-d = 2.0*Raverage
+d = 2.2*Raverage
 Radius = (3.0*initial_count/(4.0*PI))**(1./3.)	! scaled by /d
 write(nflog,*) 'blobcentre, d: ',blobcentre,d,Radius
 irad = Radius + 2
@@ -384,7 +805,9 @@ real(REAL_KIND) :: r(3), c(3), R1, R2
 type(cell_type), pointer :: cp
 	
 cp => cell_list(kcell)
+cp%ID = kcell
 cp%state = ALIVE
+cp%celltype = 1		! temporary!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !			if (MITOSIS_MODE == TERMINAL_MITOSIS) then
 cp%Iphase = .true.
 cp%nspheres = 1
@@ -403,18 +826,23 @@ cp%centre(:,1) = rsite
 cp%site = rsite/DELTA_X + 1
 cp%d = 0
 cp%birthtime = 0
-cp%growthrate = test_growthrate
+!cp%growthrate = test_growthrate
 !cp2%V_divide = get_divide_volume()
 cp%d_divide = (3*cp%V_divide/PI)**(1./3.)
 cp%mitosis = 0
+cp%drugA_tag = .false.
+cp%drugB_tag = .false.
+cp%anoxia_tag = .false.
+cp%t_hypoxic = 0
 call get_random_vector3(r)	! set initial axis direction
 cp%d = 0.1*small_d
 c = cp%centre(:,1)
 cp%centre(:,1) = c + (cp%d/2)*r
 cp%centre(:,2) = c - (cp%d/2)*r
 cp%nbrs = 0
-cp%Cex = Cextra(1,1,1,:)	! initially the concentrations are the same everywhere
+cp%Cex = Caverage(1,1,1,:)	! initially the concentrations are the same everywhere
 cp%Cin = cp%Cex
+cp%CFSE = generate_CFSE(1.d0)
 end subroutine
 
 !--------------------------------------------------------------------------------
@@ -499,6 +927,7 @@ deallocate(sitelist)
 		
 end subroutine
 
+
 !-----------------------------------------------------------------------------------------
 ! Simulate through a full time step: DELTA_T
 !-----------------------------------------------------------------------------------------
@@ -507,10 +936,12 @@ subroutine simulate_step(res) BIND(C)
 use, intrinsic :: iso_c_binding
 integer(c_int) :: res
 integer :: kcell, hour, kpar=0
-real(REAL_KIND) :: dt
-integer :: nchemo, i, k, nit, nt_diff, it_diff, ncells0
+real(REAL_KIND) :: radiation_dose, dt
+integer :: nchemo, i, k, nit, nt_diff, it_diff, ncells0, nhypoxic(3)
 integer :: nshow = 100
 integer :: Nhop
+integer :: nvars, ns
+real(REAL_KIND) :: dxc, ex_conc(35*O2_BY_VOL+1)		! just for testing
 logical :: ok, done, changed
 logical :: dbug
 
@@ -522,6 +953,15 @@ if (Ncells == 0) then
 	call logger('Ncells = 0')
 !    res = 3
 !    return
+endif
+t_simulation = (istep-1)*DELTA_T	! seconds
+radiation_dose = 0
+if (use_events) then
+	call ProcessEvent(radiation_dose)
+endif
+if (radiation_dose > 0) then
+	write(logmsg,'(a,f6.1)') 'Radiation dose: ',radiation_dose
+	call logger(logmsg)
 endif
 !dt = DELTA_T/NT_CONC
 ! the idea is to accumulate time steps until DELTA_T is reached 
@@ -548,12 +988,14 @@ do while (.not.done)
 	t_fmover = t_fmover + dt
 	ncells0 = ncells
 !	if (ncells >= nshow) write(*,'(a,2i6,3f8.1)') 'growing: istep, ndt, dt, delta_tmove: ',istep,ndt,dt,delta_tmove,t_fmover
-	call grower(dt,changed,ok)
+!	call grower(dt,changed,ok)
+	call GrowCells(radiation_dose,dt,changed,ok)
 	if (.not.ok) then
 		call logger('grower error')
 		res = 2
 		return
 	endif
+	radiation_dose = 0
 !	if (ncells > ncells0) then
 	if (changed) then
 		call make_perm_index(ok)
@@ -569,6 +1011,8 @@ enddo
 !		call logger(logmsg)
 !	endif
 !endif
+
+call make_grid_flux_weights
 
 ! Reaction-diffusion system
 ! Assuming DELTA_T = 600 ...
@@ -599,7 +1043,80 @@ do it_diff = 1,nt_diff
 	endif
 	call diff_solver(dt)
 enddo
+if (.not.use_TCP .and. (mod(istep,6) == 0)) then
+!	call getHypoxicCount(nhypoxic)
+!	write(*,*) 'nhypoxic: ',nhypoxic
+	call get_concdata(nvars, ns, dxc, ex_conc)
+!	write(*,'(a,3f8.4)') 'cell #1: ',cell_list(1)%Cex(1),cell_list(1)%Cin(1),cell_list(1)%Cex(1)-cell_list(1)%Cin(1)
+endif
 res = 0
+end subroutine
+
+!----------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------
+subroutine ProcessEvent(radiation_dose)
+real(REAL_KIND) :: radiation_dose
+integer :: kevent, ichemo, im, nmetab
+real(REAL_KIND) :: V, C(MAX_CHEMO)
+type(event_type) :: E
+
+do kevent = 1,Nevents
+	E = event(kevent)
+	if (t_simulation >= E%time .and. .not.E%done) then
+!	write(*,'(i3,2f8.0,i3,2f10.4)') E%etype,t_simulation,E%time,E%ichemo,E%volume,E%conc
+		if (E%etype == RADIATION_EVENT) then
+			radiation_dose = E%dose
+!			write(*,*) 'radiation_dose: ',radiation_dose
+		elseif (E%etype == MEDIUM_EVENT) then
+			C = 0
+			C(GLUCOSE) = chemo(GLUCOSE)%bdry_conc
+			V = E%volume
+			call MediumChange(V,C)
+		elseif (E%etype == DRUG_EVENT) then
+			C = 0
+			C(GLUCOSE) = chemo(GLUCOSE)%bdry_conc
+			ichemo = E%ichemo
+			C(ichemo) = E%conc
+			V = E%volume
+			! set %present
+			chemo(ichemo)%present = .true.
+			chemo(ichemo)%bdry_conc = 0
+			if (ichemo == TPZ_DRUG) then
+				nmetab = TPZ%nmetabolites
+			elseif (ichemo == DNB_DRUG) then
+				nmetab = DNB%nmetabolites
+			endif			
+			do im = 1,nmetab
+				if (chemo(ichemo + im)%used) then
+					chemo(ichemo + im)%present = .true.
+					chemo(ichemo + im)%bdry_conc = 0
+				endif
+			enddo
+			call MediumChange(V,C)
+		endif
+		event(kevent)%done = .true.
+	endif
+enddo
+end subroutine
+
+!-----------------------------------------------------------------------------------------
+! If the volume removed is Vr, the fraction of constituent mass that is retained
+! in the medium is (Vm - Vr)/Vm.  The calculation does not apply to oxygen.
+! Usually Vr = Ve.
+!-----------------------------------------------------------------------------------------
+subroutine MediumChange(Ve,Ce)
+real(REAL_KIND) :: Ve, Ce(:)
+real(REAL_KIND) :: R, Vm, Vr, Vblob
+
+!call SetRadius(Nsites)
+!R = Radius*DELTA_X		! cm
+!Vblob = (4./3.)*PI*R**3	! cm3
+!Vm = total_volume - Vblob
+!Vr = min(Vm,Ve)
+!chemo(OXYGEN+1:)%medium_M = ((Vm - Vr)/Vm)*chemo(OXYGEN+1:)%medium_M + Vr*Ce(OXYGEN+1:)
+!total_volume = Vm - Vr + Ve + Vblob
+!chemo(OXYGEN+1:)%medium_Cext = chemo(OXYGEN+1:)%medium_M/(total_volume - Vblob)
+!chemo(OXYGEN)%medium_Cext = chemo(OXYGEN)%bdry_conc
 end subroutine
 
 !-----------------------------------------------------------------------------------------
@@ -624,283 +1141,6 @@ if (use_permute) then
 	call permute(perm_index,np,kpar)
 endif
 ok = .true.
-end subroutine
-
-!-----------------------------------------------------------------------------------------
-! In the Iphase, the cell grows as a sphere.
-! When V > Vdivide, the cell enters Mphase
-! In the Mphase, V is constant, d increases and R decreases (R1 = R2)
-! The level of mitosis grows at a constant rate, and d is proportional to mitosis
-! When d > 2R cell division is completed, and two cells replace one.
-!-----------------------------------------------------------------------------------------
-subroutine grower(dt, changed, ok)
-real(REAL_KIND) :: dt
-logical :: changed, ok
-integer :: k, kcell
-type(cell_type), pointer :: cp
-real(REAL_KIND) :: r(3), c(3), rad, tnow, d_desired, tgrowth, c_rate, r_mean
-integer :: ndivide, divide_list(1000)
-
-ok = .true.
-changed = .false.
-if (MITOSIS_MODE == CONTINUOUS_MITOSIS) then
-	tgrowth = divide_time_mean
-else
-	tgrowth = divide_time_mean - mitosis_duration
-endif
-c_rate = log(2.0)/tgrowth		! Note: to randomise divide time need to use random number, not mean!
-r_mean = Vdivide0/(2*tgrowth)
-
-ndivide = 0
-tnow = istep*DELTA_T + t_fmover
-do k = 1,ncells
-	kcell = perm_index(k)
-	cp => cell_list(kcell)
-	if (cp%Cex(OXYGEN) < ANOXIA_THRESHOLD) then
-		cp%state = DEAD
-		Ncells = Ncells - 1
-		changed = .true.
-		write(*,*) 'Cell died: ',kcell
-		cycle
-	endif
-!	write(*,*) 'test_growthrate, dVdt: ',test_growthrate*dt, cp%dVdt
-!	if (cp%state == DEAD) cycle
-	if (MITOSIS_MODE == CONTINUOUS_MITOSIS) then	! always Mphase, growing and separating
-		! need to set initial mitosis axis and d_divide at birth
-!		cp%V = cp%V + cp%growthrate*DELTA_T
-		call growcell(cp,dt,c_rate,r_mean)
-		cp%mitosis = cp%V/cp%V_divide
-		cp%d = cp%mitosis*cp%d_divide
-		r = cp%centre(:,2) - cp%centre(:,1)
-		r = r/sqrt(dot_product(r,r))	! axis direction unit vector
-		c = (cp%centre(:,1) + cp%centre(:,2))/2
-		cp%centre(:,1) = c - (cp%d/2)*r
-		cp%centre(:,2) = c + (cp%d/2)*r
-		call cubic_solver(cp%d,cp%V,rad)
-		cp%radius = rad
-		if (cp%d > 2*rad) then			! time for completion of cell division
-			ndivide = ndivide + 1
-			divide_list(ndivide) = kcell
-		endif
-		write(nflog,'(a,i4,3f8.3)') 'V,d,rad: ',kcell,cp%V,cp%d,rad
-	elseif (MITOSIS_MODE == TERMINAL_MITOSIS) then
-		if (cp%Iphase) then
-!			cp%V = cp%V + cp%growthrate*dt
-			call growcell(cp,dt,c_rate,r_mean)
-			cp%radius(1) = (3*cp%V/(4*PI))**(1./3.)
-			if (cp%V > cp%V_divide) then
-				cp%Iphase = .false.
-                cp%nspheres = 2
-				ncells_mphase = ncells_mphase + 1
-				call get_random_vector3(r)	! set initial axis direction
-				cp%d = 0.1*small_d
-				c = cp%centre(:,1)
-				cp%centre(:,1) = c + (cp%d/2)*r
-				cp%centre(:,2) = c - (cp%d/2)*r
-				cp%mitosis = 0
-				cp%t_start_mitosis = tnow
-				cp%d_divide = 2.0**(2./3)*cp%radius(1)
-!				write(*,*) 'start mitosis'
-			endif
-		else
-			cp%mitosis = (tnow - cp%t_start_mitosis)/mitosis_duration
-			d_desired = max(cp%mitosis*cp%d_divide,small_d)
-			r = cp%centre(:,2) - cp%centre(:,1)
-			cp%d = sqrt(dot_product(r,r))
-			r = r/cp%d	! axis direction
-			c = (cp%centre(:,1) + cp%centre(:,2))/2
-			cp%site = c/DELTA_X + 1
-!			cp%centre(1,:) = c - (cp%d/2)*r		! For fmover we do not need to set centre positions
-!			cp%centre(2,:) = c + (cp%d/2)*r
-			call cubic_solver(d_desired,cp%V,rad)
-!			write(*,*) 'mitosis,d,d_divide,V,rad: ',cp%mitosis,cp%d,cp%d_divide,cp%V,rad
-	if (rad > 10.e-4) then
-		write(*,*) 'grower: big rad, d: ',kcell,rad,cp%d
-		stop
-	endif
-			cp%radius = rad
-			if (cp%d > 2*rad) then			! time for completion of cell division
-				ndivide = ndivide + 1
-				divide_list(ndivide) = kcell
-			endif
-		endif
-	endif
-	if (cp%radius(1) > 10.e-4) then
-		write(*,*) 'grower: big radius: ',kcell,cp%radius
-		stop
-	endif
-enddo
-!if (ncells > 3000 .and. ndivide > 0) write(*,*) 'dividing'
-do k = 1,ndivide
-	changed = .true.
-	kcell = divide_list(k)
-	call divider(kcell)
-enddo
-!if (ndivide > 0) then
-!	if (ncells > 3000) write(*,*) 'setup_nbrlists'
-!    call setup_nbrlists
-!endif
-end subroutine
-
-!-----------------------------------------------------------------------------------------
-!-----------------------------------------------------------------------------------------
-subroutine growcell(cp, dt, c_rate, r_mean)
-type(cell_type), pointer :: cp
-real(REAL_KIND) :: dt, c_rate, r_mean
-real(REAL_KIND) :: Cin_0(NCONST), Cex_0(NCONST)		! at some point NCONST -> MAX_CHEMO
-real(REAL_KIND) :: dVdt,  Vin_0, dV, metab
-integer :: C_option = 1	! we must use this
-
-Cin_0 = cp%Cin
-metab = O2_metab(Cin_0(OXYGEN))	! Note that currently growth depends only on O2
-if (use_V_dependence) then
-	dVdt = c_rate*metab*cp%V/(Vdivide0/2)
-else
-	dVdt = r_mean*metab
-endif
-!if (suppress_growth) then	! for checking solvers
-!	dVdt = 0
-!endif
-!site = cell_list(kcell)%site
-Cex_0 = cp%Cex
-cp%dVdt = dVdt
-cp%growthrate = dVdt
-Vin_0 = cp%V
-dV = dVdt*dt
-cp%V = Vin_0 + dV
-if (C_option == 1) then
-	! Calculation based on transfer of an extracellular volume dV with constituents, i.e. holding extracellular concentrations constant
-	cp%Cin = (Vin_0*Cin_0 + dV*Cex_0)/(Vin_0 + dV)
-!	Cextra = (Vex_0*Cex_0 - dV*Cex_0)/(Vex_0 - dV)	! = Cex_0
-elseif (C_option == 2) then
-	! Calculation based on change in volumes without mass transfer of constituents
-	cp%Cin = Vin_0*Cin_0/(Vin_0 + dV)
-!	Cextra = Vex_0*Cex_0/(Vex_0 - dV)
-endif
-end subroutine
-
-!-----------------------------------------------------------------------------------------
-! A single cell is replaced by two.
-!-----------------------------------------------------------------------------------------
-subroutine divider(kcell1)
-integer :: kcell1
-integer :: kcell2, nbrs0
-real(REAL_KIND) :: r(3), c(3)
-type(cell_type), pointer :: cp1, cp2
-
-!write(*,*) 'divider:'
-!write(logmsg,*) 'divider: ',kcell1
-!call logger(logmsg)
-tnow = istep*DELTA_T
-cp1 => cell_list(kcell1)
-nlist = nlist + 1
-ncells = ncells + 1
-ncells_mphase = ncells_mphase - 1
-kcell2 = nlist
-!write(*,*) 'divider: ',kcell1,kcell2
-cp2 => cell_list(kcell2)
-cp1%state = ALIVE
-cp1%V = cp1%V/2
-cp1%site = cp1%centre(:,1)/DELTA_X + 1
-cp1%d = 0
-cp1%birthtime = tnow
-cp1%V_divide = get_divide_volume()
-cp1%d_divide = (3*cp1%V_divide/PI)**(1./3.)
-cp1%mitosis = 0
-nbrs0 = cp1%nbrs
-cp1%nbrs = nbrs0 + 1
-cp1%nbrlist(cp1%nbrs)%indx = kcell2
-cp1%nbrlist(cp1%nbrs)%contact = .false.
-cp1%nbrlist(cp1%nbrs)%contact(1,1) = .true.
-cp2%state = ALIVE
-cp2%V = cp1%V
-cp2%radius(1) = cp1%radius(2)
-cp2%centre(:,1) = cp1%centre(:,2)
-cp2%site = cp2%centre(:,1)/DELTA_X + 1
-cp2%d = 0
-cp2%birthtime = tnow
-cp2%growthrate = cp1%growthrate		!!!!!!!!!!!!! for testing, keep this constant !!!!!!!!!!!!!
-cp2%V_divide = get_divide_volume()
-cp2%d_divide = (3*cp2%V_divide/PI)**(1./3.)
-cp2%mitosis = 0
-
-cp2%Cin = cp1%Cin
-cp2%Cex = cp1%Cex
-
-!allocate(cp2%nbrlist(MAX_NBRS))
-! Need to set up neighbour lists for both cp1 and cp2 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< DO THIS
-! Use neighbour lists of neighbours
-! First simple test:
-cp2%nbrlist(1:nbrs0) = cp1%nbrlist(1:nbrs0)
-cp2%nbrs = nbrs0 + 1
-cp2%nbrlist(cp2%nbrs)%indx = kcell1
-cp2%nbrlist(cp2%nbrs)%contact = .false.
-cp2%nbrlist(cp2%nbrs)%contact(1,1) = .true.
-if (MITOSIS_MODE == CONTINUOUS_MITOSIS) then
-	cp1%Iphase = .false.
-	cp2%Iphase = .false.
-	call get_random_vector3(r)	! set initial axis direction
-	cp1%d = 0.1*small_d
-	c = cp1%centre(:,1)
-	cp1%centre(:,1) = c + (cp1%d/2)*r
-	cp1%centre(:,2) = c - (cp1%d/2)*r
-	cp2%d = 0.1*small_d
-	c = cp2%centre(:,1)
-	cp2%centre(:,1) = c + (cp2%d/2)*r
-	cp2%centre(:,2) = c - (cp2%d/2)*r
-else
-	cp1%Iphase = .true.
-    cp1%nspheres = 1
-	cp2%Iphase = .true.
-    cp2%nspheres = 1
-endif
-call update_nbrlist(kcell1)
-call update_nbrlist(kcell2)
-! Note: any cell that has kcell1 in its nbrlist now needs to add kcell2 to the nbrlist.
-end subroutine
-
-!-----------------------------------------------------------------------------------------
-!-----------------------------------------------------------------------------------------
-function get_divide_volume() result(vol)
-real(REAL_KIND) :: vol
-integer :: kpar = 0
-real(REAL_KIND) :: U
-
-U = par_uni(kpar)
-vol = Vdivide0 + dVdivide*(2*U-1)
-end function
-
-!-----------------------------------------------------------------------------------------
-! Cap volume: http://mathworld.wolfram.com/SphericalCap.html
-! http://en.wikipedia.org/wiki/Cubic_function
-! We find x1, the first real root
-! dc = centre separation distance (um)
-! V = constant volume (um3)
-!-----------------------------------------------------------------------------------------
-subroutine cubic_solver(dc,V,R)
-real(REAL_KIND) :: dc, V, R
-real(REAL_KIND) :: a, b, c, d
-real(REAL_KIND) :: DD0, DD1, CC, u1, x1
-
-a = 2.0
-b = 1.5*dc
-c = 0
-d = -(dc**3/8 + 3*V/(2*PI))
-
-DD0 = b**2 - 3*a*c
-DD1 = 2*b**3 - 9*a*b*c + 27*a**2*d
-CC = (DD1 + sqrt(DD1**2 - 4*DD0**3))/2
-if (CC < 0) then
-	CC = -(-CC)**(1.d0/3)
-else
-	CC = CC**(1.d0/3)
-endif
-
-u1 = 1
-R = -(1/(3*a))*(b + u1*CC + DD0/(u1*CC))
-
-!write(*,*) 'R: ',R
-!write(*,*) 'cubic: ',a*R**3 + b*R**2 + c*R + d
 end subroutine
 
 

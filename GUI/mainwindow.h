@@ -14,7 +14,8 @@
 
 using namespace std;
 
-#include "ui_scell_GUI.h"
+//#include "ui_scell_GUI.h"
+#include "ui_spheroid_GUI.h"
 #include <qwt_plot_curve.h>
 #include <qwt_plot_marker.h>
 #include <qwt_symbol.h>
