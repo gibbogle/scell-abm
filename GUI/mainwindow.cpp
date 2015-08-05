@@ -98,13 +98,16 @@ MainWindow::MainWindow(QWidget *parent)
     field = new Field(page_2D);
     grph = new Graphs();
 //    pal = new Colours();
-    histo_rb_list = NULL;
+//    histo_rb_list = NULL;
+    histo_rb_list.clear();
     vbox_histo = NULL;
     buttonGroup_histo = new QButtonGroup;
-    FACS_x_vars_rb_list = NULL;
+//    FACS_x_vars_rb_list = NULL;
+    FACS_x_vars_rb_list.clear();
     vbox_FACS_x_vars = NULL;
     buttonGroup_FACS_x_vars = new QButtonGroup;
-    FACS_y_vars_rb_list = NULL;
+//    FACS_y_vars_rb_list = NULL;
+    FACS_y_vars_rb_list.clear();
     vbox_FACS_y_vars = NULL;
     buttonGroup_FACS_y_vars = new QButtonGroup;
 
@@ -129,12 +132,13 @@ MainWindow::MainWindow(QWidget *parent)
     loadParams();
     LOG_QMSG("Did loadparams");
 
+    setFields();
+
     SetupProtocol();
     writeout();
 
     timer = new QTimer(this);
     vtk = new MyVTK(mdiArea_VTK, widget_key);
-//    vtk = new MyVTK(page_3D, widget_key);
     vtk->init();
 
     LOG_QMSG("do setupCellColours");
@@ -203,8 +207,6 @@ void MainWindow::createActions()
     connect(action_stop, SIGNAL(triggered()), SLOT(stopServer()));
     connect(action_play_VTK, SIGNAL(triggered()), SLOT(playVTK()));
     connect(action_set_speed, SIGNAL(triggered()), SLOT(setVTKSpeed()));
-//    connect(buttonGroup_FACS_PLOT_x, SIGNAL(buttonClicked(QAbstractButton*)), this, SIGNAL(facs_update()));
-//    connect(buttonGroup_FACS_PLOT_y, SIGNAL(buttonClicked(QAbstractButton*)), this, SIGNAL(facs_update()));
     connect(buttonGroup_FACS_x_vars, SIGNAL(buttonClicked(QAbstractButton*)), this, SIGNAL(facs_update()));
     connect(buttonGroup_FACS_y_vars, SIGNAL(buttonClicked(QAbstractButton*)), this, SIGNAL(facs_update()));
     connect(checkBox_FACS_log_x, SIGNAL(stateChanged(int)), this, SIGNAL(facs_update()));
@@ -217,6 +219,9 @@ void MainWindow::createActions()
     connect(line_DNB_KILL_MODEL_CELL1_MET2,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
     connect(line_DNB_KILL_MODEL_CELL2_MET1,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
     connect(line_DNB_KILL_MODEL_CELL2_MET2,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
+
+    connect(line_NXB,SIGNAL(textChanged(QString)),this,SLOT(setFields()));
+    connect(line_DELTA_X,SIGNAL(textChanged(QString)),this,SLOT(setFields()));
 
     connect(this,SIGNAL(pause_requested()),SLOT(pauseServer()));
 
@@ -253,7 +258,8 @@ void MainWindow::createActions()
 
 //    connect(action_show_gradient3D, SIGNAL(triggered()), this, SLOT(showGradient3D()));
 //    connect(action_show_gradient2D, SIGNAL(triggered()), this, SLOT(showGradient2D()));
-    connect(field->buttonGroup_constituent, SIGNAL(buttonClicked(QAbstractButton*)), this, SLOT(buttonClick_constituent(QAbstractButton*)));
+    connect(field->buttonGroup_cell_constituent, SIGNAL(buttonClicked(QAbstractButton*)), this, SLOT(buttonClick_cell_constituent(QAbstractButton*)));
+    connect(field->buttonGroup_field_constituent, SIGNAL(buttonClicked(QAbstractButton*)), this, SLOT(buttonClick_field_constituent(QAbstractButton*)));
     connect(buttonGroup_plane, SIGNAL(buttonClicked(QAbstractButton*)), this, SLOT(buttonClick_plane(QAbstractButton*)));
 //    connect(buttonGroup_constituent, SIGNAL(buttonClicked(QAbstractButton*)), field, SLOT(setConstituent(QAbstractButton*)));
 //	  connect(lineEdit_fraction, SIGNAL(textChanged(QString)), this, SLOT(textChanged_fraction(QString)));
@@ -548,15 +554,14 @@ void MainWindow::showFACS()
     QRadioButton *rb;
 
 //    LOG_MSG("showFACS");
-//    if (showingFACS) LOG_MSG("showingFACS");
-//    if (recordingFACS) LOG_MSG("recordingFACS");
+//    if (Global::showingFACS) LOG_MSG("showingFACS");
+//    if (Global::recordingFACS) LOG_MSG("recordingFACS");
     qpFACS = (QwtPlot *)qFindChild<QObject *>(this, "qwtPlot_FACS");
     qpFACS->size();
     qpFACS->clear();
     qpFACS->setTitle("FACS");
 //    QwtSymbol symbol = QwtSymbol( QwtSymbol::Diamond, Qt::blue, Qt::NoPen, QSize( 3,3 ) );
     QwtSymbol symbol = QwtSymbol( QwtSymbol::Rect, Qt::blue, Qt::NoPen, QSize( 2,2 ) );
-
     // Determine which button is checked:
     for (ivar=0; ivar<Global::nvars_used; ivar++) {
         rb = FACS_x_vars_rb_list[ivar];
@@ -868,6 +873,7 @@ void MainWindow:: showHisto()
     double width, xmin;
     bool log_scale;
 
+//    LOG_MSG("showHisto");
     log_scale = checkBox_histo_logscale->isChecked();
     numValues = Global::nhisto_bins;
     QwtArray<double> values(numValues);
@@ -1125,6 +1131,22 @@ void MainWindow::loadParams()
 }
 
 //--------------------------------------------------------------------------------------------------------
+// This is to disable unused fields (because spheroid_GUI.ui is shared with spheroid_GUI).
+//--------------------------------------------------------------------------------------------------------
+void MainWindow::setFields()
+{
+    line_NT_CONC->setEnabled(false);
+    line_NMM3->setEnabled(false);
+    line_FLUID_FRACTION->setEnabled(false);
+    line_UNSTIRRED_LAYER->setEnabled(false);
+    int nxb = line_NXB->text().toInt();
+    double dx = line_DELTA_X->text().toDouble();
+    double vol_cm3 = pow(4*nxb*dx,3)*1.0e-12;
+    QString str = QString::number(vol_cm3,'g',3);
+    line_MEDIUM_VOLUME->setText(str);
+}
+
+//--------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------
 //QString MainWindow::parse_rbutton(QString wtag, int *rbutton_case)
 //{
@@ -1308,6 +1330,7 @@ void MainWindow::reloadParams()
     }
     text_GUI_VERSION_NAME->setText(Global::GUI_build_version);
     text_DLL_VERSION_NAME->setText(Global::DLL_build_version);
+    setFields();
 }
 
 //--------------------------------------------------------------------------------------------------------
@@ -1776,7 +1799,7 @@ void MainWindow::saveSnapshot()
 
 //--------------------------------------------------------------------------------------------------------
 // Note that constituent data is currently hard-wired!!
-// The names are in field->const_name[]
+// The names are NOT in field->cell_const_name[]
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::saveProfileData()
 {
@@ -1799,12 +1822,12 @@ void MainWindow::saveProfileData()
         return;
     }
     QTextStream out(&file);
-    for (ichemo=0; ichemo<Global::MAX_CHEMO+1; ichemo++) {
+//    for (ichemo=0; ichemo<Global::MAX_CHEMO+1; ichemo++) {
 //        if (!field->const_used[ichemo]) continue;
-        out << field->const_name[ichemo];
-        out << "\n";
-    }
-    out << "\n";
+//        out << field->cell_const_name[ichemo];
+//        out << "\n";
+//    }
+//    out << "\n";
     for (i=0; i<Global::conc_nc; i++) {
         x = i*Global::conc_dx*1.0e4;
         line = QString::number(x,'g',4);
@@ -1976,7 +1999,7 @@ void MainWindow::runServer()
     connect(this, SIGNAL(facs_update()), this, SLOT(showFACS()));
     connect(exthread, SIGNAL(histo_update()), this, SLOT(showHisto()));
     connect(this, SIGNAL(histo_update()), this, SLOT(showHisto()));
-//    connect(exthread, SIGNAL(setupC()), this, SLOT(setupConstituents()));
+    connect(exthread, SIGNAL(setupC()), this, SLOT(setupConstituents()));
     connect(exthread, SIGNAL(badDLL(QString)), this, SLOT(reportBadDLL(QString)));
     exthread->ncpu = ncpu;
     exthread->nsteps = int(hours*60/Global::DELTA_T);
@@ -2243,10 +2266,9 @@ void MainWindow::showSummary(int hr)
             double x[100], y[100];
             double xscale, yscale;
             tag = grph->get_tag(i);
-            LOG_QMSG("tag: " + tag);
             int k = grph->get_dataIndex(i);
             if (k == MULTI) {
-                ivar = field->constituent;
+                ivar = field->cell_constituent;
                 QString title;
                 field->getTitle(ivar,&title);
                 pGraph[i]->setTitle(title);
@@ -2254,13 +2276,9 @@ void MainWindow::showSummary(int hr)
             }
             n = Global::conc_nc;
             int offset = k*n;
-            sprintf(msg,"n: %d offset: %d",n,offset);
-            LOG_MSG(msg);
             for (int j=0; j<n; j++) {
                 x[j] = j*Global::conc_dx*1.0e4;
                 y[j] = Global::concData[offset+j];
-                sprintf(msg,"%d %f %f",j,x[j],y[j]);
-                LOG_MSG(msg);
             }
             xscale = grph->get_xscale(x[n-1]);
             double maxval = 0;
@@ -2313,6 +2331,7 @@ void MainWindow::showSummary(int hr)
 
     field->setSliceChanged();
     if (step > 0 && !action_field->isEnabled()) {
+        LOG_MSG("call displayField");
         field->displayField(hour,&res);
         if (res != 0) {
             sprintf(msg,"displayField returned res: %d",res);
@@ -3251,8 +3270,12 @@ void MainWindow::on_action_show_gradient2D_triggered()
 // 9 DNB drug metabolite 2
 // ...
 //
-// GUI_to_DLL_index[ivar], ivar=0,..,nvars_used-1 = base DLL index (0,MAX_CHEMO+NEXTRA)
-// DLL_to_GUI_index[ichemo],ichemo=0,..,MAX_CHEMO+NEXTRA = index in list of variables in use (0,nvars_used-1)
+// GUI_to_DLL_index[ivar], ivar=0,..,nvars_used-1 = base DLL index (0,MAX_CHEMO+N_EXTRA)
+// DLL_to_GUI_index[ichemo],ichemo=0,..,MAX_CHEMO+N_EXTRA = index in list of variables in use (0,nvars_used-1)
+//
+// Note that while the cell constituents have DLL index values ranging from 0 to MAX_CHEMO+N_EXTRA,
+// the field constituent DLL indexes are in the range 1 to MAX_CHEMO, since the extra
+// variables not applicable in the extracellular compartment.
 //-----------------------------------------------------------------------------------------
 void MainWindow::setupConstituents()
 {
@@ -3262,9 +3285,10 @@ void MainWindow::setupConstituents()
     QString str, tag;
     int ivar, ichemo;
 
+    LOG_MSG("setupConstituents: cell variables:");
     narraylen = 1000;
     name_array = (char *)malloc(narraylen*sizeof(char));
-    get_constituents(&Global::nvars_used, Global::GUI_to_DLL_index, &nvarlen, name_array, &narraylen);
+    get_cell_constituents(&Global::nvars_used, Global::GUI_to_DLL_index, &nvarlen, name_array, &narraylen);
     for (ichemo=0; ichemo<32; ichemo++)
         Global::DLL_to_GUI_index[ichemo] = -1;
     for (ivar=0; ivar<Global::nvars_used; ivar++)
@@ -3282,19 +3306,24 @@ void MainWindow::setupConstituents()
     }
     free(name_array);
     LOG_MSG("set up Global");
+    tag = "cell";
+    field->setCellConstituentButtons(groupBox_cell_constituent, field->buttonGroup_cell_constituent, &field->vbox_cell_constituent, &field->cell_constituent_rb_list, tag);
+    LOG_MSG("did setCellCellConstituentButtons: field");
     tag = "field";
-    field->setConstituentButtons(groupBox_constituent,field->buttonGroup_constituent,&field->vbox_constituent,&field->constituent_rb_list,tag);
-    LOG_MSG("did setConstituentButtons: field");
+    field->setFieldConstituentButtons(groupBox_field_constituent, field->buttonGroup_field_constituent, &field->vbox_field_constituent, &field->field_constituent_rb_list, tag);
+    LOG_MSG("did setCellCellConstituentButtons: field");
     tag = "histo";
-    field->setConstituentButtons(groupBox_Histo_y_vars,buttonGroup_histo,&vbox_histo,&histo_rb_list,tag);
-    LOG_MSG("did setConstituentButtons: histo");
+    field->setCellConstituentButtons(groupBox_Histo_y_vars, buttonGroup_histo, &vbox_histo, &histo_rb_list, tag);
+    LOG_MSG("did setCellConstituentButtons: histo");
     tag = "FACS_x";
-    field->setConstituentButtons(groupBox_FACS_x_vars,buttonGroup_FACS_x_vars,&vbox_FACS_x_vars,&FACS_x_vars_rb_list,tag);
-    FACS_x_vars_rb_list[0]->setChecked(true);
-    LOG_MSG("did setConstituentButtons: FACS_x");
+    field->setCellConstituentButtons(groupBox_FACS_x_vars, buttonGroup_FACS_x_vars, &vbox_FACS_x_vars, &FACS_x_vars_rb_list, tag);
+    LOG_MSG("did setCellConstituentButtons: FACS_x");
+//    FACS_x_vars_rb_list[0]->setChecked(true);
     tag = "FACS_y";
-    field->setConstituentButtons(groupBox_FACS_y_vars,buttonGroup_FACS_y_vars,&vbox_FACS_y_vars,&FACS_y_vars_rb_list,tag);
-    LOG_MSG("did setConstituentButtons: FACS_y");
+    field->setCellConstituentButtons(groupBox_FACS_y_vars, buttonGroup_FACS_y_vars, &vbox_FACS_y_vars, &FACS_y_vars_rb_list, tag);
+    LOG_MSG("did setCellConstituentButtons: FACS_y");
+    field->setMaxConcentrations(groupBox_maxconc);
+    LOG_MSG("did setMaxConcentrations");
 }
 
 //--------------------------------------------------------------------------------------------------------

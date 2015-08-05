@@ -76,6 +76,7 @@ namespace Global
     extern bool leftb;
 
     extern int nvars_used;
+    extern int nfieldvars_used;
     extern int GUI_to_DLL_index[32];
     extern int DLL_to_GUI_index[32];
     extern QString var_string[32];

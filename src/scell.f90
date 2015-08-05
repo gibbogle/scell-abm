@@ -927,7 +927,6 @@ deallocate(sitelist)
 		
 end subroutine
 
-
 !-----------------------------------------------------------------------------------------
 ! Simulate through a full time step: DELTA_T
 !-----------------------------------------------------------------------------------------
@@ -937,7 +936,7 @@ use, intrinsic :: iso_c_binding
 integer(c_int) :: res
 integer :: kcell, hour, kpar=0
 real(REAL_KIND) :: radiation_dose, dt
-integer :: nchemo, i, k, nit, nt_diff, it_diff, ncells0, nhypoxic(3)
+integer :: i, k, nit, nt_diff, it_diff, ncells0, nhypoxic(3)
 integer :: nshow = 100
 integer :: Nhop
 integer :: nvars, ns
@@ -963,6 +962,7 @@ if (radiation_dose > 0) then
 	write(logmsg,'(a,f6.1)') 'Radiation dose: ',radiation_dose
 	call logger(logmsg)
 endif
+call SetupChemomap
 !dt = DELTA_T/NT_CONC
 ! the idea is to accumulate time steps until DELTA_T is reached 
 t_fmover = 0
@@ -1016,21 +1016,21 @@ call make_grid_flux_weights
 
 ! Reaction-diffusion system
 ! Assuming DELTA_T = 600 ...
-if (ncells < 2000) then
-	nt_diff = 1
-elseif (ncells < 3000) then
-	nt_diff = 2
-elseif (ncells < 4000) then
-	nt_diff = 3
-elseif (ncells < 5000) then
-	nt_diff = 4
-elseif (ncells < 7000) then
-	nt_diff = 5
-elseif (ncells < 10000) then
-	nt_diff = 6
-else
-	nt_diff = 7
-endif
+!if (ncells < 2000) then
+!	nt_diff = 1
+!elseif (ncells < 3000) then
+!	nt_diff = 2
+!elseif (ncells < 4000) then
+!	nt_diff = 3
+!elseif (ncells < 5000) then
+!	nt_diff = 4
+!elseif (ncells < 7000) then
+!	nt_diff = 5
+!elseif (ncells < 10000) then
+!	nt_diff = 6
+!else
+!	nt_diff = 7
+!endif
 nt_diff = 1
 dt = DELTA_T/nt_diff
 do it_diff = 1,nt_diff
@@ -1044,8 +1044,6 @@ do it_diff = 1,nt_diff
 	call diff_solver(dt)
 enddo
 if (.not.use_TCP .and. (mod(istep,6) == 0)) then
-!	call getHypoxicCount(nhypoxic)
-!	write(*,*) 'nhypoxic: ',nhypoxic
 	call get_concdata(nvars, ns, dxc, ex_conc)
 !	write(*,'(a,3f8.4)') 'cell #1: ',cell_list(1)%Cex(1),cell_list(1)%Cin(1),cell_list(1)%Cex(1)-cell_list(1)%Cin(1)
 endif
@@ -1103,20 +1101,113 @@ end subroutine
 ! If the volume removed is Vr, the fraction of constituent mass that is retained
 ! in the medium is (Vm - Vr)/Vm.  The calculation does not apply to oxygen.
 ! Usually Vr = Ve.
+! With grid, need to exclude gridcells that contain cells and those interior gridcells.
+! The total mass in the external gridcells is determined, and a fraction of it may be retained
 !-----------------------------------------------------------------------------------------
 subroutine MediumChange(Ve,Ce)
 real(REAL_KIND) :: Ve, Ce(:)
-real(REAL_KIND) :: R, Vm, Vr, Vblob
+real(REAL_KIND) :: R, Vm_old, Vm_new, Vr, Vkeep, Vblob, fkeep
+integer :: kcell, site(3), siteb(3), ixb, iyb, izb, izb_1, izb_2, ichemo
+integer, allocatable :: zinrng(:,:,:)
+real(REAL_KIND), allocatable :: exmass(:), exconc(:)
 
+allocate(ngcells(NXB,NYB,NZB))
+allocate(zinrng(2,NXB,NYB))
+allocate(exmass(MAX_CHEMO))
+allocate(exconc(MAX_CHEMO))
+exmass = 0
+ngcells = 0
+! need to identify gridcells containing cells, to exclude from the calculation
+do kcell = 1,nlist
+	if (cell_list(kcell)%state == DEAD) cycle
+	site = cell_list(kcell)%site	! this gives the location in the fine grid
+	call getSiteb(site,siteb)
+	ngcells(siteb(1),siteb(2),siteb(3)) = ngcells(siteb(1),siteb(2),siteb(3)) + 1
+enddo
+do ixb = 1,NXB
+	do iyb = 1,NYB
+		! Need to include all internal empty gridcells (necrotic)
+		! First find first and last non-empty gridcells
+		izb_1 = 0
+		izb_2 = 0
+		do izb = 1,NZB
+			if (ngcells(ixb,iyb,izb) > 0) then
+				if (izb_1 == 0) izb_1 = izb
+				izb_2 = izb
+			endif
+		enddo
+		if (izb_1 /= 0) then
+			Vblob = Vblob + izb_2 - izb_1 + 1
+		endif
+		do izb = 1,NZB
+			if (izb_1 /= 0 .and. (izb >= izb_1 .and. izb <= izb_2)) cycle	! blob gridcells
+			do ichemo = 1,MAX_CHEMO
+				exmass(ichemo) = exmass(ichemo) + dxb3*chemo(ichemo)%Cave_b(ixb,iyb,izb)
+			enddo
+		enddo
+		zinrng(:,ixb,iyb) = [izb_1,izb_2]
+	enddo
+enddo
+Vblob = dxb3*Vblob
+
+R = getRadius()
 !call SetRadius(Nsites)
 !R = Radius*DELTA_X		! cm
-!Vblob = (4./3.)*PI*R**3	! cm3
-!Vm = total_volume - Vblob
-!Vr = min(Vm,Ve)
+Vblob = (4./3.)*PI*R**3	! cm3
+Vm_old = total_volume - Vblob	! this is the initial external (medium) volume
+Vr = min(Vm_old,Ve)				! this is the amount of medium volume that is exchanged
+Vkeep = Vm_old - Vr
+fkeep = Vkeep/Vm_old			! fraction of initial medium volume that is kept. i.e. fraction of exmass(:)
+Vm_new = Ve + Vkeep				! new medium volume
+total_volume = Vm_new + Vblob	! new total volume
+! Concentrations in the gridcells external to the blob (those with no cells) are set
+! to the values of the mixture of old values and added medium.
+do ichemo = 1,MAX_CHEMO
+	exconc(ichemo) = (Ve*Ce(ichemo) + fkeep*exmass(ichemo))/Vm_new
+enddo
+do ixb = 1,NXB
+	do iyb = 1,NYB
+		if (zinrng(1,ixb,iyb) == 0) then
+			do ichemo = 1,MAX_CHEMO
+				chemo(ichemo)%Cave_b(ixb,iyb,1:NZB) = exconc(ichemo)
+			enddo
+		else
+			izb_1 = zinrng(1,ixb,iyb)
+			izb_2 = zinrng(2,ixb,iyb)
+			do izb = 1,NZB
+				if ((izb >= izb_1 .and. izb <= izb_2)) cycle	! blob gridcells
+				do ichemo = 1,MAX_CHEMO
+					chemo(ichemo)%Cave_b(ixb,iyb,izb) = exconc(ichemo)
+				enddo
+			enddo
+		endif
+	enddo
+enddo
 !chemo(OXYGEN+1:)%medium_M = ((Vm - Vr)/Vm)*chemo(OXYGEN+1:)%medium_M + Vr*Ce(OXYGEN+1:)
-!total_volume = Vm - Vr + Ve + Vblob
 !chemo(OXYGEN+1:)%medium_Cext = chemo(OXYGEN+1:)%medium_M/(total_volume - Vblob)
 !chemo(OXYGEN)%medium_Cext = chemo(OXYGEN)%bdry_conc
+
+deallocate(ngcells)
+deallocate(zinrng)
+deallocate(exmass)
+deallocate(exconc)
+end subroutine
+
+!-----------------------------------------------------------------------------------------
+! Determine which gridcell in the big grid (siteb(:)) the fine gridcell site(:) falls in.
+! Note that %site(:) and %centre(:,:) always refer to the fine grid, because it is
+! assumed that cells never move outside the fine grid.
+!-----------------------------------------------------------------------------------------
+subroutine getSiteb(site,siteb)
+integer :: site(3), siteb(3)
+integer :: ixb1, iyb1, ixb, iyb, izb
+
+ixb1 = (NXB+1)/2 - (NX-1)/(2*NRF)
+ixb = ixb1 + (site(1)-1)/NRF
+iyb1 = (NYB+1)/2 - (NY-1)/(2*NRF)
+iyb = iyb1 + (site(2)-1)/NRF
+izb = 1 + (site(3)-1)/NRF
+siteb = [ixb, iyb, izb]
 end subroutine
 
 !-----------------------------------------------------------------------------------------
@@ -1179,7 +1270,6 @@ integer(c_int) :: NX_dim,NY_dim,NZ_dim,nsteps_dim, maxchemo, nextra
 real(c_double) :: deltat, dfraction, deltax
 logical(c_bool) :: cused(*)
 integer :: ichemo
-integer :: N_EXTRA=1
 
 NX_dim = NX
 NY_dim = NY

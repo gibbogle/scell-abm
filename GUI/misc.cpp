@@ -200,8 +200,8 @@ void ExecThread::run()
     get_dimensions(&Global::NX, &Global::NY, &Global::NZ, &nsteps, &Global::DELTA_T, &Global::MAX_CHEMO, &Global::N_EXTRA,
                    cused, &Global::dfraction, &Global::DELTA_X);
     summary_interval = int(3600./Global::DELTA_T);
-    sprintf(msg,"exthread: nsteps: %d summary_interval: %d NX: %d DELTA_X: %f nt_VTK: %d",
-            nsteps,summary_interval,Global::NX,Global::DELTA_X,Global::nt_vtk);
+    sprintf(msg,"exthread: nsteps: %d summary_interval: %d NX: %d DELTA_X: %f nt_VTK: %d N_EXTRA: %d",
+            nsteps,summary_interval,Global::NX,Global::DELTA_X,Global::nt_vtk,Global::N_EXTRA);
     LOG_MSG(msg);
     Global::conc_nc = 0;
     hour = 0;
@@ -235,27 +235,22 @@ void ExecThread::run()
             LOG_MSG("simulate_step: res != 0");
             break;
         }
-        LOG_MSG("did simulate_step");
+//        LOG_MSG("did simulate_step");
         if (i%summary_interval == 0) {
-            LOG_MSG("before get_summary");
             mutex1.lock();
-            LOG_MSG("did get_summary");
             get_summary(Global::summaryData, &Global::i_hypoxia_cutoff, &Global::i_growth_cutoff);
-//            get_volprob(&Global::vol_nv, &Global::vol_v0, &Global::vol_dv, Global::volProb);
-//            get_oxyprob(&Global::oxy_nv, &Global::oxy_v0, &Global::oxy_dv, Global::oxyProb);
-            LOG_MSG("call get_concdata");
+            get_volprob(&Global::vol_nv, &Global::vol_v0, &Global::vol_dv, Global::volProb);
+            get_oxyprob(&Global::oxy_nv, &Global::oxy_v0, &Global::oxy_dv, Global::oxyProb);
             get_concdata(&Global::conc_nvars, &Global::conc_nc, &Global::conc_dx, Global::concData);
-            LOG_MSG("did get_concdata");
-//            if (Global::showingFACS || Global::recordingFACS) {
-//                getFACS();
-//            }
+            if (Global::showingFACS || Global::recordingFACS) {
+                getFACS();
+            }
             mutex1.unlock();
-//            if (Global::showingFACS || Global::recordingFACS) {
-//                emit facs_update();
-//                emit histo_update();
-//            }
+            if (Global::showingFACS || Global::recordingFACS) {
+                emit facs_update();
+                emit histo_update();
+            }
             hour++;
-            LOG_MSG("emit summary");
             emit summary(hour);		// Emit signal to update summary plots, at hourly intervals
             summary_done.wait(&mutex3);
         }
@@ -328,56 +323,27 @@ void ExecThread::saveGradient2D(int i)
 }
 
 //-----------------------------------------------------------------------------------------
-//-----------------------------------------------------------------------------------------
-void ExecThread::getProfiles()
-{
-    int k;
-
-//    k = PROFILE_OXYGEN;
-//    get_profile_oxygen(Global::profile_x[k],Global::profile_y[k],&Global::profile_n[k]);
-
-//    k = PROFILE_S1PR1;
-//    get_profile_s1pr1(profile_x[k],profile_y[k],&profile_n[k]);
-//    k = PROFILE_CFSE;
-//    get_profile_cfse(profile_x[k],profile_y[k],&profile_n[k]);
-//    k = PROFILE_STIM;
-//    get_profile_stim(profile_x[k],profile_y[k],&profile_n[k]);
-//    k = PROFILE_STIMRATE;
-//    get_profile_stimrate(profile_x[k],profile_y[k],&profile_n[k]);
-//    k = PROFILE_AVIDITY_LN;
-//    get_profile_avidity_ln(profile_x[k],profile_y[k],&profile_n[k]);
-//    k = PROFILE_AVIDITY_PER;
-//    get_profile_avidity_per(profile_x[k],profile_y[k],&profile_n[k]);
-//    k = PROFILE_GENERATION_LN;
-//    get_profile_generation_ln(profile_x[k],profile_y[k],&profile_n[k]);
-//    k = PROFILE_FIRSTDCCONTACTTIME;
-//    get_profile_firstdccontacttime(profile_x[k],profile_y[k],&profile_n[k]);
-//    k = PROFILE_DCBINDTIME;
-//    get_profile_dcbindtime(profile_x[k],profile_y[k],&profile_n[k]);
-}
-
-
-//-----------------------------------------------------------------------------------------
 // Get FACS data and histogram data
 //-----------------------------------------------------------------------------------------
 void ExecThread::getFACS()
 {
-//    get_nfacs(&Global::nFACS_cells);
-//    if (!Global::FACS_data || Global::nFACS_cells*Global::nvars_used > Global::nFACS_dim) {
-//        if (Global::FACS_data) free(Global::FACS_data);
-//        Global::nFACS_dim = 3*Global::nFACS_cells*Global::nvars_used;   // 3* to avoid excessive malloc/free
-//        Global::FACS_data = (double *)malloc(Global::nFACS_dim*sizeof(double));
-//    }
-//    get_facs(Global::FACS_data);
-//    if (!Global::histo_data || Global::nhisto_bins*Global::nvars_used > Global::nhisto_dim) {
-//        if (Global::histo_data) free(Global::histo_data);
-//        if (Global::histo_data_log) free(Global::histo_data_log);
-//        Global::nhisto_dim = 6*Global::nhisto_bins*Global::nvars_used;   // 2*3 to avoid excessive malloc/free (only 3* used)
-//        Global::histo_data = (double *)malloc(Global::nhisto_dim*sizeof(double));
-//        Global::histo_data_log = (double *)malloc(Global::nhisto_dim*sizeof(double));
-//    }
-//    get_histo(Global::nhisto_bins, Global::histo_data, Global::histo_vmin, Global::histo_vmax,
-//              Global::histo_data_log, Global::histo_vmin_log, Global::histo_vmax_log);
+//    LOG_MSG("getFACS");
+    get_nfacs(&Global::nFACS_cells);
+    if (!Global::FACS_data || Global::nFACS_cells*Global::nvars_used > Global::nFACS_dim) {
+        if (Global::FACS_data) free(Global::FACS_data);
+        Global::nFACS_dim = 3*Global::nFACS_cells*Global::nvars_used;   // 3* to avoid excessive malloc/free
+        Global::FACS_data = (double *)malloc(Global::nFACS_dim*sizeof(double));
+    }
+    get_facs(Global::FACS_data);
+    if (!Global::histo_data || Global::nhisto_bins*Global::nvars_used > Global::nhisto_dim) {
+        if (Global::histo_data) free(Global::histo_data);
+        if (Global::histo_data_log) free(Global::histo_data_log);
+        Global::nhisto_dim = 6*Global::nhisto_bins*Global::nvars_used;   // 2*3 to avoid excessive malloc/free (only 3* used)
+        Global::histo_data = (double *)malloc(Global::nhisto_dim*sizeof(double));
+        Global::histo_data_log = (double *)malloc(Global::nhisto_dim*sizeof(double));
+    }
+    get_histo(Global::nhisto_bins, Global::histo_data, Global::histo_vmin, Global::histo_vmax,
+              Global::histo_data_log, Global::histo_vmin_log, Global::histo_vmax_log);
 }
 
 //-----------------------------------------------------------------------------------------

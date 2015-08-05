@@ -7,14 +7,13 @@ LOG_USE();
 
 //-----------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
-//Field::Field(QWidget *page2D)
 Field::Field(QWidget *aParent) : QWidget(aParent)
 {
-//	field_page = page2D;
     field_page = aParent;
     axis = Z_AXIS;
     fraction = 0;
-    constituent = OXYGEN;
+    cell_constituent = OXYGEN;
+    field_constituent = OXYGEN;
     slice_changed = true;
     setConcPlot(false);
     setVolPlot(false);
@@ -24,10 +23,14 @@ Field::Field(QWidget *aParent) : QWidget(aParent)
     pGoxy = NULL;
     ifield = 0;
     view = new MyQGraphicsView(field_page);
-    constituent_rb_list = NULL;
-    vbox_constituent = NULL;
-    buttonGroup_constituent = new QButtonGroup;
-    data = NULL;
+    vbox_cell_constituent = NULL;
+    vbox_field_constituent = NULL;
+    vbox_cell_max_concentration = NULL;
+    buttonGroup_cell_constituent = new QButtonGroup;
+    buttonGroup_field_constituent = new QButtonGroup;
+    line_maxConc_list.clear();
+    cell_constituent_rb_list.clear();
+    field_constituent_rb_list.clear();
 }
 
 //-----------------------------------------------------------------------------------------
@@ -79,10 +82,62 @@ void Field::setOxyPlot(bool status)
 }
 
 //------------------------------------------------------------------------------------------------
-// To create the group of radiobuttons for constituent selection.
+// To create the group of radiobuttons for cell constituent selection.
 // This uses information about active constituents fetched from the DLL.
+// Need to distinguish field constituent from cell constituent, because for the cell we are
+// interested in CFSE, volume, O2byvol in addition to the dissolved constituents:
+// oxygen, glucose, drugA, drugB, metabolites...
 //------------------------------------------------------------------------------------------------
-void Field::setConstituentButtons(QGroupBox *gbox, QButtonGroup *bg, QVBoxLayout **vbox, QRadioButton ***rb_list, QString tag)
+void Field::setCellConstituentButtons(QGroupBox *gbox, QButtonGroup *bg, QVBoxLayout **vbox, QList<QRadioButton *> *rb_list, QString tag)
+{
+    int ivar;
+    QString name, str;
+    QRadioButton *rb;
+
+    LOG_QMSG("setCellConstituentButtons: " + tag);
+    if (rb_list->length() != 0) {
+        LOG_MSG("rb_list not NULL, delete it");
+        for (ivar=0; ivar<rb_list->length(); ivar++) {
+            rb = (*rb_list)[ivar];
+            bg->removeButton(rb);
+            delete rb;
+        }
+        rb_list->clear();
+    }
+    if (!*vbox) {
+        LOG_MSG("vbox = NULL, create it");
+        *vbox = new QVBoxLayout;
+        gbox->setLayout(*vbox);
+    }
+    name = "rb_cell_constituent_"+tag;
+    LOG_QMSG(name);
+//    sprintf(msg,"rb_list: %p vbox: %p bg: %p nvars_used: %d",p,*vbox,bg,Global::nvars_used);
+//    LOG_MSG(msg);
+    for (ivar=0; ivar<Global::nvars_used; ivar++) {
+        str = Global::var_string[ivar];
+        rb = new QRadioButton;
+        rb->setText(str);
+        rb->setObjectName(name+ivar);
+        (*vbox)->addWidget(rb);
+        rb->setEnabled(true);
+        bg->addButton(rb,ivar);
+        rb_list->append(rb);
+    }
+    LOG_MSG("added buttons");
+    if (tag.contains("FACS")) {
+        (*rb_list)[0]->setChecked(true);   // CFSE
+    } else {
+        (*rb_list)[1]->setChecked(true);   // Oxygen
+    }
+    QRect rect = gbox->geometry();
+    rect.setHeight(25*Global::nvars_used);
+    gbox->setGeometry(rect);
+    gbox->show();
+    LOG_MSG("completed");
+}
+
+/*
+void Field::setCellConstituentButtons(QGroupBox *gbox, QButtonGroup *bg, QVBoxLayout **vbox, QRadioButton ***rb_list, QString tag)
 {
     int ivar;
     QString name, str;
@@ -91,7 +146,7 @@ void Field::setConstituentButtons(QGroupBox *gbox, QButtonGroup *bg, QVBoxLayout
     QRadioButton *rb;
 
     p = *rb_list;
-    LOG_QMSG("setConstituentButtons: " + tag);
+    LOG_QMSG("setCellConstituentButtons: " + tag);
     if (p) {
         LOG_MSG("rb_list not NULL, delete it");
         for (ivar=0; ivar<Global::nvars_used; ivar++) {
@@ -106,7 +161,7 @@ void Field::setConstituentButtons(QGroupBox *gbox, QButtonGroup *bg, QVBoxLayout
         *vbox = new QVBoxLayout;
         gbox->setLayout(*vbox);
     }
-    name = "rb_constituent_"+tag;
+    name = "rb_cell_constituent_"+tag;
     LOG_QMSG(name);
     *rb_list = new QRadioButton*[Global::nvars_used];
     p = *rb_list;
@@ -117,7 +172,7 @@ void Field::setConstituentButtons(QGroupBox *gbox, QButtonGroup *bg, QVBoxLayout
         p[ivar] = new QRadioButton;
         p[ivar]->setText(str);
         p[ivar]->setObjectName(name+ivar);
-        (*vbox)->addWidget(p[ivar]);
+        (*vbox)->addWidget(p[ivar],ivar,0);
         p[ivar]->setEnabled(true);
         bg->addButton(p[ivar],ivar);
     }
@@ -127,17 +182,105 @@ void Field::setConstituentButtons(QGroupBox *gbox, QButtonGroup *bg, QVBoxLayout
     gbox->setGeometry(rect);
     gbox->show();
 }
+*/
+
+//------------------------------------------------------------------------------------------------
+// To create the group of radiobuttons for field constituent selection.
+// This uses information about active constituents fetched from the DLL.
+// Need to distinguish field constituent from cell constituent, because for the
+// field we have only the dissolved constituents:
+// oxygen, glucose, drugA, drugB, metabolites...
+//------------------------------------------------------------------------------------------------
+void Field::setFieldConstituentButtons(QGroupBox *gbox, QButtonGroup *bg, QVBoxLayout **vbox, QList<QRadioButton *> *rb_list, QString tag)
+{
+    int ivar;
+    QString name, str;
+    QRadioButton *rb;
+
+    Global::nfieldvars_used = Global::nvars_used - Global::N_EXTRA;
+    LOG_QMSG("setFieldConstituentButtons: " + tag);
+    if (rb_list->length() != 0) {
+        LOG_MSG("rb_list not NULL, delete it");
+        for (ivar=0; ivar<rb_list->length(); ivar++) {
+            rb = (*rb_list)[ivar];
+            bg->removeButton(rb);
+            delete rb;
+        }
+        rb_list->clear();
+    }
+    if (!*vbox) {
+        LOG_MSG("vbox = NULL, create it");
+        *vbox = new QVBoxLayout;
+        gbox->setLayout(*vbox);
+    }
+    name = "rb_field_constituent_"+tag;
+    LOG_QMSG(name);
+    for (ivar=0; ivar<Global::nfieldvars_used; ivar++) {
+        str = Global::var_string[ivar+1];
+        rb = new QRadioButton;
+        rb->setText(str);
+        rb->setObjectName(name+ivar);
+        (*vbox)->addWidget(rb);
+        rb->setEnabled(true);
+        bg->addButton(rb,ivar);
+        rb_list->append(rb);
+    }
+    (*rb_list)[0]->setChecked(true);   // Oxygen
+    QRect rect = gbox->geometry();
+    rect.setHeight(25*(Global::nfieldvars_used + 1));
+    gbox->setGeometry(rect);
+    gbox->show();
+}
 
 //------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------
-void Field::selectConstituent()
+void Field::setMaxConcentrations(QGroupBox *gbox)
+{
+    int ivar;
+    QLineEdit *line_maxConc;
+
+    if (!vbox_cell_max_concentration) {
+        LOG_MSG("vbox_cell_max_concentration = NULL, create it");
+        vbox_cell_max_concentration = new QVBoxLayout;
+        gbox->setLayout(vbox_cell_max_concentration);
+    }
+
+    if (line_maxConc_list.length() != 0) {
+        for (ivar=0; ivar < line_maxConc_list.length(); ivar++) {
+            line_maxConc = line_maxConc_list[ivar];
+            vbox_cell_max_concentration->removeWidget(line_maxConc);
+        }
+    }
+    line_maxConc_list.clear();
+
+    for (ivar=0; ivar<Global::nvars_used; ivar++) {
+        line_maxConc = new QLineEdit;
+        line_maxConc->setObjectName("maxConc"+ivar);
+        line_maxConc->setText("1.0");
+        line_maxConc->setMaximumWidth(50);
+        line_maxConc->setEnabled(true);
+        vbox_cell_max_concentration->addWidget(line_maxConc);
+        line_maxConc_list.append(line_maxConc);
+    }
+
+    line_maxConc_list[OXYGEN]->setText("0.18");
+    line_maxConc_list[GLUCOSE]->setText("9.0");
+    QRect rect = gbox->geometry();
+    rect.setHeight(25*Global::nvars_used);
+    gbox->setGeometry(rect);
+    gbox->show();
+}
+
+//------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+void Field::selectCellConstituent()
 {
     int iconst, res;
     QStringList items;
 
-    LOG_MSG("selectConstituent");
+    LOG_MSG("selectCellConstituent");
     for (iconst=0; iconst<Global::nvars_used; iconst++) {
-        if (iconst == constituent) continue;
+        if (iconst == cell_constituent) continue;
         items << Global::var_string[iconst];
     }
     bool ok;
@@ -146,10 +289,7 @@ void Field::selectConstituent()
     if (ok && !item.isEmpty()) {
         for (iconst=0; iconst<Global::nvars_used; iconst++) {
             if (item == Global::var_string[iconst]) {
-                constituent = iconst;
-//                if (useConcPlot)
-//                    updateConcPlot();
-//                break;
+                cell_constituent = iconst;
             }
         }
     }
@@ -158,24 +298,46 @@ void Field::selectConstituent()
 
 //------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------
-void Field::setConstituent(QAbstractButton *button)
+void Field::setCellConstituent(QAbstractButton *button)
 {
     int res;
 //    QMessageBox msgBox;
 //    msgBox.setText("setConstituent");
 //    msgBox.exec();
-    LOG_MSG("setConstituent");
-    int prev_constituent = constituent;
+    LOG_MSG("setCellConstituent");
+    int prev_constituent = cell_constituent;
     QString text = button->text();
     for (int ivar=0; ivar<Global::nvars_used; ivar++) {
         if (text == Global::var_string[ivar]) {
-            constituent = ivar;
+            cell_constituent = ivar;
         }
     }
 
-    if (constituent != prev_constituent) {
-        constituent_changed = true;
-        LOG_MSG("setConstituent");
+    if (cell_constituent != prev_constituent) {
+        LOG_MSG("setCellConstituent");
+        displayField(hour,&res);
+    }
+}
+
+//------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------
+void Field::setFieldConstituent(QAbstractButton *button)
+{
+    int res;
+//    QMessageBox msgBox;
+//    msgBox.setText("setConstituent");
+//    msgBox.exec();
+    LOG_MSG("setFieldConstituent");
+    int prev_constituent = field_constituent;
+    QString text = button->text();
+    for (int ivar=0; ivar<Global::nfieldvars_used; ivar++) {
+        if (text == Global::var_string[ivar+1]) {
+            field_constituent = ivar+1;
+        }
+    }
+
+    if (field_constituent != prev_constituent) {
+        LOG_MSG("setFieldConstituent");
         displayField(hour,&res);
     }
 }
@@ -244,41 +406,18 @@ void Field::displayField(int hr, int *res)
 {
     QGraphicsScene* scene = new QGraphicsScene(QRect(0, 0, CANVAS_WIDTH, CANVAS_WIDTH));
     QBrush brush;
-    int i, xindex, yindex, ix, iy, w, rgbcol[3], ichemo;
-    double xp, yp, x, y, d0, d, volume, scale, cmin, cmax, rmax;
+    int i, k, ix, iy, iz, w, rgbcol[3], ichemo;
+    double xp, yp, x, y, d, C, cmin, cmax, rmax;
     double a, b, Wc, dx, Wx, radius, r;
-    int Nc, nx;
+    int Nc, NX, NY, NZ, nx;
     double beta = 1.0;
 
-    ichemo = Global::GUI_to_DLL_index[constituent];
-    LOG_QMSG("displayField: " + QString::number(constituent) + "-->" + QString::number(ichemo));
+    ichemo = Global::GUI_to_DLL_index[field_constituent];
+    LOG_QMSG("displayField: field: " + QString::number(field_constituent) + " --> " + QString::number(ichemo));
     use_log = false;    // temporary
     *res = 0;
     hour = hr;
 	if (slice_changed) {
-        /*
-//        old_get_fieldinfo(&NX, &axis, &fraction, &nsites, &nconst, const_used, res);    // Note: const_used[] is no longer used
-        if (*res != 0) {
-            printf("Error: get_fieldinfo: FAILED\n");
-            LOG_MSG("Error: get_fieldinfo: FAILED");
-            return;
-        }
-        if (nconst != MAX_CONC) {
-            sprintf(msg,"Error: displayField: get_fieldinfo: MAX_CONC != MAX_CHEMO: %d %d",MAX_CONC,Global::MAX_CHEMO);
-            LOG_MSG(msg);
-            exit(1);
-        }
-        if (NEXTRA != Global::N_EXTRA) {
-            sprintf(msg,"Error: displayField: NEXTRA != N_EXTRA: %d %d",NEXTRA,Global::N_EXTRA);
-            LOG_MSG(msg);
-            exit(1);
-        }
-        if (this->data) {
-            free(this->data);
-        }
-        this->data = (old_FIELD_DATA *)malloc(nsites*sizeof(old_FIELD_DATA));
-        */
-//        old_get_fielddata(&axis, &fraction, &nsites, &nconst, this->data, res);
         get_fielddata(&axis, &fraction, &fdata, res);
         if (*res != 0) {
             LOG_MSG("Error: get_fielddata: FAILED");
@@ -289,82 +428,116 @@ void Field::displayField(int hr, int *res)
         slice_changed = false;
     }
 
-//    if (axis == X_AXIS) {           // Y-Z plane
-//        xindex = 1;
-//        yindex = 2;
-//    } else if (axis == Y_AXIS) {   // X-Z plane
-//        xindex = 0;
-//        yindex = 2;
-//    } else if (axis == Z_AXIS) {   // X-Y plane
-//        xindex = 0;
-//        yindex = 1;
-//    }
-    nx = fdata.NX;
-    dx = fdata.DX;
-    xindex = 0;
-    yindex = 1;
+    cmin = 1.0e10;
+    cmax = 0;
+    rmax = 0;
 
-/*
- Wx = size of grid = (nx-1)*dx
- beta = fraction of grid that fills the canvas from side to side (or top to bottom)
- Wc = canvas width (pixels)
- xp = a.x + b
- yp = a.y + b
- blob centre at (Wx/2,Wx/2) maps to canvas centre at (Wc/2,Wc/2)
- => Wc/2 = a.Wx/2 + b
- The fraction beta maps to the canvas width
- => Wc = a.beta.Wx
- => a = Wc/(beta.Wx), b = Wc/2 - a.Wx/2
-*/
-    Wx = (nx-1)*dx;
+    NX = fdata.NX;
+    NY = fdata.NY;
+    NZ = fdata.NZ;
+    dx = fdata.DX;
+    /*
+    if (axis == X_AXIS) {           // Y-Z plane
+        nx = NY;
+        ny = NZ;
+        ix = (NX+1)/2 - 1;
+        for (iy=0; iy<NY; iy++) {
+            for (iz=0; iz<NZ; iz++) {
+                k = (ichemo-1)*NZ*NY*NX + iz*NY*NX + iy*NX + ix;    // index(ix,iy,iz,ichemo);
+                C = fdata.Cave[k];
+//                cmin = MIN(MAX(cmin,0),C);
+                cmax = MAX(cmax,C);
+                cmin = 0;
+//                cmax = line_maxConc_list[cell_constituent]->text().toDouble();
+            }
+        }
+    } else if (axis == Y_AXIS) {   // X-Z plane
+        nx = NX;
+        ny = NZ;
+        iy = (NY+1)/2 - 1;
+    } else if (axis == Z_AXIS) {   // X-Y plane
+        nx = NX;
+        ny = NY;
+        iz = (NZ+1)/2 - 1;
+    }
+    */
+
+    Wx = (NX-1)*dx;
     Wc = CANVAS_WIDTH;
     a = Wc/(beta*Wx);
     b = Wc/2 - a*Wx/2;
     sprintf(msg,"Nc: %d Wc: %f w: %d a: %f b: %f",Nc,Wc,w,a,b);
     LOG_MSG(msg);
-    /*
-    cmin = 1.0e10;
-    cmax = 0;
-    rmax = 0;
-    for (i=0; i<nsites; i++) {
-        rmax = MAX(rmax,data[i].conc[GROWTH_RATE]);     // GROWTH_RATE = Global::MAX_CHEMO+1
-        cmin = MIN(MAX(cmin,0),data[i].conc[ichemo]);
-        cmax = MAX(cmax,data[i].conc[ichemo]);
-        // Flip it
-//        data[i].site[yindex] = NX - data[i].site[yindex];
-    }
-    */
     brush.setStyle(Qt::SolidPattern);
     brush.setColor(QColor(0,0,0));
     scene->addRect(0,0,CANVAS_WIDTH,CANVAS_WIDTH,Qt::NoPen, brush);
     view->setScene(scene);
     view->setGeometry(QRect(0, 0, 700, 700));
-//    if (cmax == 0) {
-//        view->show();
-//        return;
-//    }
 
-//    for (i=0; i<nsites; i++) {
-//        ix = this->data[i].site[xindex];
-//        iy = this->data[i].site[yindex];
-    rgbcol[0] = 128;
-    rgbcol[1] = 64;
-    rgbcol[2] = 32;
+    sprintf(msg,"displayField: field constituent: %d ichemo: %d cmax: %f",field_constituent,ichemo,cmax);
+    LOG_MSG(msg);
+    cmax = line_maxConc_list[field_constituent]->text().toDouble();
+    sprintf(msg,"displayField: field constituent: %d ichemo: %d cmax: %f",field_constituent,ichemo,cmax);
+    LOG_MSG(msg);
+    rgbcol[0] = 0;
+    rgbcol[1] = 0;
+    rgbcol[2] = 0;
     w = a*dx + 0.5;
-    for (ix=0; ix<nx-1; ix++) {
-        x = ix*dx;
-        for (iy=0; iy<nx-1; iy++) {
-            y = iy*dx;
-            xp = int(a*x + b);
-            yp = int(a*y + b);
-//        chooseFieldColor(data[i].conc[ichemo],cmin,cmax,use_log,rgbcol);
-//        sprintf(msg,"c: %f %f %f rgbcol: %d %d %d",data[i].conc[constituent],cmin,cmax,rgbcol[0],rgbcol[1],rgbcol[2]);
-//        LOG_MSG(msg);
-            brush.setColor(QColor(rgbcol[0],rgbcol[1],rgbcol[2]));
-            scene->addRect(xp,yp,w,w,Qt::NoPen, brush);
+    if (axis == X_AXIS) {           // Y-Z plane
+        ix = (NX+1)/2 - 1;
+        for (iy=0; iy<NY; iy++) {
+            x = iy*dx;
+            for (iz=0; iz<NZ; iz++) {
+                y = iz*dx;
+                k = (ichemo-1)*NZ*NY*NX + iz*NY*NX + iy*NX + ix;    // index(ix,iy,iz,ichemo);
+                C = fdata.Cave[k];
+                rgbcol[1] = 255*min(C,cmax)/cmax;
+                rgbcol[2] = 255*min(C,cmax)/cmax;
+                xp = int(a*x + b);
+                yp = int(a*y + b);
+    //        chooseFieldColor(data[i].conc[ichemo],cmin,cmax,use_log,rgbcol);
+    //        sprintf(msg,"c: %f %f %f rgbcol: %d %d %d",data[i].conc[constituent],cmin,cmax,rgbcol[0],rgbcol[1],rgbcol[2]);
+    //        LOG_MSG(msg);
+                brush.setColor(QColor(rgbcol[0],rgbcol[1],rgbcol[2]));
+                scene->addRect(xp,yp,w,w,Qt::NoPen, brush);
+            }
+        }
+    } else if (axis == Y_AXIS) {           // X-Z plane
+        iy = (NY+1)/2 - 1;
+        for (ix=0; ix<NX; ix++) {
+            x = ix*dx;
+            for (iz=0; iz<NZ; iz++) {
+                y = iz*dx;
+                k = (ichemo-1)*NZ*NY*NX + iz*NY*NX + iy*NX + ix;    // index(ix,iy,iz,ichemo);
+                C = fdata.Cave[k];
+                rgbcol[1] = 255*min(C,cmax)/cmax;
+                rgbcol[2] = 255*min(C,cmax)/cmax;
+                xp = int(a*x + b);
+                yp = int(a*y + b);
+                brush.setColor(QColor(rgbcol[0],rgbcol[1],rgbcol[2]));
+                scene->addRect(xp,yp,w,w,Qt::NoPen, brush);
+            }
+        }
+    } else if (axis == Z_AXIS) {           // X-Y plane
+        iz = (NZ+1)/2 - 1;
+        for (ix=0; ix<NX; ix++) {
+            x = ix*dx;
+            for (iy=0; iy<NY; iy++) {
+                y = iy*dx;
+                k = (ichemo-1)*NZ*NY*NX + iz*NY*NX + iy*NX + ix;    // index(ix,iy,iz,ichemo);
+                C = fdata.Cave[k];
+                rgbcol[1] = 255*min(C,cmax)/cmax;
+                rgbcol[2] = 255*min(C,cmax)/cmax;
+                xp = int(a*x + b);
+                yp = int(a*y + b);
+                brush.setColor(QColor(rgbcol[0],rgbcol[1],rgbcol[2]));
+                scene->addRect(xp,yp,w,w,Qt::NoPen, brush);
+            }
         }
     }
 
+    ichemo = Global::GUI_to_DLL_index[cell_constituent];
+    LOG_QMSG("displayField: cell: " + QString::number(cell_constituent) + " --> " + QString::number(ichemo));
     rgbcol[0] = 0;
     rgbcol[1] = 200;
     rgbcol[2] = 32;
@@ -378,23 +551,6 @@ void Field::displayField(int hr, int *res)
         brush.setColor(QColor(rgbcol[0],rgbcol[1],rgbcol[2]));
         scene->addEllipse(xp,yp,d,d,Qt::NoPen, brush);
     }
-    /*
-    for (i=0; i<nsites; i++) {
-        ix = this->data[i].site[xindex];
-        iy = this->data[i].site[yindex];
-        xp = int(a*ix + b - w);
-        yp = int(a*iy + b - w);
-        volume = this->data[i].volume;      // = 0 if there is no cell
-        if (volume > 0) {
-            scale = pow(volume,0.3333);
-            d = scale*d0;   // fix this - need to change d0
-            double f = data[i].conc[GROWTH_RATE]/rmax;
-            chooseRateColor(f,rgbcol);
-            brush.setColor(QColor(rgbcol[0],rgbcol[1],rgbcol[2]));
-            scene->addEllipse(xp+(w-d)/2,yp+(w-d)/2,d,d,Qt::NoPen, brush);
-        }
-    }
-    */
     view->show();
     return;
 
@@ -447,7 +603,7 @@ void Field::chooseFieldColor(double c, double cmin, double cmax, bool use_logsca
     } else {
         f = c/cmax;
     }
-    if (constituent == OXYGEN) {
+    if (cell_constituent == OXYGEN) {
         rgb_hi[0] =   0; rgb_hi[1] =   0; rgb_hi[2] = 0;
         rgb_lo[0] = 255; rgb_lo[1] =   0; rgb_lo[2] = 0;
         for (i=0; i<3; i++) {

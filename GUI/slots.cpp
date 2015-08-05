@@ -193,10 +193,16 @@ void MainWindow::radioButtonChanged(QAbstractButton *b)
     }
 }
 
-void MainWindow::buttonClick_constituent(QAbstractButton* button)
+void MainWindow::buttonClick_cell_constituent(QAbstractButton* button)
 {
-    LOG_MSG("buttonClick_constituent");
-    field->setConstituent(button);
+    LOG_MSG("buttonClick_cell_constituent");
+    field->setCellConstituent(button);
+}
+
+void MainWindow::buttonClick_field_constituent(QAbstractButton* button)
+{
+    LOG_MSG("buttonClick_field_constituent");
+    field->setFieldConstituent(button);
 }
 
 void MainWindow::buttonClick_plane(QAbstractButton* button)
@@ -225,7 +231,7 @@ void MainWindow::textEdited_fraction(QString text)
 void MainWindow::onSelectConstituent()
 {
     if (exthread != NULL)
-        field->selectConstituent();
+        field->selectCellConstituent();
 }
 
 void MainWindow::on_verticalSliderTransparency_sliderMoved(int position)

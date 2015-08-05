@@ -16,6 +16,7 @@ namespace Global
     bool leftb;
 
     int nvars_used;
+    int nfieldvars_used;
     int GUI_to_DLL_index[32];
     int DLL_to_GUI_index[32];
     QString var_string[32];

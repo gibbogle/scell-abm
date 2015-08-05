@@ -155,12 +155,14 @@ public slots:
     void stopRecorderFACS();
     bool getVideoFileInfo(int *nframes, QString *itemFormat, QString *itemCodec, QString *videoFileName);
 
-    void buttonClick_constituent(QAbstractButton* button);
+    void buttonClick_cell_constituent(QAbstractButton* button);
+    void buttonClick_field_constituent(QAbstractButton* button);
     void buttonClick_plane(QAbstractButton* button);
     void buttonClick_canvas(QAbstractButton* button);
     void textChanged_fraction(QString text);
 	void textEdited_fraction(QString text);
     void setupConstituents();
+    void setFields();
 
     void on_cbox_USE_TPZ_DRUG_toggled(bool checked);
 //    void on_cbox_TPZ_DRUG_SIMULATE_METABOLITE_toggled(bool checked);
@@ -345,13 +347,16 @@ private:
 
     QButtonGroup *buttonGroup_histo;
     QVBoxLayout *vbox_histo;
-    QRadioButton **histo_rb_list;
+//    QRadioButton **histo_rb_list;
+    QList<QRadioButton *> histo_rb_list;
     QButtonGroup *buttonGroup_FACS_x_vars;
     QVBoxLayout *vbox_FACS_x_vars;
-    QRadioButton **FACS_x_vars_rb_list;
+//    QRadioButton **FACS_x_vars_rb_list;
+    QList<QRadioButton *> FACS_x_vars_rb_list;
     QButtonGroup *buttonGroup_FACS_y_vars;
     QVBoxLayout *vbox_FACS_y_vars;
-    QRadioButton **FACS_y_vars_rb_list;
+//    QRadioButton **FACS_y_vars_rb_list;
+    QList<QRadioButton *> FACS_y_vars_rb_list;
 
 	QString graphCaseName[Plot::ncmax];
 	RESULT_SET *graphResultSet[Plot::ncmax];

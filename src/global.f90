@@ -36,12 +36,14 @@ real(REAL_KIND), parameter :: BIG = 1.0d10
 real(REAL_KIND), parameter :: um3_cm3 = 1.0e-12
 real(REAL_KIND), parameter :: small_d = 0.1e-4		! 0.1 um -> cm
 real(REAL_KIND), parameter :: CFSE_std = 0.05
+real(REAL_KIND), parameter :: Vcell_pL = 1.0e09
 
 integer, parameter :: ALIVE = 0
 integer, parameter :: DEAD = 1
 integer, parameter :: TERMINAL_MITOSIS   = 1
 integer, parameter :: CONTINUOUS_MITOSIS = 2
 !integer, parameter :: MAX_CHEMO = 5
+integer, parameter :: CFSE = 0
 integer, parameter :: OXYGEN = 1
 integer, parameter :: GLUCOSE = 2
 integer, parameter :: TRACER = 3
@@ -58,7 +60,7 @@ integer, parameter :: GROWTH_RATE = MAX_CHEMO + 1	! (not used here, used in the 
 integer, parameter :: CELL_VOLUME = MAX_CHEMO + 2
 integer, parameter :: O2_BY_VOL = MAX_CHEMO + 3
 
-integer, parameter :: N_EXTRA = O2_BY_VOL - MAX_CHEMO	! = 3 = total # of variables - MAX_CHEMO
+integer, parameter :: N_EXTRA = O2_BY_VOL - MAX_CHEMO + 1	! = 4 = total # of variables - MAX_CHEMO
 integer, parameter :: NCONST = MAX_CHEMO
 
 integer, parameter :: MITOSIS_MODE = TERMINAL_MITOSIS
@@ -95,7 +97,7 @@ end type
 type, bind(C) :: fielddata_type
     integer(c_int) :: NX, NY, NZ, NCONST
     real(c_double) :: DX
-    type(c_ptr) :: Conc_ptr   !conc[MAX_CONC+NEXTRA+1];    // added CFSE, dVdt, volume, O2byVol
+    type(c_ptr) :: Conc_ptr   ! Caverage(NX,NY,NZ,NCONST)
     integer(c_int) :: ncells
     type(c_ptr) :: cell_ptr
 end type
@@ -374,6 +376,30 @@ if (logfile_isopen) then
 endif
 if (error /= 0) stop
 end subroutine
+
+!-----------------------------------------------------------------------------------------
+! Estimate blob radius by determining the range in the three axis directions
+!-----------------------------------------------------------------------------------------
+function getRadius() result(R)
+real(REAL_KIND) :: R
+real(REAL_KIND) :: rmin(3), rmax(3), rng(3)
+integer :: kcell, k
+type(cell_type), pointer :: cp
+
+rmin = 1.0e10
+rmax = 0
+do kcell = 1,nlist
+	if (cell_list(kcell)%state == DEAD) cycle
+	cp => cell_list(kcell)
+	do k = 1,cp%nspheres
+		rmin = min(rmin,cp%centre(:,k)-cp%radius(k))
+		rmax = max(rmax,cp%centre(:,k)+cp%radius(k))
+	enddo
+enddo
+rng = rmax - rmin
+R = ((rng(1)**3 + rng(2)**3 + rng(3)**3)/3)**(1./3.)
+R = R/2
+end function
 
 !----------------------------------------------------------------------------------------- 
 !-----------------------------------------------------------------------------------------

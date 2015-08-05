@@ -79,7 +79,7 @@ padding: 8px
            <enum>QTabWidget::West</enum>
           </property>
           <property name="currentIndex">
-           <number>6</number>
+           <number>1</number>
           </property>
           <property name="elideMode">
            <enum>Qt::ElideNone</enum>
@@ -430,7 +430,7 @@ padding: 8px
             </property>
            </widget>
           </widget>
-          <widget class="QWidget" name="tab">
+          <widget class="QWidget" name="tab_offlattice">
            <attribute name="title">
             <string>Off-lattice</string>
            </attribute>
@@ -7472,14 +7472,14 @@ padding: 8px
        </property>
        <property name="maximumSize">
         <size>
-         <width>1000</width>
+         <width>1300</width>
          <height>700</height>
         </size>
        </property>
        <widget class="QGroupBox" name="groupBox_plane">
         <property name="geometry">
          <rect>
-          <x>860</x>
+          <x>1110</x>
           <y>0</y>
           <width>91</width>
           <height>111</height>
@@ -7543,7 +7543,7 @@ padding: 8px
        <widget class="QLineEdit" name="lineEdit_fraction">
         <property name="geometry">
          <rect>
-          <x>860</x>
+          <x>1110</x>
           <y>120</y>
           <width>41</width>
           <height>21</height>
@@ -7559,7 +7559,7 @@ padding: 8px
        <widget class="QLabel" name="alabel_fraction">
         <property name="geometry">
          <rect>
-          <x>910</x>
+          <x>1160</x>
           <y>120</y>
           <width>41</width>
           <height>21</height>
@@ -7569,7 +7569,7 @@ padding: 8px
          <string>Fraction</string>
         </property>
        </widget>
-       <widget class="QGroupBox" name="groupBox_constituent">
+       <widget class="QGroupBox" name="groupBox_cell_constituent">
         <property name="geometry">
          <rect>
           <x>710</x>
@@ -7578,8 +7578,46 @@ padding: 8px
           <height>80</height>
          </rect>
         </property>
+        <property name="maximumSize">
+         <size>
+          <width>200</width>
+          <height>16777215</height>
+         </size>
+        </property>
         <property name="title">
-         <string>Constituent</string>
+         <string>Cell constituent</string>
+        </property>
+       </widget>
+       <widget class="QGroupBox" name="groupBox_field_constituent">
+        <property name="geometry">
+         <rect>
+          <x>960</x>
+          <y>0</y>
+          <width>141</width>
+          <height>80</height>
+         </rect>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>141</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="title">
+         <string>Field constituent</string>
+        </property>
+       </widget>
+       <widget class="QGroupBox" name="groupBox_maxconc">
+        <property name="geometry">
+         <rect>
+          <x>850</x>
+          <y>0</y>
+          <width>101</width>
+          <height>80</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>Max concentration</string>
         </property>
        </widget>
       </widget>

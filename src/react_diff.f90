@@ -58,7 +58,7 @@ logical :: ok
 dxf = DELTA_X
 dx3 = dxf*dxf*dxf
 nrow = (NX-2)*(NY-2)*(NZ-1)		! embedded map, Dirichlet conditions on ix=1,NX, iy=1,NY, iz=NZ
-maxnz = 7*nrow
+maxnz = MAX_CHEMO*nrow
 if (allocated(amap)) deallocate(amap)
 if (allocated(ja)) deallocate(ja)
 if (allocated(ia)) deallocate(ia)
@@ -68,7 +68,7 @@ allocate(ia(nrow+1))
 
 dxb3 = dxb*dxb*dxb
 nrow_b = NXB*NYB*NZB
-maxnz = 7*nrow_b
+maxnz = MAX_CHEMO*nrow_b
 if (allocated(amap_b)) deallocate(amap_b)
 if (allocated(ja_b)) deallocate(ja_b)
 if (allocated(ia_b)) deallocate(ia_b)
@@ -1146,12 +1146,12 @@ end subroutine
 !-------------------------------------------------------------------------------------- 
 subroutine diff_solver(dt)
 real(REAL_KIND) :: dt
-integer :: i, k, k1, ix, iy, iz, irow, icol, kc, icc, it
+integer :: i, k, k1, ix, iy, iz, irow, icol, kc, ic, icc, it
 integer :: ixb, iyb, izb
 integer :: ichemo, ierr, nfill, iters, maxits, im_krylov
 real(REAL_KIND) :: R, tol, tol_b, asum, t, Vex_curr, Vex_next, Vin_curr, Vin_next, dCsum, msum
 real(REAL_KIND), allocatable :: x(:), rhs(:)
-real(REAL_KIND), pointer :: Cave(:,:,:), Cprev(:,:,:), Fprev(:,:,:), Fcurr(:,:,:), Cin(:,:,:)	!<<<< Cin is actually a cell property, in chemo for now
+real(REAL_KIND), pointer :: Cave(:,:,:), Cprev(:,:,:), Fprev(:,:,:), Fcurr(:,:,:)
 real(REAL_KIND), pointer :: Cave_b(:,:,:), Cprev_b(:,:,:), Fprev_b(:,:,:), Fcurr_b(:,:,:)
 real(REAL_KIND), allocatable :: a(:), a_b(:)
 real(REAL_KIND) :: alfa = 0.7
@@ -1171,24 +1171,21 @@ maxits = 100
 ! call getF_SS
 
 ! Parallel operation is currently not possible because Cflux and Cflux_prev have not been accounted for - see make_grid_flux
-!$omp parallel do private(Cave, Cprev, Fprev, Fcurr, Cin, Cave_b, Cprev_b, Fprev_b, Fcurr_b, a, a_b, x, rhs, ix, iy, iz, ixb, iyb, izb, it, done, icc, k, dCsum, msum, iters, ierr)
-do ichemo = 1,2 
+!$omp parallel do private(Cave, Cprev, Fprev, Fcurr, Cave_b, Cprev_b, Fprev_b, Fcurr_b, a, a_b, x, rhs, ix, iy, iz, ixb, iyb, izb, it, done, ichemo, icc, k, dCsum, msum, iters, ierr)
+!do ichemo = 1,2 
+do ic = 1,nchemo
+	ichemo = chemomap(ic)
+	if (chemo(ichemo)%constant) cycle
 !	write(*,'(a,i2)') 'ichemo: ',ichemo
 	ichemo_curr = ichemo
 	icc = ichemo - 1
-!	allocate(x(max(nrow,nrow_b)))
 	allocate(rhs(nrow_b))
 	allocate(x(nrow_b))
-!	allocate(rhs(max(nrow,nrow_b)))
-!	allocate(a(7*nrow))
-	allocate(a_b(7*nrow_b))
-!	Cave => chemo(ichemo)%Cave
+	allocate(a_b(MAX_CHEMO*nrow_b))
 	Cave => Caverage(:,:,:,ichemo)
 	Cprev => chemo(ichemo)%Cprev
 	Fprev => chemo(ichemo)%Fprev
-!	Fcurr => chemo(ichemo)%Fcurr
 	Fcurr => Cflux(:,:,:,ichemo)
-!	Cin => chemo(ichemo)%Cin
 	Cave_b => chemo(ichemo)%Cave_b
 	Cprev_b => chemo(ichemo)%Cprev_b
 	Fprev_b => chemo(ichemo)%Fprev_b
@@ -1261,7 +1258,7 @@ do ichemo = 1,2
 	
 		allocate(rhs(nrow))
 		allocate(x(nrow))
-		allocate(a(7*nrow))
+		allocate(a(MAX_CHEMO*nrow))
 		! interpolate Cave_b on fine grid boundary
 		call interpolate_Cave(Cave, Cave_b)
 		
