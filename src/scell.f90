@@ -1151,9 +1151,7 @@ enddo
 Vblob = dxb3*Vblob
 
 R = getRadius()
-!call SetRadius(Nsites)
-!R = Radius*DELTA_X		! cm
-Vblob = (4./3.)*PI*R**3	! cm3
+Vblob = (4./3.)*PI*R**3			! cm3
 Vm_old = total_volume - Vblob	! this is the initial external (medium) volume
 Vr = min(Vm_old,Ve)				! this is the amount of medium volume that is exchanged
 Vkeep = Vm_old - Vr

@@ -104,9 +104,21 @@ integer :: ityp
 real(REAL_KIND) :: dose, C_O2, p_recovery, p_death
 real(REAL_KIND) :: OER_alpha_d, OER_beta_d, expon, kill_prob_orig
 
+real(REAL_KIND) :: Cs						! concentration of radiosensitising drug
+real(REAL_KIND) :: SERmax0, KmSER, KO2SER	! SER parameters of the drug
+real(REAL_KIND) :: SERmax					! max sensitisation at the drug concentration
+real(REAL_KIND) :: SER						! sensitisation
+
 OER_alpha_d = dose*(LQ(ityp)%OER_am*C_O2 + LQ(ityp)%K_ms)/(C_O2 + LQ(ityp)%K_ms)
 OER_beta_d = dose*(LQ(ityp)%OER_bm*C_O2 + LQ(ityp)%K_ms)/(C_O2 + LQ(ityp)%K_ms)
-expon = LQ(ityp)%alpha_H*OER_alpha_d + LQ(ityp)%beta_H*OER_alpha_d**2
+!expon = LQ(ityp)%alpha_H*OER_alpha_d + LQ(ityp)%beta_H*OER_alpha_d**2		! 07/08/2015
+
+!SERmax = (Cs*SERmax0 + KmSER)/(Cs + KmSER)
+!SER = (C_O2 + KO2SER*SERmax)/(C_O2 + KO2SER)
+!OER_alpha_d = OER_alpha_d*SER
+!OER_beta_d = OER_beta_d*SER
+
+expon = LQ(ityp)%alpha_H*OER_alpha_d + LQ(ityp)%beta_H*OER_beta_d**2
 kill_prob_orig = 1 - exp(-expon)
 call get_pdeath(ityp,dose,C_O2,p_death)
 p_recovery = 1 - kill_prob_orig/p_death
