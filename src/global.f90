@@ -16,11 +16,14 @@ integer, parameter :: LOGNORMAL_DIST   = 2
 integer, parameter :: EXPONENTIAL_DIST = 3
 integer, parameter :: CONSTANT_DIST    = 4
 integer, parameter :: MAX_CELLTYPES = 4
+integer, parameter :: MAX_DRUGTYPES = 2
 
 integer, parameter :: X_AXIS = 1
 integer, parameter :: Y_AXIS = 2
 integer, parameter :: Z_AXIS = 3
 
+integer, parameter :: TPZ_CLASS = 1
+integer, parameter :: DNB_CLASS = 2
 integer, parameter :: DRUG_EVENT = 1
 integer, parameter :: RADIATION_EVENT = 2
 integer, parameter :: MEDIUM_EVENT = 3
@@ -55,7 +58,7 @@ integer, parameter :: DRUG_B = DRUG_A + 3
 integer, parameter :: DNB_DRUG = DRUG_B
 integer, parameter :: DNB_DRUG_METAB_1 = DNB_DRUG + 1
 integer, parameter :: DNB_DRUG_METAB_2 = DNB_DRUG + 2
-integer, parameter :: MAX_CHEMO = DNB_DRUG_METAB_2
+integer, parameter :: MAX_CHEMO = DRUG_B + 3
 integer, parameter :: GROWTH_RATE = MAX_CHEMO + 1	! (not used here, used in the GUI)
 integer, parameter :: CELL_VOLUME = MAX_CHEMO + 2
 integer, parameter :: O2_BY_VOL = MAX_CHEMO + 3
@@ -118,9 +121,7 @@ type cell_type
 	real(REAL_KIND) :: centre(3,2)  ! sphere centre positions
 	real(REAL_KIND) :: d			! centre separation distance (um) -> cm
 	real(REAL_KIND) :: birthtime
-!	real(REAL_KIND) :: growthrate
 	real(REAL_KIND) :: V_divide
-!	real(REAL_KIND) :: t_divide_last
 	real(REAL_KIND) :: t_hypoxic
 	real(REAL_KIND) :: t_anoxia_die
 	real(REAL_KIND) :: t_start_mitosis
@@ -133,9 +134,11 @@ type cell_type
 	type(neighbour_type) :: nbrlist(100)
 	real(REAL_KIND) :: Cin(NCONST)
 	real(REAL_KIND) :: Cex(NCONST)
+	real(REAL_KIND) :: dCdt(NCONST)
 	real(REAL_KIND) :: dMdt(NCONST)	! mumol/s
 	real(REAL_KIND) :: CFSE
-	logical :: radiation_tag, drugA_tag, drugB_tag, anoxia_tag
+	logical :: radiation_tag, anoxia_tag	!, drugA_tag, drugB_tag
+	logical :: drug_tag(MAX_DRUGTYPES)
 	real(REAL_KIND) :: p_death
 end type
 
@@ -158,13 +161,43 @@ end type
 type event_type
 	integer :: etype
 	real(REAL_KIND) :: time
-	integer :: ichemo			! DRUG
+	integer :: idrug			! DRUG
+	integer :: ichemo			! DRUG CHEMO INDEX
 	real(REAL_KIND) :: volume	! DRUG MEDIUM
 	real(REAL_KIND) :: conc		! DRUG
 	real(REAL_KIND) :: dose		! RADIATION
 	logical :: done
 end type	
 
+type drug_type
+	character*(3)   :: classname
+	integer         :: drugclass
+	character*(16)  :: name
+	integer         :: nmetabolites
+	logical         :: use_metabolites
+	real(REAL_KIND) :: diff_coef(0:2)
+	real(REAL_KIND) :: medium_diff_coef(0:2)
+	real(REAL_KIND) :: membrane_diff_in(0:2)
+	real(REAL_KIND) :: membrane_diff_out(0:2)
+	real(REAL_KIND) :: halflife(0:2)
+	logical         :: kills(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: Kmet0(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: C2(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: KO2(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: Vmax(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: Km(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: Klesion(MAX_CELLTYPES,0:2)
+	integer         :: kill_model(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: Kd(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: kill_O2(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: kill_drug(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: kill_duration(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: kill_fraction(MAX_CELLTYPES,0:2)
+	logical         :: sensitises(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: SER_max(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: SER_Km(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: SER_KO2(MAX_CELLTYPES,0:2)
+end type
 type SN30K_type
 	integer :: nmetabolites
 	real(REAL_KIND) :: diff_coef
@@ -252,6 +285,7 @@ character*(12) :: dll_version, dll_run_version
 character*(12) :: gui_version, gui_run_version
 
 integer :: Mnodes, ncpu_input, ncells, ncells_mphase, nlist, nsteps, nevents
+integer :: Ndrugs_used
 integer :: NX, NY, NZ, NXB, NYB, NZB
 integer :: Ndim(3)
 integer :: nt_saveprofiledata, it_saveprofiledata
@@ -278,8 +312,12 @@ real(REAL_KIND) :: adrop, bdrop, cdrop		! drop shape transformation parameters
 integer :: zmin     						! drop lower bound at drop time = lower limit of blob thereafter
 logical :: is_dropped
 
-integer :: NdrugA_tag(MAX_CELLTYPES), NdrugB_tag(MAX_CELLTYPES), Nradiation_tag(MAX_CELLTYPES), Nanoxia_tag(MAX_CELLTYPES)
-integer :: NdrugA_dead(MAX_CELLTYPES), NdrugB_dead(MAX_CELLTYPES), Nradiation_dead(MAX_CELLTYPES), Nanoxia_dead(MAX_CELLTYPES)
+integer :: Nradiation_tag(MAX_CELLTYPES), Nanoxia_tag(MAX_CELLTYPES)
+!integer :: NdrugA_tag(MAX_CELLTYPES), NdrugB_tag(MAX_CELLTYPES), Nradiation_tag(MAX_CELLTYPES), Nanoxia_tag(MAX_CELLTYPES)
+integer :: Ndrug_tag(MAX_DRUGTYPES,MAX_CELLTYPES)
+!integer :: NdrugA_dead(MAX_CELLTYPES), NdrugB_dead(MAX_CELLTYPES)
+integer :: Nradiation_dead(MAX_CELLTYPES), Nanoxia_dead(MAX_CELLTYPES)
+integer :: Ndrug_dead(MAX_DRUGTYPES,MAX_CELLTYPES)
 real(REAL_KIND) :: O2cutoff(3)
 real(REAL_KIND) :: growthcutoff(3)
 
@@ -326,6 +364,7 @@ type(event_type), allocatable :: event(:)
 
 type(TPZ_type) :: TPZ
 type(DNB_type) :: DNB
+type(drug_type), allocatable, target :: drug(:)
 type(LQ_type) :: LQ(MAX_CELLTYPES)
 
 logical :: use_events = .true.

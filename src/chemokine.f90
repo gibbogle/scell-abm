@@ -66,7 +66,7 @@ end function
 ! flux			mumol.s^-1
 !----------------------------------------------------------------------------------------
 subroutine SetupChemo
-integer :: ichemo
+integer :: ic, ichemo
 
 chemo(OXYGEN)%name = 'Oxygen'
 chemo(GLUCOSE)%name = 'Glucose'
@@ -85,8 +85,12 @@ do ichemo = 1,MAX_CHEMO
 		endif
 	endif
 enddo
+call SetupChemomap
 ! constituent fields, fine and coarse grids
-do ichemo = 1,2
+!do ic = 1,nchemo
+!	ichemo = chemomap(ic)
+do ichemo = 1,MAX_CHEMO
+	if (.not.chemo(ichemo)%used) cycle
 	if (allocated(chemo(ichemo)%Cprev)) deallocate(chemo(ichemo)%Cprev)
 	if (allocated(chemo(ichemo)%Fprev)) deallocate(chemo(ichemo)%Fprev)
 	if (allocated(chemo(ichemo)%Cave_b)) deallocate(chemo(ichemo)%Cave_b)
@@ -99,11 +103,10 @@ do ichemo = 1,2
 	allocate(chemo(ichemo)%Cprev_b(NXB,NYB,NZB))
 	allocate(chemo(ichemo)%Fprev_b(NXB,NYB,NZB))
 	allocate(chemo(ichemo)%Fcurr_b(NXB,NYB,NZB))
+	chemo(ichemo)%diff_reduction_factor = 0.5		! default value, may need to be adjusted
 enddo
 chemo(OXYGEN)%diff_reduction_factor = 0.3
-chemo(GLUCOSE)%diff_reduction_factor = 0.5
 
-call SetupChemomap
 end subroutine
 
 !-----------------------------------------------------------------------------------------
@@ -118,6 +121,7 @@ do ichemo = 1,MAX_CHEMO
 		chemomap(nchemo) = ichemo
 	endif
 enddo
+write(*,*) 'nchemo: ', nchemo
 end subroutine
 
 !----------------------------------------------------------------------------------------

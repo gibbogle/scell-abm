@@ -508,8 +508,10 @@ vol_mm3 = vol_cm3*1000				! volume in mm^3
 vol_mm3_1000 = vol_mm3*1000			! 1000 * volume in mm^3
 diam_um = 2*Radius*10000
 Ntagged_anoxia = Nanoxia_tag - Nanoxia_dead				! number currently tagged by anoxia
-Ntagged_drugA = NdrugA_tag - NdrugA_dead				! number currently tagged by drugA
-Ntagged_drugB = NdrugB_tag - NdrugB_dead				! number currently tagged by drugB
+!Ntagged_drugA = NdrugA_tag - NdrugA_dead				! number currently tagged by drugA
+!Ntagged_drugB = NdrugB_tag - NdrugB_dead				! number currently tagged by drugB
+Ntagged_drugA = 0
+Ntagged_drugB = 0
 Ntagged_radiation = Nradiation_tag - Nradiation_dead	! number currently tagged by radiation
 call getHypoxicCount(nhypoxic)
 hypoxic_percent_10 = (1000*nhypoxic(i_hypoxia_cutoff))/Ncells
@@ -524,8 +526,10 @@ medium_glucose_100 = 0
 medium_TPZ_drug_1000 = 0
 medium_DNB_drug_1000 = 0
 TNanoxia_dead = sum(Nanoxia_dead(1:Ncelltypes))
-TNdrugA_dead = sum(NdrugA_dead(1:Ncelltypes))
-TNdrugB_dead = sum(NdrugB_dead(1:Ncelltypes))
+!TNdrugA_dead = sum(NdrugA_dead(1:Ncelltypes))
+!TNdrugB_dead = sum(NdrugB_dead(1:Ncelltypes))
+TNdrugA_dead = 0
+TNdrugB_dead = 0
 TNradiation_dead = sum(Nradiation_dead(1:Ncelltypes))
 TNtagged_anoxia = sum(Ntagged_anoxia(1:Ncelltypes))
 TNtagged_drugA = sum(Ntagged_drugA(1:Ncelltypes))
@@ -537,12 +541,13 @@ summaryData(1:20) = [ istep, Ncells, TNanoxia_dead, TNdrugA_dead, TNdrugB_dead, 
 	diam_um, vol_mm3_1000, hypoxic_percent_10, growth_percent_10, necrotic_percent_10, Tplate_eff_10, &
 	medium_oxygen_100, medium_glucose_100, medium_TPZ_drug_1000, medium_DNB_drug_1000 ]
 write(nfres,'(2a12,i8,2e12.4,19i7,13e12.4)') gui_run_version, dll_run_version, istep, hour, vol_mm3, diam_um, Ncells_type(1:2), &
-    Nanoxia_dead(1:2), NdrugA_dead(1:2), NdrugB_dead(1:2), Nradiation_dead(1:2), &
+!    Nanoxia_dead(1:2), NdrugA_dead(1:2), NdrugB_dead(1:2), Nradiation_dead(1:2), &
+    Nanoxia_dead(1:2), Ndrug_dead(1,1:2), Ndrug_dead(2,1:2), Nradiation_dead(1:2), &
     Ntagged_anoxia(1:2), Ntagged_drugA(1:2), Ntagged_drugB(1:2), Ntagged_radiation(1:2), &
 	nhypoxic(:)/real(Ncells), ngrowth(:)/real(Ncells), (Nsites-Ncells)/real(Nsites), plate_eff(1:2), &
 	chemo(OXYGEN)%medium_Cext, chemo(GLUCOSE)%medium_Cext, chemo(TPZ_DRUG)%medium_Cext, chemo(DNB_DRUG)%medium_Cext
 		
-	call sum_dMdt(GLUCOSE)
+!	call sum_dMdt(GLUCOSE)
 end subroutine
 
 !--------------------------------------------------------------------------------
@@ -574,15 +579,21 @@ end subroutine
 !--------------------------------------------------------------------------------
 subroutine getNviable(Nviable)
 integer :: Nviable(:)
-integer :: kcell, ityp
+integer :: kcell, ityp, idrug
+logical :: tag
 
 nviable = 0
 do kcell = 1,nlist
 	if (cell_list(kcell)%state == DEAD) cycle
 	if (cell_list(kcell)%anoxia_tag .or. &
-	    cell_list(kcell)%drugA_tag .or. &
-	    cell_list(kcell)%drugB_tag .or. &
+!	    cell_list(kcell)%drugA_tag .or. &
+!	    cell_list(kcell)%drugB_tag .or. &
 	    cell_list(kcell)%radiation_tag) cycle
+	    tag = .false.
+	    do idrug = 1,ndrugs_used
+			if (cell_list(kcell)%drug_tag(idrug)) tag = .true.
+		enddo
+		if (tag) cycle
 	    ityp = cell_list(kcell)%celltype
 	Nviable(ityp) = Nviable(ityp) + 1
 enddo	

@@ -238,7 +238,22 @@ void MainWindow::setField(QTableWidget *table, int row, int col, QString entry)
     table->setItem(row,col,item);
 }
 
-void MainWindow::ProtocolChanged(int, int)
+void MainWindow::ProtocolChanged(int row, int col)
 {
     paramSaved = false;
+    if (col == 1) {
+        QTableWidgetItem *item;
+        item = tableWidget->item(row,col);
+        QString drugname = item->text();
+        LOG_QMSG(drugname);
+        if (drugname == "") return;
+        if (drugname != text_DRUG_A_NAME->text() && drugname != text_DRUG_B_NAME->text()) {
+            LOG_QMSG("drug " + drugname + " is not selected");
+            QMessageBox::warning(this, tr("Protocol"),
+                                 tr("This drug has not been selected: %1\n %2")
+                                 .arg(drugname)
+                                 .arg("Select on the Treatment screen."));
+            item->setText("");
+        }
+    }
 }

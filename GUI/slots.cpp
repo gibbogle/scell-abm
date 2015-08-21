@@ -23,6 +23,7 @@ LOG_USE();
 
 extern Params *parm;	// I don't believe this is the right way, but it works
 
+/*
 //--------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::on_comb_TPZ_currentIndexChanged(int index)
@@ -41,7 +42,7 @@ void MainWindow::on_comb_DNB_currentIndexChanged(int index)
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::on_cbox_USE_TPZ_DRUG_toggled(bool checked)
 {
-    LOG_MSG("cbox_use_TPZ_drug toggled");
+    LOG_MSG("cbox_use_TPZ_DRUG toggled");
     QLineEdit *leb = findChild<QLineEdit *>("line_TPZ_DRUG_BDRY_CONC");
 //    QCheckBox *cbd = findChild<QCheckBox *>("cbox_TPZ_DRUG_DECAY");
     QCheckBox *cbm = findChild<QCheckBox *>("cbox_TPZ_DRUG_SIMULATE_METABOLITE");
@@ -50,7 +51,6 @@ void MainWindow::on_cbox_USE_TPZ_DRUG_toggled(bool checked)
 //    setTreatmentFileUsage();
     comb_TPZ->setEnabled(checked);
     text_TPZ_DRUG_NAME->setEnabled(checked);
-    text_TPZ_DRUG_NAME->setText(comb_TPZ->currentText());
 //    int indexTPZ = comb_TPZ->currentIndex();
 }
 
@@ -67,9 +67,110 @@ void MainWindow::on_cbox_USE_DNB_DRUG_toggled(bool checked)
 //    setTreatmentFileUsage();
     comb_DNB->setEnabled(checked);
     text_DNB_DRUG_NAME->setEnabled(checked);
-    text_DNB_DRUG_NAME->setText(comb_DNB->currentText());
+    QString drugname = comb_DRUG_A->currentText();
+    extractDrugname(&drugname);
+    text_DNB_DRUG_NAME->setText(drugname);
 //    int indexDNB = comb_DNB->currentIndex();
 }
+*/
+
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
+void MainWindow::on_comb_DRUG_A_currentIndexChanged(int index)
+{
+    QString filename = comb_DRUG_A->currentText();
+    QString drugname = filename;
+
+    if (!cbox_USE_DRUG_A->isChecked()) return;
+    extractDrugname(&drugname);
+    text_DRUG_A_NAME->setText(drugname);
+    radioButton_drugA->setText(drugname);
+    if (radioButton_drugA->isChecked()) {
+        LOG_QMSG("readDrugParams: " + filename);
+        readDrugParams(0, filename);
+        LOG_QMSG("populateDrugTable: drug A");
+        populateDrugTable(0);
+    }
+}
+
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
+void MainWindow::on_comb_DRUG_B_currentIndexChanged(int index)
+{
+    QString filename = comb_DRUG_B->currentText();
+    QString drugname = filename;
+
+    if (!cbox_USE_DRUG_B->isChecked()) return;
+    extractDrugname(&drugname);
+    text_DRUG_B_NAME->setText(drugname);
+    radioButton_drugB->setText(drugname);
+    if (radioButton_drugB->isChecked()) {
+        LOG_QMSG("readDrugParams: " + filename);
+        readDrugParams(1, filename);
+        LOG_QMSG("populateDrugTable: drug B");
+        populateDrugTable(1);
+    }
+}
+
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
+void MainWindow::extractDrugname(QString *drugname)
+{
+//    *drugname = drugname->mid(4);
+    int i = drugname->indexOf('.');
+    *drugname = drugname->remove(i,9);
+}
+
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
+void MainWindow::on_cbox_USE_DRUG_A_toggled(bool checked)
+{
+    LOG_MSG("cbox_use_DRUG_A toggled");
+    QLineEdit *leb = findChild<QLineEdit *>("line_DRUG_A_BDRY_CONC");
+    QCheckBox *cbm = findChild<QCheckBox *>("cbox_DRUG_A_SIMULATE_METABOLITE");
+    leb->setEnabled(checked);
+    cbm->setEnabled(checked);
+    comb_DRUG_A->setEnabled(checked);
+    text_DRUG_A_NAME->setEnabled(checked);
+    radioButton_drugA->setEnabled(checked);
+    if (checked) {
+        radioButton_drugA->setChecked(true);
+        QString drugname = comb_DRUG_A->currentText();
+        extractDrugname(&drugname);
+        text_DRUG_A_NAME->setText(drugname);
+        radioButton_drugA->setText(drugname);
+        on_comb_DRUG_A_currentIndexChanged(0);
+    } else {
+        text_DRUG_A_NAME->setText("");
+        radioButton_drugA->setText("");
+    }
+}
+
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
+void MainWindow::on_cbox_USE_DRUG_B_toggled(bool checked)
+{
+    LOG_MSG("cbox_use_DRUG_B toggled");
+    QLineEdit *leb = findChild<QLineEdit *>("line_DRUG_B_BDRY_CONC");
+    QCheckBox *cbm = findChild<QCheckBox *>("cbox_DRUG_B_SIMULATE_METABOLITE");
+    leb->setEnabled(checked);
+    cbm->setEnabled(checked);
+    comb_DRUG_B->setEnabled(checked);
+    text_DRUG_B_NAME->setEnabled(checked);
+    radioButton_drugB->setEnabled(checked);
+    if (checked) {
+        radioButton_drugB->setChecked(true);
+        QString drugname = comb_DRUG_B->currentText();
+        extractDrugname(&drugname);
+        text_DRUG_B_NAME->setText(drugname);
+        radioButton_drugB->setText(drugname);
+        on_comb_DRUG_B_currentIndexChanged(1);
+    } else {
+        text_DRUG_B_NAME->setText("");
+        radioButton_drugB->setText("");
+    }
+}
+
 //-----------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
 void MainWindow::on_checkBox_CELLDISPLAY_1_toggled(bool display)
@@ -239,3 +340,7 @@ void MainWindow::on_verticalSliderTransparency_sliderMoved(int position)
     vtk->setOpacity(position);
 }
 
+//void MainWindow::on_pushButton_chooseDrug_clicked()
+//{
+
+//}

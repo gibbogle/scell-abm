@@ -116,6 +116,42 @@ conc = (1-alfa(1))*(1-alfa(2))*(1-alfa(3))*Cextra(ix,iy,iz)  &
         + alfa(1)*alfa(2)*alfa(3)*Cextra(ix+1,iy+1,iz+1)  &
         + alfa(1)*(1-alfa(2))*alfa(3)*Cextra(ix+1,iy,iz+1)
 end subroutine
+
+!-----------------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------------------
+subroutine grid_interp(kcell,alfa)
+integer :: kcell
+real(REAL_KIND) :: alfa(3)
+integer :: i, ix, iy, iz
+real(REAL_KIND) :: centre(3)
+type(cell_type), pointer :: cp
+
+cp => cell_list(kcell)
+if (cp%state == DEAD) then
+	write(*,*) 'Error: extra_concs_const: dead cell: ',kcell
+	stop
+endif
+if (cp%nspheres == 1) then
+	centre = cp%centre(:,1)
+else
+	centre = 0.5*(cp%centre(:,1) + cp%centre(:,2))
+endif
+ix = cp%site(1)
+iy = cp%site(2)
+iz = cp%site(3)
+do i = 1,3
+	alfa(i) = (centre(i) - (cp%site(i)-1)*DELTA_X)/DELTA_X
+enddo
+!conc = (1-alfa(1))*(1-alfa(2))*(1-alfa(3))*Cextra(ix,iy,iz)  &
+!        + (1-alfa(1))*alfa(2)*(1-alfa(3))*Cextra(ix,iy+1,iz)  &
+!        + (1-alfa(1))*alfa(2)*alfa(3)*Cextra(ix,iy+1,iz+1)  &
+!        + (1-alfa(1))*(1-alfa(2))*alfa(3)*Cextra(ix,iy,iz+1)  &
+!        + alfa(1)*(1-alfa(2))*(1-alfa(3))*Cextra(ix+1,iy,iz)  &
+!        + alfa(1)*alfa(2)*(1-alfa(3))*Cextra(ix+1,iy+1,iz)  &
+!        + alfa(1)*alfa(2)*alfa(3)*Cextra(ix+1,iy+1,iz+1)  &
+!        + alfa(1)*(1-alfa(2))*alfa(3)*Cextra(ix+1,iy,iz+1)
+end subroutine
+
 !-----------------------------------------------------------------------------------------
 ! Flux contributions from a cell are accumulated at grid points given by cnr(:,:)
 ! This assumes that the cell flux rates have already been computed.

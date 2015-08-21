@@ -16,7 +16,7 @@
 #include <QDebug>
 
 #include "dialog.h"
-
+#include "drug.h"
 #include "global.h"
 
 #include "../src/version.h"
@@ -58,6 +58,8 @@ MainWindow::MainWindow(QWidget *parent)
     currPath = QDir::currentPath();
     LOG_QMSG("current path: " + currPath);
 
+    makeDrugFileLists();
+    initDrugComboBoxes();
 
     // Some initializations
     nDistPts = 200;
@@ -128,13 +130,14 @@ MainWindow::MainWindow(QWidget *parent)
     LOG_QMSG("did initFACSPlot");
     initHistoPlot();
     LOG_QMSG("did initHistoPlot");
-    initDrugComboBoxes();
+//    initDrugComboBoxes();
     loadParams();
     LOG_QMSG("Did loadparams");
 
     setFields();
 
     SetupProtocol();
+
     writeout();
 
     timer = new QTimer(this);
@@ -163,19 +166,18 @@ MainWindow::MainWindow(QWidget *parent)
     goToInputs();
 }
 
-
 //--------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------
-void MainWindow::initDrugComboBoxes()
-{
-    comb_TPZ->addItem("SN30000");
-    comb_TPZ->addItem("TPZ");
-    comb_TPZ->addItem("Drug3");
-    comb_DNB->addItem("PR104A");
-    comb_DNB->addItem("DNB2");
-    comb_DNB->addItem("DNB3");
-    comb_DNB->addItem("DNB4");
-}
+//void MainWindow::initDrugComboBoxes()
+//{
+//    comb_TPZ->addItem("SN30000");
+//    comb_TPZ->addItem("TPZ");
+//    comb_TPZ->addItem("Drug3");
+//    comb_DNB->addItem("PR104A");
+//    comb_DNB->addItem("DNB2");
+//    comb_DNB->addItem("DNB3");
+//    comb_DNB->addItem("DNB4");
+//}
 
 //--------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------
@@ -213,12 +215,12 @@ void MainWindow::createActions()
     connect(checkBox_FACS_log_y, SIGNAL(stateChanged(int)), this, SIGNAL(facs_update()));
     connect(buttonGroup_histo, SIGNAL(buttonClicked(QAbstractButton*)), this, SIGNAL(histo_update()));
 
-    connect(line_TPZ_KILL_MODEL_CELL1,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
-    connect(line_TPZ_KILL_MODEL_CELL2,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
-    connect(line_DNB_KILL_MODEL_CELL1_MET1,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
-    connect(line_DNB_KILL_MODEL_CELL1_MET2,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
-    connect(line_DNB_KILL_MODEL_CELL2_MET1,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
-    connect(line_DNB_KILL_MODEL_CELL2_MET2,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
+//    connect(line_TPZ_KILL_MODEL_CELL1,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
+//    connect(line_TPZ_KILL_MODEL_CELL2,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
+//    connect(line_DNB_KILL_MODEL_CELL1_MET1,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
+//    connect(line_DNB_KILL_MODEL_CELL1_MET2,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
+//    connect(line_DNB_KILL_MODEL_CELL2_MET1,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
+//    connect(line_DNB_KILL_MODEL_CELL2_MET2,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
 
     connect(line_NXB,SIGNAL(textChanged(QString)),this,SLOT(setFields()));
     connect(line_DELTA_X,SIGNAL(textChanged(QString)),this,SLOT(setFields()));
@@ -562,6 +564,7 @@ void MainWindow::showFACS()
     qpFACS->setTitle("FACS");
 //    QwtSymbol symbol = QwtSymbol( QwtSymbol::Diamond, Qt::blue, Qt::NoPen, QSize( 3,3 ) );
     QwtSymbol symbol = QwtSymbol( QwtSymbol::Rect, Qt::blue, Qt::NoPen, QSize( 2,2 ) );
+
     // Determine which button is checked:
     for (ivar=0; ivar<Global::nvars_used; ivar++) {
         rb = FACS_x_vars_rb_list[ivar];
@@ -592,17 +595,17 @@ void MainWindow::showFACS()
         break;
     case TRACER:
         break;
-    case TPZ_DRUG:
+    case DRUG_A_PARENT:
         break;
-    case TPZ_DRUG_METAB_1:
+    case DRUG_A_METAB_1:
         break;
-    case TPZ_DRUG_METAB_2:
+    case DRUG_A_METAB_2:
         break;
-    case DNB_DRUG:
+    case DRUG_B_PARENT:
         break;
-    case DNB_DRUG_METAB_1:
+    case DRUG_B_METAB_1:
         break;
-    case DNB_DRUG_METAB_2:
+    case DRUG_B_METAB_2:
         break;
     case GROWTH_RATE:
         xscale = 1;
@@ -652,17 +655,17 @@ void MainWindow::showFACS()
         break;
     case TRACER:
         break;
-    case TPZ_DRUG:
+    case DRUG_A_PARENT:
         break;
-    case TPZ_DRUG_METAB_1:
+    case DRUG_A_METAB_1:
         break;
-    case TPZ_DRUG_METAB_2:
+    case DRUG_A_METAB_2:
         break;
-    case DNB_DRUG:
+    case DRUG_B_PARENT:
         break;
-    case DNB_DRUG_METAB_1:
+    case DRUG_B_METAB_1:
         break;
-    case DNB_DRUG_METAB_2:
+    case DRUG_B_METAB_2:
         break;
     case GROWTH_RATE:
         yscale = 1;
@@ -873,7 +876,6 @@ void MainWindow:: showHisto()
     double width, xmin;
     bool log_scale;
 
-//    LOG_MSG("showHisto");
     log_scale = checkBox_histo_logscale->isChecked();
     numValues = Global::nhisto_bins;
     QwtArray<double> values(numValues);
@@ -1132,6 +1134,7 @@ void MainWindow::loadParams()
 
 //--------------------------------------------------------------------------------------------------------
 // This is to disable unused fields (because spheroid_GUI.ui is shared with spheroid_GUI).
+// The MEDIUM_VOLUME field value is computed from the specified DELTA_X and NXB.
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::setFields()
 {
@@ -1139,6 +1142,9 @@ void MainWindow::setFields()
     line_NMM3->setEnabled(false);
     line_FLUID_FRACTION->setEnabled(false);
     line_UNSTIRRED_LAYER->setEnabled(false);
+    cbox_USE_RELAX->setEnabled(false);
+    cbox_USE_PAR_RELAX->setEnabled(false);
+    groupBox_drop->setEnabled(false);
     int nxb = line_NXB->text().toInt();
     double dx = line_DELTA_X->text().toDouble();
     double vol_cm3 = pow(4*nxb*dx,3)*1.0e-12;
@@ -1397,6 +1403,23 @@ void MainWindow::writeout()
             line += p.label;
         line += "\n";
 		out << line;
+        if (p.tag.contains("SAVE_PROFILE_DATA_NUMBER")) {   // insert the drug data here, before plot data
+            int ndrugs = 0;
+            if (cbox_USE_DRUG_A->isChecked()) ndrugs++;
+            if (cbox_USE_DRUG_B->isChecked()) ndrugs++;
+            line = QString::number(ndrugs);
+            int nch = line.length();
+            for (int k=0; k<max(16-nch,1); k++)
+                line += " ";
+            line += "NDRUGS_USED\n";
+            out << line;
+            if (cbox_USE_DRUG_A->isChecked()) {
+                writeDrugParams(&out,DRUG_A);
+            }
+            if (cbox_USE_DRUG_B->isChecked()) {
+                writeDrugParams(&out,DRUG_B);
+            }
+        }
 	}
     file.close();
     SaveProtocol(inputFile);
@@ -2331,7 +2354,6 @@ void MainWindow::showSummary(int hr)
 
     field->setSliceChanged();
     if (step > 0 && !action_field->isEnabled()) {
-        LOG_MSG("call displayField");
         field->displayField(hour,&res);
         if (res != 0) {
             sprintf(msg,"displayField returned res: %d",res);
@@ -2707,6 +2729,10 @@ void MainWindow::changeParam()
 	if (w->isWidgetType()) {
 		QString wname = w->objectName();
 //        LOG_QMSG("changeParam:" + wname);
+        if (wname.contains("_PARENT_") || wname.contains("_METAB1_") || wname.contains("_METAB2_")) {
+            changeDrugParam(w);
+            return;
+        }
 		if (wname.contains("line_")) {
 			QString wtag = wname.mid(5);
 			QLineEdit *lineEdit = (QLineEdit *)w;
@@ -2861,6 +2887,7 @@ void MainWindow::changeParam()
 	}
 }
 
+/*
 //--------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::killModelChanged()
@@ -2885,6 +2912,7 @@ void MainWindow::killModelChanged()
         }
     }
 }
+*/
 
 //--------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------
@@ -3285,7 +3313,6 @@ void MainWindow::setupConstituents()
     QString str, tag;
     int ivar, ichemo;
 
-    LOG_MSG("setupConstituents: cell variables:");
     narraylen = 1000;
     name_array = (char *)malloc(narraylen*sizeof(char));
     get_cell_constituents(&Global::nvars_used, Global::GUI_to_DLL_index, &nvarlen, name_array, &narraylen);
