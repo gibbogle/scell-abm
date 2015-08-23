@@ -248,6 +248,43 @@ void MainWindow::changeDrugParam(QObject *w)
 
 }
 
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
+void MainWindow::selectDrug(QString drugname)
+{
+    QString filename = drugname.trimmed() + ".drugdata";
+    filename = filename.trimmed();
+    LOG_QMSG("selectDrug: filename: " + filename);
+    if (cbox_USE_DRUG_A->isChecked() && comb_DRUG_A->currentText().trimmed() == filename) return;
+    if (cbox_USE_DRUG_B->isChecked() && comb_DRUG_B->currentText().trimmed() == filename) return;
+
+    if (!cbox_USE_DRUG_A->isChecked()) {
+        // look for drugname in the comb_DRUG_A list
+        // if found, make this the current comb selection then set the cbox to checked
+        int n = comb_DRUG_A->count();
+        for (int i=0; i<n; i++) {
+            LOG_QMSG("selectDrug: itemText: " + comb_DRUG_A->itemText(i));
+            if (comb_DRUG_A->itemText(i).trimmed() == filename) {
+                comb_DRUG_A->setCurrentIndex(i);
+                cbox_USE_DRUG_A->setChecked(true);
+                return;
+            }
+        }
+        LOG_QMSG("selectDrug: error: drug name not in the combo list for drug A: " + drugname);
+    } else if (!cbox_USE_DRUG_B->isChecked()) {
+        int n = comb_DRUG_B->count();
+        for (int i=0; i<n; i++) {
+            if (comb_DRUG_B->itemText(i).trimmed() == filename) {
+                comb_DRUG_B->setCurrentIndex(i);
+                cbox_USE_DRUG_B->setChecked(true);
+                return;
+            }
+        }
+        LOG_QMSG("selectDrug: error: drug name not in the combo list for drug B: " + drugname);
+    } else {
+        LOG_QMSG("selectDrug: not found: " + drugname);
+    }
+}
 
 //--------------------------------------------------------------------------------------------------------
 // Make QLists of file names prefixed by "TPZ_", "DNB_", ...

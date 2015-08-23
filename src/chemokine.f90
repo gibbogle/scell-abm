@@ -121,7 +121,6 @@ do ichemo = 1,MAX_CHEMO
 		chemomap(nchemo) = ichemo
 	endif
 enddo
-write(*,*) 'nchemo: ', nchemo
 end subroutine
 
 !----------------------------------------------------------------------------------------

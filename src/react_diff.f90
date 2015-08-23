@@ -56,7 +56,7 @@ real(REAL_KIND), pointer :: Cave_b(:,:,:), Cprev_b(:,:,:), Fprev_b(:,:,:), Fcurr
 logical :: zero
 logical :: ok
 
-write(*,*) 'setup_react_diff: NX,NY,NZ: ',NX,NY,NZ
+write(nflog,*) 'setup_react_diff: NX,NY,NZ: ',NX,NY,NZ
 dxf = DELTA_X
 dx3 = dxf*dxf*dxf
 nrow = (NX-2)*(NY-2)*(NZ-1)		! embedded map, Dirichlet conditions on ix=1,NX, iy=1,NY, iz=NZ
@@ -81,16 +81,14 @@ allocate(ia_b(nrow_b+1))
 emapfile = ''
 write(emapfile,'(a,i2.0,a)') 'emap',NX,'.dat'
 write(nflog,*) 'setup_react_diff: ',emapfile
-write(*,*) 'make emapfile: ',emapfile
 call make_sparse_emap(emapfile,.true.)
-write(*,*) 'made emapfile: ',emapfile
+write(nflog,*) 'made emapfile: ',emapfile
 
 bmapfile = ''
 write(bmapfile,'(a,i2.0,a)') 'bmap',NXB,'.dat'
 write(nflog,*) 'setup_react_diff: ',bmapfile
-write(*,*) 'make bmapfile: ',bmapfile
 call make_sparse_map(bmapfile,.false.)
-write(*,*) 'made bmapfile: ',bmapfile
+write(nflog,*) 'made bmapfile: ',bmapfile
 
 do ichemo = 1,MAX_CHEMO
 	if (.not.chemo(ichemo)%used) cycle
@@ -99,7 +97,7 @@ do ichemo = 1,MAX_CHEMO
 	endif
 	Cextra_all(:,:,:,ichemo) = chemo(ichemo)%bdry_conc
 	Caverage(:,:,:,ichemo) = chemo(ichemo)%bdry_conc
-	write(*,*) 'call update_Cex_Cin: ',ichemo
+!	write(*,*) 'call update_Cex_Cin: ',ichemo
 	call update_Cex_Cin_const(ichemo)	! initialise with SS values
 	Fcurr => Cflux(:,:,:,ichemo)
 	call getF_const(ichemo,Fcurr)	! estimates all fine grid pt fluxes Cflux(:,:,:,:) from Cextra(:,:,:,:)
@@ -984,8 +982,8 @@ maxits = 100
 do ic = 1,nchemo
 	ichemo = chemomap(ic)
 	if (chemo(ichemo)%constant) cycle
-	write(*,'(a,i2)') 'coarse grid: ichemo: ',ichemo
-	write(nflog,'(a,i2)') 'coarse grid: ichemo: ',ichemo
+!	write(*,'(a,i2)') 'coarse grid: ichemo: ',ichemo
+!	write(nflog,'(a,i2)') 'coarse grid: ichemo: ',ichemo
 	ichemo_curr = ichemo
 	icc = ichemo - 1
 	allocate(rhs(nrow_b))
@@ -1036,7 +1034,7 @@ do ic = 1,nchemo
 		call itsol_solve_fgmr_ILU(icc, rhs, x, im_krylov, maxits, tol_b, iters, ierr)
 	!	write(nflog,*) 'itsol_solve_fgmr_ILU: Cave_b: ierr, iters: ',ierr,iters
 	else
-		write(*,*) 'no solve, zeroC: ',ichemo
+		write(nflog,*) 'no solve, zeroC: ',ichemo
 	endif
 	call itsol_free_precond_ILU(icc, ierr)
 !	write(nflog,*) 'did itsol_free_precond_ILU'
@@ -1080,7 +1078,7 @@ do ic = 1,nfinemap
 	do im = im1, im2
 		ichemo = ichemof + im
 		if (.not.chemo(ichemo)%present) cycle
-		write(*,'(a,i2)') 'fine grid: ichemo: ',ichemo
+!		write(*,'(a,i2)') 'fine grid: ichemo: ',ichemo
 		ichemo_curr = ichemo
 		icc = ichemo - 1
 !		write(*,'(a,i2)') 'ichemo: ',ichemo
@@ -1130,7 +1128,7 @@ do ic = 1,nfinemap
 				call itsol_solve_fgmr_ILU(icc,rhs, x, im_krylov, maxits, tol, iters, ierr)
 			!	write(nflog,*) 'itsol_solve_fgmr_ILU: Cave: ierr, iters: ',ierr,iters
 			else
-				write(*,*) 'no solve, zeroC: ',ichemo
+				write(nflog,*) 'no solve, zeroC: ',ichemo
 			endif
 			call itsol_free_precond_ILU(icc,ierr)
 			call itsol_free_matrix(icc,ierr)
@@ -1150,9 +1148,9 @@ do ic = 1,nfinemap
 			enddo
 !			dCsum = dCsum/(NX*NY*NZ)
 !			done = (abs(dCsum) < dCtol)
-			write(*,'(a,i2,3e12.3)') 'Csum,Cave,Cflux(17,17,17): ',ichemo,Csum,Cave(17,17,17),Cflux(17,17,17,ichemo)
+!			write(*,'(a,i2,3e12.3)') 'Csum,Cave,Cflux(17,17,17): ',ichemo,Csum,Cave(17,17,17),Cflux(17,17,17,ichemo)
 			if (Csum > 0 .and. Csum < 1.0e-10) then
-				write(*,*) 'Stop solving for: ',ichemo
+				write(nflog,*) 'Stop solving for: ',ichemo
 				chemo(ichemo)%present = .false.
 				! Probably should set all concentrations to 0
 			endif

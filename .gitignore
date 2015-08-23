@@ -7,3 +7,8 @@ scell_GUI-build/
 /src/scell-backup.f90
 /src/nbr1.f90
 /src/unused.f90
+/GUI/*.$$$
+/GUI/mainwindow.cpp.$$$
+/GUI/mainwindow.h.$$$
+/GUI/spheroid_GUI-backup-19-08-15.ui
+/GUI/params-backup.cpp

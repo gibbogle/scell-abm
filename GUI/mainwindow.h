@@ -270,6 +270,7 @@ private:
     void makeDrugFileLists();
     void changeDrugParam(QObject *);
     void extractDrugname(QString *);
+    void selectDrug(QString);
 
     QPlainTextEdit *textEdit;
     QString curFile;

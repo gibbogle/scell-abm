@@ -1048,7 +1048,7 @@ integer :: kcell, hour, kpar=0
 real(REAL_KIND) :: radiation_dose, dt
 integer :: i, k, nit, nt_diff, it_diff, ncells0, nhypoxic(3)
 integer :: nshow = 100
-integer :: Nhop
+integer :: Nhop, nt_hour
 integer :: nvars, ns
 real(REAL_KIND) :: dxc, ex_conc(35*O2_BY_VOL+1)		! just for testing
 logical :: ok, done, changed
@@ -1056,6 +1056,7 @@ logical :: dbug
 
 !Nhop = 10*(30/DELTA_T)
 Nhop = 1
+nt_hour = 3600/DELTA_T
 istep = istep + 1
 dbug = .false.
 if (Ncells == 0) then
@@ -1147,15 +1148,19 @@ do it_diff = 1,nt_diff
 	call setup_grid_cells
 !	if (ncells >= nshow) write(nflog,*) 'start setup_nbrlists'
 	call update_all_nbrlists
-	if (Ncells > 0) then
-		write(logmsg,'(a,5i8)') 'istep,Ncells,Nsteps,Nit,ndt: ',istep,Ncells,Nsteps,Nit,ndt
-		call logger(logmsg)
-	endif
+!	if (Ncells > 0) then
+!		write(logmsg,'(a,5i8)') 'istep,Ncells,Nsteps,Nit,ndt: ',istep,Ncells,Nsteps,Nit,ndt 
+!		call logger(logmsg)
+!	endif
 	call diff_solver(dt)
 enddo
-if (.not.use_TCP .and. (mod(istep,6) == 0)) then
-	call get_concdata(nvars, ns, dxc, ex_conc)
-!	write(*,'(a,3f8.4)') 'cell #1: ',cell_list(1)%Cex(1),cell_list(1)%Cin(1),cell_list(1)%Cex(1)-cell_list(1)%Cin(1)
+if (mod(istep,nt_hour) == 0) then
+	write(logmsg,'(a,3i8)') 'istep, hour, Ncells: ',istep,istep/nt_hour,Ncells
+	call logger(logmsg)
+	if (.not.use_TCP) then
+		call get_concdata(nvars, ns, dxc, ex_conc)
+	!	write(*,'(a,3f8.4)') 'cell #1: ',cell_list(1)%Cex(1),cell_list(1)%Cin(1),cell_list(1)%Cex(1)-cell_list(1)%Cin(1)
+	endif
 endif
 res = 0
 end subroutine
@@ -1171,18 +1176,23 @@ type(event_type) :: E
 do kevent = 1,Nevents
 	E = event(kevent)
 	if (t_simulation >= E%time .and. .not.E%done) then
-!	write(*,'(i3,2f8.0,i3,2f10.4)') E%etype,t_simulation,E%time,E%ichemo,E%volume,E%conc
 		if (E%etype == RADIATION_EVENT) then
+			write(logmsg,'(a,f6.3)') 'Processing treatment event: radiation dose: ', E%dose
+			call logger(logmsg)
 			radiation_dose = E%dose
-!			write(*,*) 'radiation_dose: ',radiation_dose
 		elseif (E%etype == MEDIUM_EVENT) then
+			write(logmsg,'(a,f6.3)') 'Processing treatment event: medium change: volume: ',E%volume 
+			call logger(logmsg)
 			C = 0
 			C(OXYGEN) = chemo(OXYGEN)%bdry_conc
 			C(GLUCOSE) = chemo(GLUCOSE)%bdry_conc
 			V = E%volume
 			call MediumChange(V,C)
 		elseif (E%etype == DRUG_EVENT) then
-			write(*,*) 'ProcessEvents: DRUG_EVENT'
+			write(logmsg,'(a,a)') 'Processing treatment event: drug dose: ',chemo(E%ichemo)%name
+			call logger(logmsg)
+			write(logmsg,'(a,2f6.3)') '  volume, concentration: ',E%volume,E%conc
+			call logger(logmsg)
 			C = 0
 			C(OXYGEN) = chemo(OXYGEN)%bdry_conc
 			C(GLUCOSE) = chemo(GLUCOSE)%bdry_conc
@@ -1194,7 +1204,6 @@ do kevent = 1,Nevents
 			chemo(ichemo)%present = .true.
 			chemo(ichemo)%bdry_conc = 0
 			nmetab = drug(idrug)%nmetabolites
-			write(*,'(a,3i4,10e12.3)') 'params: ',ichemo,idrug,nmetab,V,C
 			do im = 1,nmetab
 				if (chemo(ichemo + im)%used) then
 					chemo(ichemo + im)%present = .true.
@@ -1222,7 +1231,7 @@ integer :: kcell, site(3), siteb(3), ixb, iyb, izb, izb_1, izb_2, ichemo
 integer, allocatable :: zinrng(:,:,:)
 real(REAL_KIND), allocatable :: exmass(:), exconc(:)
 
-write(*,*) 'MediumChange: ',Ve,Ce
+write(nflog,*) 'MediumChange: ',Ve,Ce
 allocate(ngcells(NXB,NYB,NZB))
 allocate(zinrng(2,NXB,NYB))
 allocate(exmass(MAX_CHEMO))
@@ -1271,13 +1280,13 @@ Vkeep = Vm_old - Vr
 fkeep = Vkeep/Vm_old			! fraction of initial medium volume that is kept. i.e. fraction of exmass(:)
 Vm_new = Ve + Vkeep				! new medium volume
 total_volume = Vm_new + Vblob	! new total volume
-write(*,'(6f8.4)') total_volume,Vblob,Vm_old,Vkeep,fkeep,Vm_new
+!write(*,'(6f8.4)') total_volume,Vblob,Vm_old,Vkeep,fkeep,Vm_new
 ! Concentrations in the gridcells external to the blob (those with no cells) are set
 ! to the values of the mixture of old values and added medium.
 do ichemo = 1,MAX_CHEMO
 	if (.not.chemo(ichemo)%used) cycle
 	exconc(ichemo) = (Ve*Ce(ichemo) + fkeep*exmass(ichemo))/Vm_new
-	write(*,'(a,i2,6f8.4)') 'MediumChange: exconc: ',ichemo,Ce(ichemo),Ve,fkeep,exmass(ichemo),Vm_new,exconc(ichemo)
+!	write(*,'(a,i2,6f8.4)') 'MediumChange: exconc: ',ichemo,Ce(ichemo),Ve,fkeep,exmass(ichemo),Vm_new,exconc(ichemo)
 enddo
 do ixb = 1,NXB
 	do iyb = 1,NYB

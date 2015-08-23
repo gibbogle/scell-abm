@@ -62,9 +62,11 @@ end subroutine
 subroutine Irradiation(dose,ok)
 real(REAL_KIND) :: dose
 logical :: ok
-integer :: kcell, site(3), iv, ityp, kpar=0
-real(REAL_KIND) :: C_O2, p_death, p_recovery, R, kill_prob
-!real(REAL_KIND) :: OER_alpha_d, OER_beta_d, expon
+integer :: kcell, site(3), iv, ityp, idrug, im, ichemo, kpar=0
+real(REAL_KIND) :: C_O2, SER, p_death, p_recovery, R, kill_prob
+real(REAL_KIND) :: Cs							! concentration of radiosensitising drug
+real(REAL_KIND) :: SER_max0, SER_Km, SER_KO2	! SER parameters of the drug
+real(REAL_KIND) :: SERmax						! max sensitisation at the drug concentration
 
 ok = .true.
 call logger('Irradiation')
@@ -73,11 +75,24 @@ do kcell = 1,nlist
 	if (cell_list(kcell)%radiation_tag) cycle	! we do not tag twice (yet)
 	ityp = cell_list(kcell)%celltype
 	call getO2conc(kcell,C_O2)
-!	OER_alpha_d = dose*(LQ(ityp)%OER_am*C_O2 + LQ(ityp)%K_ms)/(C_O2 + LQ(ityp)%K_ms)
-!	OER_beta_d = dose*(LQ(ityp)%OER_bm*C_O2 + LQ(ityp)%K_ms)/(C_O2 + LQ(ityp)%K_ms)
-!	expon = LQ(ityp)%alpha_H*OER_alpha_d + LQ(ityp)%beta_H*OER_alpha_d**2
-!	kill_prob = 1 - exp(-expon)
-	call get_kill_probs(ityp,dose,C_O2,p_recovery,p_death)
+	! Compute sensitisation SER
+	SER = 1.0
+	do idrug = 1,Ndrugs_used
+		ichemo = 4 + 3*(idrug-1)
+		if (.not.chemo(ichemo)%present) cycle
+		do im = 0,2
+			ichemo = 4 + 3*(idrug-1) + im
+			if (drug(idrug)%sensitises(ityp,im)) then
+				Cs = cell_list(kcell)%Cin(ichemo)	! concentration of drug/metabolite in the cell
+				SER_max0 = drug(idrug)%SER_max(ityp,im)
+				SER_Km = drug(idrug)%SER_Km(ityp,im)
+				SER_KO2 = drug(idrug)%SER_KO2(ityp,im)
+				SERmax = (Cs*SER_max0 + SER_Km)/(Cs + SER_Km)
+				SER = SER*(C_O2 + SER_KO2*SERmax)/(C_O2 + SER_KO2)
+			endif
+		enddo
+	enddo
+	call get_kill_probs(ityp,dose,C_O2,SER,p_recovery,p_death)
 	kill_prob = 1 - p_recovery
 	R = par_uni(kpar)
 	if (R < kill_prob) then
@@ -99,24 +114,18 @@ end subroutine
 ! If p_d is determined (currently it is fixed), then 1-p_r = kill_prob/p_d,
 ! therefore p_r = 1 - kill_prob/p_d
 !-----------------------------------------------------------------------------------------
-subroutine get_kill_probs(ityp,dose,C_O2,p_recovery,p_death)
+subroutine get_kill_probs(ityp,dose,C_O2,SER,p_recovery,p_death)
 integer :: ityp
 real(REAL_KIND) :: dose, C_O2, p_recovery, p_death
-real(REAL_KIND) :: OER_alpha_d, OER_beta_d, expon, kill_prob_orig
-
-real(REAL_KIND) :: Cs						! concentration of radiosensitising drug
-real(REAL_KIND) :: SERmax0, KmSER, KO2SER	! SER parameters of the drug
-real(REAL_KIND) :: SERmax					! max sensitisation at the drug concentration
 real(REAL_KIND) :: SER						! sensitisation
+real(REAL_KIND) :: OER_alpha_d, OER_beta_d, expon, kill_prob_orig
 
 OER_alpha_d = dose*(LQ(ityp)%OER_am*C_O2 + LQ(ityp)%K_ms)/(C_O2 + LQ(ityp)%K_ms)
 OER_beta_d = dose*(LQ(ityp)%OER_bm*C_O2 + LQ(ityp)%K_ms)/(C_O2 + LQ(ityp)%K_ms)
 !expon = LQ(ityp)%alpha_H*OER_alpha_d + LQ(ityp)%beta_H*OER_alpha_d**2		! 07/08/2015
 
-!SERmax = (Cs*SERmax0 + KmSER)/(Cs + KmSER)
-!SER = (C_O2 + KO2SER*SERmax)/(C_O2 + KO2SER)
-!OER_alpha_d = OER_alpha_d*SER
-!OER_beta_d = OER_beta_d*SER
+OER_alpha_d = OER_alpha_d*SER
+OER_beta_d = OER_beta_d*SER
 
 expon = LQ(ityp)%alpha_H*OER_alpha_d + LQ(ityp)%beta_H*OER_beta_d**2
 kill_prob_orig = 1 - exp(-expon)

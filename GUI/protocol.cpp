@@ -42,8 +42,6 @@ void MainWindow::LoadProtocol(QString fileName)
             return;
         }
     }
-//    line = in.readLine();
-//    qDebug() << line;
     line = in.readLine();
 //    qDebug() << line;
     nTimes = line.toInt();
@@ -52,7 +50,8 @@ void MainWindow::LoadProtocol(QString fileName)
 //        qDebug() << mode;
         if (mode.compare("DRUG") == 0) {
             QString drug = in.readLine();
-//            qDebug() << drug;
+            qDebug() << drug;
+            selectDrug(drug);
             setField(table, row, 1, drug);
             QString hour = in.readLine();
 //            qDebug() << hour;
