@@ -524,10 +524,10 @@ TNanoxia_dead = sum(Nanoxia_dead(1:Ncelltypes))
 TNdrug_dead(1) = sum(Ndrug_dead(1,1:Ncelltypes))
 TNdrug_dead(2) = sum(Ndrug_dead(2,1:Ncelltypes))
 TNradiation_dead = sum(Nradiation_dead(1:Ncelltypes))
-TNtagged_anoxia = sum(Ntagged_anoxia(1:Ncelltypes))
+TNtagged_anoxia = sum(Nanoxia_tag(1:Ncelltypes))
 TNtagged_drug(1) = sum(Ndrug_tag(1,1:Ncelltypes))
 TNtagged_drug(2) = sum(Ndrug_tag(2,1:Ncelltypes))
-TNtagged_radiation = sum(Ntagged_radiation(1:Ncelltypes))
+TNtagged_radiation = sum(Nradiation_tag(1:Ncelltypes))
 Tplate_eff_10 = sum(plate_eff_10(1:Ncelltypes))
 summaryData(1:20) = [ istep, Ncells, TNanoxia_dead, TNdrug_dead(1), TNdrug_dead(2), TNradiation_dead, &
     TNtagged_anoxia, TNtagged_drug(1), TNtagged_drug(2), TNtagged_radiation, &
@@ -537,7 +537,6 @@ write(nfres,'(2a12,i8,2e12.4,19i7,13e12.4)') gui_run_version, dll_run_version, i
     Nanoxia_dead(1:2), Ndrug_dead(1,1:2), Ndrug_dead(2,1:2), Nradiation_dead(1:2), &
     Ntagged_anoxia(1:2), Ndrug_tag(1,1:2), Ndrug_tag(2,1:2), Ntagged_radiation(1:2), &
 	nhypoxic(:)/real(Ncells), ngrowth(:)/real(Ncells), necrotic_fraction, plate_eff(1:2), &
-!	chemo(OXYGEN)%medium_Cext, chemo(GLUCOSE)%medium_Cext, chemo(TPZ_DRUG)%medium_Cext, chemo(DNB_DRUG)%medium_Cext
 	cmedium(OXYGEN), cmedium(GLUCOSE), cmedium(DRUG_A), cmedium(DRUG_B)
 		
 !	call sum_dMdt(GLUCOSE)

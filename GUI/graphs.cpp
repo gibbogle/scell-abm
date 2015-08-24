@@ -110,16 +110,16 @@ GRAPH_SET tsGraphSet[] = {
      "Average concentration of glucose in the medium (far-field)",
     17, true, 0, 0.01, 0, TS_TYPE},
 
-    {"mediumTPZdrug",
-    "Medium TPZ Drug",
+    {"mediumdrugA",
+    "Medium Drug A",
     "Concentration",
-     "Average concentration of TPZ drug in the medium (far-field)",
+     "Average concentration of drug A in the medium (far-field)",
     18, true, 0, 0.001, 0, TS_TYPE},
 
-    {"mediumDNBdrug",
-    "Medium DNB Drug",
+    {"mediumdrugB",
+    "Medium Drug B",
     "Concentration",
-     "Average concentration of DNB drug in the medium (far-field)",
+     "Average concentration of drug B in the medium (far-field)",
     19, true, 0, 0.001, 0, TS_TYPE},
 
 // Profiles

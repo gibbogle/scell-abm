@@ -488,8 +488,8 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
     {"platingefficiency",         0, 0,1,"","Percentage of live cells that are viable"},
     {"mediumoxygen",              0, 0,1,"","Average concentration of oxygen in the medium (far-field)"},
     {"mediumglucose",             0, 0,1,"","Average concentration of glucose in the medium (far-field)"},
-    {"mediumTPZdrug",             0, 0,1,"","Average concentration of TPZ drug in the medium (far-field)"},
-    {"mediumDNBdrug",             0, 0,1,"","Average concentration of DNB drug in the medium (far-field)"},
+    {"mediumdrugA",               0, 0,1,"","Average concentration of drug A in the medium (far-field)"},
+    {"mediumdrugB",               0, 0,1,"","Average concentration of drug B in the medium (far-field)"},
 
 // Profile plots
     {"MULTI",                     1, 0,1,"","Selected constituent on a line through the blob centre"},

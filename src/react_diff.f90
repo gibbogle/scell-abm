@@ -90,6 +90,7 @@ write(nflog,*) 'setup_react_diff: ',bmapfile
 call make_sparse_map(bmapfile,.false.)
 write(nflog,*) 'made bmapfile: ',bmapfile
 
+call make_grid_flux_weights
 do ichemo = 1,MAX_CHEMO
 	if (.not.chemo(ichemo)%used) cycle
 	if (ichemo > TRACER) then
@@ -641,11 +642,12 @@ Kin = chemo(ichemo)%membrane_diff_in
 Kout = chemo(ichemo)%membrane_diff_out
 Kd = chemo(ichemo)%decay_rate
 if (ichemo <= GLUCOSE) then
-	delta = Vin*dCdt
 	Kmax = chemo(ichemo)%max_cell_rate
 	VKdecay = Vin*Kd
 	C0 = chemo(ichemo)%MM_C0
 	if (chemo(ichemo)%Hill_N == 2) then
+		dCdt = dCexdt*(Kin/Vin)/(Kout/Vin + Kd + 2*Kmax*cp%Cin(ichemo)*C0**2/(C0**2+cp%Cin(ichemo)**2))
+		delta = Vin*dCdt
 		b = C0*C0
 		a = (Kmax + b*VKdecay - (Kin*Cex-delta))/(Kout+VKdecay)
 		c = -b*(Kin*Cex-delta)/(Kout + VKdecay)
@@ -666,6 +668,8 @@ if (ichemo <= GLUCOSE) then
 			endif
 		endif
 	elseif (chemo(ichemo)%Hill_N == 1) then
+		dCdt = dCexdt*(Kin/Vin)/(Kout/Vin + Kd + Kmax*C0/(C0 + cp%Cin(ichemo)))
+		delta = Vin*dCdt
 		b = (Kmax + Kout*C0 + 2*VKdecay*C0 - (Kin*Cex-delta))/(Kout + VKdecay)
 		c = -C0*(Kin*Cex-delta)/(Kout + VKdecay)
 		D = sqrt(b*b - 4*c)
