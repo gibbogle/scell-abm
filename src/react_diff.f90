@@ -447,6 +447,7 @@ do kcell = 1,nlist
 enddo
 !$omp end parallel do
 
+!if (ichemo == OXYGEN) write(*,'(a,2e12.3)') 'Cex(O2), O2 flux: ',cell_list(1)%Cex(ichemo),cell_list(1)%dMdt(ichemo)
 ! Estimate grid pt flux values F
 call make_grid_flux(ichemo,Cflux_const)
 end subroutine

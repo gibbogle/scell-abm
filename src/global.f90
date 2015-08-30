@@ -418,10 +418,22 @@ end subroutine
 
 !-----------------------------------------------------------------------------------------
 ! Estimate blob radius by determining the range in the three axis directions
+! This is clearly inaccurate when the blob shape deviates significantly from a sphere,
+! and especially when cell killing causes the blob to break up.
 !-----------------------------------------------------------------------------------------
 function getRadius() result(R)
 real(REAL_KIND) :: R
-real(REAL_KIND) :: rmin(3), rmax(3), rng(3)
+real(REAL_KIND) :: cntr(3), rng(3), diam
+
+call getBlobCentreRange(cntr,rng, R)
+end function
+
+!-----------------------------------------------------------------------------------------
+! Estimate blob centre, range in each axis direction, and radius.
+!-----------------------------------------------------------------------------------------
+subroutine getBlobCentreRange(cntr,rng,radius)
+real(REAL_KIND) :: cntr(3), rng(3), radius
+real(REAL_KIND) :: rmin(3), rmax(3), diam
 integer :: kcell, k
 type(cell_type), pointer :: cp
 
@@ -435,10 +447,11 @@ do kcell = 1,nlist
 		rmax = max(rmax,cp%centre(:,k)+cp%radius(k))
 	enddo
 enddo
+cntr = (rmax + rmin)/2
 rng = rmax - rmin
-R = ((rng(1)**3 + rng(2)**3 + rng(3)**3)/3)**(1./3.)
-R = R/2
-end function
+diam = ((rng(1)**3 + rng(2)**3 + rng(3)**3)/3)**(1./3.)
+radius = diam/2
+end subroutine
 
 !----------------------------------------------------------------------------------------- 
 !-----------------------------------------------------------------------------------------

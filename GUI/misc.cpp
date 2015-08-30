@@ -200,6 +200,8 @@ void ExecThread::run()
     get_dimensions(&Global::NX, &Global::NY, &Global::NZ, &nsteps, &Global::DELTA_T, &Global::MAX_CHEMO, &Global::N_EXTRA,
                    cused, &Global::dfraction, &Global::DELTA_X);
     summary_interval = int(3600./Global::DELTA_T);
+    // convert DELTA_X from cm to um
+    Global::DELTA_X = 10000*Global::DELTA_X;
     sprintf(msg,"exthread: nsteps: %d summary_interval: %d NX: %d DELTA_X: %f nt_VTK: %d N_EXTRA: %d",
             nsteps,summary_interval,Global::NX,Global::DELTA_X,Global::nt_vtk,Global::N_EXTRA);
     LOG_MSG(msg);

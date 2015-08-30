@@ -318,13 +318,6 @@ void MyVTK::get_cell_positions()
     for (int i=0; i<Global::ncell_list; i++) {
         int j = i;
 		CELL_POS cp;
-//        cp.tag = Global::cell_list[j];
-//        cp.x = Global::cell_list[j+1];
-//        cp.y = Global::cell_list[j+2];
-//        cp.z = Global::cell_list[j+3];
-//        cp.state = Global::cell_list[j+4];
-//        cp.diameter = Global::cell_list[j+5]/100.0; // fraction of DELTA_X
-//        cp.highlight = Global::cell_list[j+6];
         cp.tag = Global::cell_list[j].tag;
         cp.x = Global::cell_list[j].centre[0];
         cp.y = Global::cell_list[j].centre[1];
@@ -333,17 +326,7 @@ void MyVTK::get_cell_positions()
         cp.celltype = Global::cell_list[j].celltype;
         cp.highlight = Global::cell_list[j].highlight;
         TCpos_list.append(cp);
-//        double r, g, b;
-//        if (cp.state > 0) {
-//            unpack(cp.state, &r, &g, &b);
-//        } else {
-//            r = g = b = 0;
-//        }
-//        sprintf(msg,"B cell: %d: tag: %d pos: %d %d %d state: %d %lf %lf %lf",i,cp.tag,cp.x,cp.y,cp.z,cp.state,r,g,b);
-//        LOG_MSG(msg);
 	}
-//    sprintf(msg,"ncell_list: %d TCpos_list.length: %d",Global::ncell_list,TCpos_list.length());
-//    LOG_MSG(msg);
 }
 
 //---------------------------------------------------------------------------------------------
@@ -388,13 +371,14 @@ void MyVTK::renderCells()
 	if (first_VTK) {
 		LOG_MSG("Initializing the renderer");
         iren->Initialize();
-    //    double x0 = Global::NX*Global::DELTA_X/2;
-    //        ren->GetActiveCamera()->SetPosition(0, 0, x0-20*Global::DELTA_X);
-//        ren->GetActiveCamera()->SetPosition(0, 0, x0-200);
-//        ren->GetActiveCamera()->SetFocalPoint(x0, x0, x0);
+        double x0 = ((Global::NX+1)/2)*Global::DELTA_X;
+        sprintf(msg,"NX: %d DELTA_X: %6.1f",Global::NX,Global::DELTA_X);
+        LOG_MSG(msg);
+        ren->GetActiveCamera()->SetPosition(0, 0, 0);
+        ren->GetActiveCamera()->SetFocalPoint(x0, x0, x0);
     }
     iren->Render();
-
+//    LOG_QMSG("renderCells");
 //    int depthPeelingWasUsed=ren->GetLastRenderingUsedDepthPeeling();
 //    sprintf(msg,"Was depth peeling used? %d\n",depthPeelingWasUsed);
 //    LOG_MSG(msg);
@@ -403,6 +387,11 @@ void MyVTK::renderCells()
 //        recorder();
 //    }
 //    ren->GetActiveCamera()->GetPosition(p);
+//    sprintf(msg,"camera position: %6.1f %6.1f %6.1f",p[0],p[1],p[2]);
+//    LOG_MSG(msg);
+//    ren->GetActiveCamera()->GetFocalPoint(p);
+//    sprintf(msg,"camera focal pt: %6.1f %6.1f %6.1f",p[0],p[1],p[2]);
+//    LOG_MSG(msg);
 }
 
 //---------------------------------------------------------------------------------------------
@@ -483,8 +472,6 @@ void MyVTK::process_Tcells()
 
 //    LOG_MSG("process_Tcells");
     int np = TCpos_list.length();
-//    sprintf(msg,"np: %d",np);
-//    LOG_MSG(msg);
     if (np == 0) return;
     int na = T_Actor_list.length();
     if (Global::istep < 0) {
@@ -568,6 +555,8 @@ void MyVTK::process_Tcells()
 //        }
         ap->actor->SetPosition(cp.x, cp.y, cp.z);
         ap->actor->SetScale(cp.diameter);
+//        sprintf(msg,"x,y,z,r,r,g,b: %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f",cp.x, cp.y, cp.z,cp.diameter,r,g,b);
+//        LOG_MSG(msg);
 	}
     for (int k=0; k<T_Actor_list.length(); k++) {
         ap = &T_Actor_list[k];

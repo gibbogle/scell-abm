@@ -863,9 +863,9 @@ integer :: ix, iy, iz, kcell, site(3), irad, lastid
 real(REAL_KIND) :: Radius, d, r2lim, r2, rad(3), rsite(3)
 logical, allocatable :: occup(:,:,:)
 
-blobcentre = DELTA_X*[NX/2,NY/2,NZ/2]
+blobcentre = DELTA_X*[(NX+1)/2,(NY+1)/2,(NZ+1)/2]
 d = 2.2*Raverage
-Radius = (3.0*initial_count/(4.0*PI))**(1./3.)	! scaled by /d
+Radius = (3.0*initial_count/(4.0*PI))**(1./3.)	! approx initial blob radius, scaled by /d
 write(nflog,*) 'blobcentre, d: ',blobcentre,d,Radius
 irad = Radius + 2
 allocate(occup(-irad:irad,-irad:irad,-irad:irad))
@@ -1425,7 +1425,7 @@ type(celldata_type) :: TC_list(*)
 integer :: kcell, nspheres, is
 type(cell_type), pointer :: cp
 
-!write(nflog,*) 'get_scene'
+write(nflog,*) 'get_scene'
 nTC_list = 0
 do kcell = 1,nlist
 	cp => cell_list(kcell)
@@ -1445,7 +1445,7 @@ do kcell = 1,nlist
 !		write(nflog,'(2i6,4e12.3)') nTC_list,TC_list(nTC_list)%tag,TC_list(nTC_list)%radius,TC_list(nTC_list)%centre
 	enddo
 enddo
-!write(nflog,*) 'nTC_list: ',nTC_list
+write(nflog,*) 'nTC_list: ',nTC_list
 end subroutine
 
 !-----------------------------------------------------------------------------------------
@@ -1530,8 +1530,6 @@ else
 	res = 1
 	stop
 endif
-centre(1:3) = 10000*blobcentre
-write(nflog,*) 'blobcentre: ',blobcentre
 end subroutine
 
 !-----------------------------------------------------------------------------------------
