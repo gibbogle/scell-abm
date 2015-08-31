@@ -331,8 +331,10 @@ void MainWindow::textEdited_fraction(QString text)
 
 void MainWindow::onSelectConstituent()
 {
-    if (exthread != NULL)
+    if (exthread != NULL) {
         field->selectCellConstituent();
+        updateProfilePlots();
+    }
 }
 
 void MainWindow::on_verticalSliderTransparency_sliderMoved(int position)

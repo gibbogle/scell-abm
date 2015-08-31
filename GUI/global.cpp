@@ -43,6 +43,7 @@ namespace Global
     int conc_nvars;
     int conc_nc;
     double conc_dx;
+    QString casename;
 
     double volProb[100];
     int vol_nv = 20;

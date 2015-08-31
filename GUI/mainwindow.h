@@ -164,6 +164,7 @@ public slots:
 	void textEdited_fraction(QString text);
     void setupConstituents();
     void setFields();
+    void updateProfilePlots();
 
 //    void on_cbox_USE_TPZ_DRUG_toggled(bool checked);
 //    void on_cbox_USE_DNB_DRUG_toggled(bool checked);

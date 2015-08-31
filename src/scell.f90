@@ -909,14 +909,17 @@ end subroutine
 subroutine AddCell(kcell, rsite)
 integer :: kcell
 real(REAL_KIND) :: rsite(3)
-integer :: kpar = 0
+integer :: ityp, kpar = 0
 real(REAL_KIND) :: r(3), c(3), R1, R2
 type(cell_type), pointer :: cp
 	
 cp => cell_list(kcell)
 cp%ID = kcell
 cp%state = ALIVE
-cp%celltype = 1		! temporary!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!cp%celltype = 1		! temporary!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+cp%celltype = random_choice(celltype_fraction,Ncelltypes,kpar)
+ityp = cp%celltype
+Ncells_type(ityp) = Ncells_type(ityp) + 1
 !			if (MITOSIS_MODE == TERMINAL_MITOSIS) then
 cp%Iphase = .true.
 cp%nspheres = 1
@@ -1440,7 +1443,7 @@ do kcell = 1,nlist
 		TC_list(nTC_list)%tag = nTC_list
 		TC_list(nTC_list)%radius = 10000*cp%radius(is)		! cm -> um
 		TC_list(nTC_list)%centre = 10000*cp%centre(:,is)	! cm -> um
-		TC_list(nTC_list)%celltype = 1
+		TC_list(nTC_list)%celltype = cp%celltype
 		TC_list(nTC_list)%highlight = 0
 !		write(nflog,'(2i6,4e12.3)') nTC_list,TC_list(nTC_list)%tag,TC_list(nTC_list)%radius,TC_list(nTC_list)%centre
 	enddo

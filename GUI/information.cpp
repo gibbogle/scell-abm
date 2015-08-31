@@ -35,7 +35,6 @@ void QMyCheckBox::mousePressEvent (QMouseEvent *event) {
     if (objectName().contains("cbox_")) {
         QString sname = objectName().mid(5);
 //        LOG_QMSG("checkBoxClicked: " + sname);
-        printf("checkBoxClicked: \n");
         // Find which cbox_ sent the signal, and read its text
         for (int k=0; k<parm->nParams; k++) {
             PARAM_SET param = parm->get_param(k);

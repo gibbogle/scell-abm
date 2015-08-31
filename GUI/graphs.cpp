@@ -102,13 +102,13 @@ GRAPH_SET tsGraphSet[] = {
     "Medium Oxygen",
     "Concentration",
      "Average concentration of oxygen in the medium (far-field)",
-    16, true, 0, 0.01, 0, TS_TYPE},
+    16, true, 0, 0.001, 0, TS_TYPE},
 
     {"mediumglucose",
     "Medium Glucose",
     "Concentration",
      "Average concentration of glucose in the medium (far-field)",
-    17, true, 0, 0.01, 0, TS_TYPE},
+    17, true, 0, 0.001, 0, TS_TYPE},
 
     {"mediumdrugA",
     "Medium Drug A",

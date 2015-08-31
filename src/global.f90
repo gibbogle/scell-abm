@@ -58,7 +58,7 @@ integer, parameter :: DRUG_B = DRUG_A + 3
 integer, parameter :: DNB_DRUG = DRUG_B
 integer, parameter :: DNB_DRUG_METAB_1 = DNB_DRUG + 1
 integer, parameter :: DNB_DRUG_METAB_2 = DNB_DRUG + 2
-integer, parameter :: MAX_CHEMO = DRUG_B + 3
+integer, parameter :: MAX_CHEMO = DRUG_B + 2
 integer, parameter :: GROWTH_RATE = MAX_CHEMO + 1	! (not used here, used in the GUI)
 integer, parameter :: CELL_VOLUME = MAX_CHEMO + 2
 integer, parameter :: O2_BY_VOL = MAX_CHEMO + 3
@@ -557,6 +557,29 @@ v(2) = 2*sin(a)*s
 v(3) = 1 - 2*R2
 end subroutine
 
+!--------------------------------------------------------------------------------
+! Make a random choice of an integer from 1 - N on the basis of probabilities in
+! the array p(:) (assumed to be normalized).
+!--------------------------------------------------------------------------------
+integer function random_choice(p,N,kpar)
+integer :: N,kpar
+real(REAL_KIND) :: p(:)
+integer :: k
+real(REAL_KIND) :: R, psum
+
+R = par_uni(kpar)
+psum = 0
+do k = 1,N
+    psum = psum + p(k)
+    if (R <= psum) then
+        random_choice = k
+        return
+    endif
+enddo
+write(logmsg,*) 'ERROR: random_choice: ',N,p
+call logger(logmsg)
+stop
+end function
 !-----------------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------------
 !subroutine get_random_drot(axis,drot)

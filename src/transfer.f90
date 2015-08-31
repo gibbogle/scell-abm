@@ -489,7 +489,7 @@ integer(c_int) :: summaryData(*), i_hypoxia_cutoff,i_growth_cutoff
 integer :: Ntagged_anoxia(MAX_CELLTYPES), Ntagged_drug(2,MAX_CELLTYPES), Ntagged_radiation(MAX_CELLTYPES)
 integer :: Nviable(MAX_CELLTYPES), plate_eff_10(MAX_CELLTYPES)
 integer :: diam_um, vol_mm3_1000, nhypoxic(3), ngrowth(3), hypoxic_percent_10, growth_percent_10, necrotic_percent_10, &
-    medium_oxygen_100, medium_glucose_100, medium_drug_1000(2)
+    medium_oxygen_1000, medium_glucose_1000, medium_drug_1000(2)
 integer :: TNanoxia_dead, TNdrug_dead(2), TNradiation_dead, &
            TNtagged_anoxia, TNtagged_drug(2), TNtagged_radiation, Tplate_eff_10
 real(REAL_KIND) :: vol_cm3, vol_mm3, hour, plate_eff(MAX_CELLTYPES), cmedium(MAX_CHEMO), necrotic_fraction
@@ -523,8 +523,8 @@ plate_eff = real(Nviable)/Ncells
 plate_eff_10 = 1000*plate_eff
 
 call getMediumConc(cmedium)		! need some sort of average concentrations
-medium_oxygen_100 = cmedium(OXYGEN)*100
-medium_glucose_100 = cmedium(GLUCOSE)*100
+medium_oxygen_1000 = cmedium(OXYGEN)*1000
+medium_glucose_1000 = cmedium(GLUCOSE)*1000
 medium_drug_1000(1) = cmedium(DRUG_A)*1000
 medium_drug_1000(2) = cmedium(DRUG_B)*1000
 
@@ -540,7 +540,7 @@ Tplate_eff_10 = sum(plate_eff_10(1:Ncelltypes))
 summaryData(1:20) = [ istep, Ncells, TNanoxia_dead, TNdrug_dead(1), TNdrug_dead(2), TNradiation_dead, &
     TNtagged_anoxia, TNtagged_drug(1), TNtagged_drug(2), TNtagged_radiation, &
 	diam_um, vol_mm3_1000, hypoxic_percent_10, growth_percent_10, necrotic_percent_10, Tplate_eff_10, &
-	medium_oxygen_100, medium_glucose_100, medium_drug_1000(1), medium_drug_1000(2) ]
+	medium_oxygen_1000, medium_glucose_1000, medium_drug_1000(1), medium_drug_1000(2) ]
 write(nfres,'(2a12,i8,2e12.4,19i7,13e12.4)') gui_run_version, dll_run_version, istep, hour, vol_mm3, diam_um, Ncells_type(1:2), &
     Nanoxia_dead(1:2), Ndrug_dead(1,1:2), Ndrug_dead(2,1:2), Nradiation_dead(1:2), &
     Ntagged_anoxia(1:2), Ndrug_tag(1,1:2), Ndrug_tag(2,1:2), Ntagged_radiation(1:2), &
@@ -552,9 +552,43 @@ end subroutine
 
 !--------------------------------------------------------------------------------
 ! Estimate average concentrations in the medium.
-! In fact the average is over the coarse grid points, excluding the fine grid.
+! In fact the average is over the coarse grid points that lie outside the blob.
 !--------------------------------------------------------------------------------
 subroutine getMediumConc(cmedium)
+real(REAL_KIND) :: cmedium(:)
+real(REAL_KIND) :: cntr(3), rng(3), radius, r2, d2
+integer :: x, y, z
+integer :: ixb, iyb, izb, nsum, ic, ichemo
+
+call getBlobCentreRange(cntr,rng,radius)
+r2 = radius**2
+cmedium = 0
+nsum = 0
+do ixb = 1,NXB
+	x = (ixb-1)*dxb
+	do iyb = 1,NYB
+		y = (iyb-1)*dxb
+		do izb = 1,NZB
+			z = (izb-1)*dxb
+			d2 = (x - cntr(1))**2 + (y - cntr(2))**2 + (z - cntr(3))**2
+			if (d2 > r2) then
+				nsum = nsum + 1
+				do ic = 1,nchemo
+					ichemo = chemomap(ic)
+					cmedium(ichemo) = cmedium(ichemo) + chemo(ichemo)%cave_b(ixb,iyb,izb)
+				enddo
+			endif
+		enddo
+	enddo
+enddo
+cmedium = cmedium/nsum
+end subroutine
+
+!--------------------------------------------------------------------------------
+! Estimate average concentrations in the medium.
+! In fact the average is over the coarse grid points, excluding the fine grid.
+!--------------------------------------------------------------------------------
+subroutine getMediumConc1(cmedium)
 real(REAL_KIND) :: cmedium(:)
 integer :: xb0, yb0, idxb, idyb, xb1, xb2, yb1, yb2, zb1, zb2
 integer :: ixb, iyb, izb, nsum, ic, ichemo
@@ -751,27 +785,14 @@ do kx = 1,nxgpts
 			endif
 			do ichemo = 1,MAX_CHEMO
 				ctemp(kx,ky,kz,ichemo) = Caverage(ix,iy,iz,ichemo)
-				if (ichemo == OXYGEN .and. ctemp(kx,ky,kz,ichemo) > 0.18) then
-					write(*,*) 'bad Caverage: ',kx,ky,kz,ix,iy,iz,ctemp(kx,ky,kz,ichemo)
-					stop
-				endif
+!				if (ichemo == OXYGEN .and. ctemp(kx,ky,kz,ichemo) > 0.18) then
+!					write(*,*) 'bad Caverage: ',kx,ky,kz,ix,iy,iz,ctemp(kx,ky,kz,ichemo)
+!					stop
+!				endif
 			enddo
 		enddo
 	enddo
 enddo
-!do ix = x1,x2
-!	if (ngc(ix) == 0) then
-!		ctemp(ix,:) = ctemp(ix-1,:)
-!	endif
-!enddo
-!do ichemo = 0,nvars-1
-!	offset = ichemo*ns
-!	k = offset - 1
-!	do x = x1, x2
-!		k = k + 1
-!		ex_conc(k) = ctemp(x,ichemo)
-!	enddo
-!enddo
 
 ns = 20
 dxc = (x2-x1)/(ns-1)
@@ -789,11 +810,11 @@ do kp = 1,ns
 	ix = x/dx + 1
 	alfax = (x - (ix-1)*dx)/dx
 	kx = ix - ix1 + 1
-	if (kx >= nxgpts) then
-		write(*,*) 'bad kx: ',kx,nxgpts
-		write(*,'(a,i4,4f8.4,2i4)') 'kp,x,x1,x2,dxc,ix,kx: ',kp,x,x1,x2,dxc,ix,kx
-		stop
-	endif
+!	if (kx >= nxgpts) then
+!		write(*,*) 'bad kx: ',kx,nxgpts
+!		write(*,'(a,i4,4f8.4,2i4)') 'kp,x,x1,x2,dxc,ix,kx: ',kp,x,x1,x2,dxc,ix,kx
+!		stop
+!	endif
 	do ichemo = 0, nvars-1
 		offset = ichemo*ns
 		k = offset - 1 + kp
@@ -805,20 +826,20 @@ do kp = 1,ns
 					 alfax*alfay*(1-alfaz)*ctemp(kx+1,2,1,ichemo) + &
 					 alfax*(1-alfay)*alfaz*ctemp(kx+1,1,2,ichemo) + &
 					 alfax*alfay*alfaz*ctemp(kx+1,2,2,ichemo)
-		if (ichemo == OXYGEN) then
-			if (ex_conc(k) > 0.18) then
-				write(*,'(2i4,2f8.4)') kp,k,x,ex_conc(k)
-				 write(*,'(3i4,4f8.4)') kx,1,1,(1-alfax),(1-alfay),(1-alfaz),ctemp(kx,1,1,ichemo)
-				 write(*,'(3i4,4f8.4)') kx,2,1,(1-alfax),alfay,(1-alfaz),ctemp(kx,2,1,ichemo)
-				 write(*,'(3i4,4f8.4)') kx,1,2,(1-alfax),(1-alfay),alfaz,ctemp(kx,1,2,ichemo)
-				 write(*,'(3i4,4f8.4)') kx,2,2,(1-alfax),alfay,alfaz,ctemp(kx,2,2,ichemo)
-				 write(*,'(3i4,4f8.4)') kx+1,1,1,alfax,(1-alfay),(1-alfaz),ctemp(kx+1,1,1,ichemo)
-				 write(*,'(3i4,4f8.4)') kx+1,2,1,alfax,alfay,(1-alfaz),ctemp(kx+1,2,1,ichemo)
-				 write(*,'(3i4,4f8.4)') kx+1,1,2,alfax,(1-alfay),alfaz,ctemp(kx+1,1,2,ichemo)
-				 write(*,'(3i4,4f8.4)') kx+1,2,2,alfax,alfay,alfaz,ctemp(kx+1,2,2,ichemo)
-				stop
-			endif
-		endif
+!		if (ichemo == OXYGEN) then
+!			if (ex_conc(k) > 0.18) then
+!				write(*,'(2i4,2f8.4)') kp,k,x,ex_conc(k)
+!				 write(*,'(3i4,4f8.4)') kx,1,1,(1-alfax),(1-alfay),(1-alfaz),ctemp(kx,1,1,ichemo)
+!				 write(*,'(3i4,4f8.4)') kx,2,1,(1-alfax),alfay,(1-alfaz),ctemp(kx,2,1,ichemo)
+!				 write(*,'(3i4,4f8.4)') kx,1,2,(1-alfax),(1-alfay),alfaz,ctemp(kx,1,2,ichemo)
+!				 write(*,'(3i4,4f8.4)') kx,2,2,(1-alfax),alfay,alfaz,ctemp(kx,2,2,ichemo)
+!				 write(*,'(3i4,4f8.4)') kx+1,1,1,alfax,(1-alfay),(1-alfaz),ctemp(kx+1,1,1,ichemo)
+!				 write(*,'(3i4,4f8.4)') kx+1,2,1,alfax,alfay,(1-alfaz),ctemp(kx+1,2,1,ichemo)
+!				 write(*,'(3i4,4f8.4)') kx+1,1,2,alfax,(1-alfay),alfaz,ctemp(kx+1,1,2,ichemo)
+!				 write(*,'(3i4,4f8.4)') kx+1,2,2,alfax,alfay,alfaz,ctemp(kx+1,2,2,ichemo)
+!				stop
+!			endif
+!		endif
 	enddo
 enddo
 

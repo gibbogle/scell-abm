@@ -3,7 +3,7 @@
 
 #include <QtGui>
 
-// Note that in the Fortran DLL the chemokine constituent numbering starts at 1
+// Note that in the Fortran DLL the constituent numbering starts at 1
 #define MULTI -1
 #define CFSE 0
 #define OXYGEN 1
@@ -15,33 +15,14 @@
 #define DRUG_B_PARENT 7
 #define DRUG_B_METAB_1 8
 #define DRUG_B_METAB_2 9
-#define GROWTH_RATE 10      // we pretend that this is a concentration
+#define GROWTH_RATE 10      // we pretend that these are concentrations
 #define CELL_VOLUME 11
 #define O2_BY_VOL 12
-
-//#define PROFILE_MULTI -1    // for a plot that can be of any selected constituent
-//#define PROFILE_CFSE 0
-//#define PROFILE_OXYGEN 1
-//#define PROFILE_GLUCOSE 2
-//#define PROFILE_TRACER 3
-//#define PROFILE_TPZ_DRUG 4
-//#define PROFILE_TPZ_METAB_1 5
-//#define PROFILE_TPZ_METAB_2 6
-//#define PROFILE_DNB_DRUG 7
-//#define PROFILE_DNB_METAB_1 8
-//#define PROFILE_DNB_METAB_2 9
-//#define PROFILE_GROWTH_RATE 10
-//#define PROFILE_CELL_VOLUME 11
-//#define PROFILE_O2_BY_VOL 12
-
-//#define DIST_OXYGEN 21
-//#define DIST_CELL_VOLUME 22
 
 #define DIST_NV 20
 
 #define MAX_CELLS 200000
 #define N_CELLINFO 7
-//#define N_FACS_VARS 3
 
 struct dist_set {
     bool used;
@@ -103,6 +84,7 @@ namespace Global
     extern int conc_nvars;
     extern int conc_nc;
     extern double conc_dx;
+    extern QString casename;
 
     extern double volProb[100];
     extern int vol_nv;

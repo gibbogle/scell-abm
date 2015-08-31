@@ -81,6 +81,7 @@ MainWindow::MainWindow(QWidget *parent)
     Global::showingVTK = false;
     Global::recordingFACS = false;
     Global::showingFACS = false;
+    Global::casename = "";
     nGraphCases = 0;
 	for (int i=0; i<Plot::ncmax; i++) {
 		graphResultSet[i] = 0;
@@ -2251,7 +2252,7 @@ void MainWindow::showSummary(int hr)
 	QString hourstr = QString::number(int(hour));
 	hour_display->setText(hourstr);
 
-	QString casename = newR->casename;
+    Global::casename = newR->casename;
     newR->tnow[step] = step;
 /*
     if (field->isConcPlot()) {
@@ -2275,50 +2276,13 @@ void MainWindow::showSummary(int hr)
         tag = grph->get_tag(i);
 //        pGraph[i]->redraw(newR->tnow, newR->pData[i], step+1, casename, tag);
         double yscale = grph->get_yscale(i);
-        pGraph[i]->redraw(newR->tnow, newR->pData[i], step+1, casename, tag, yscale, false);
+        pGraph[i]->redraw(newR->tnow, newR->pData[i], step+1, Global::casename, tag, yscale, false);
     }
     LOG_QMSG("did ts graphs");
 
     // Profile plots
-//    int nvars = 1 + Global::MAX_CHEMO + Global::N_EXTRA;
-    int ivar=0;
-    int nvars = Global::conc_nvars;
-    for (int i=0; i<nGraphs; i++) {
-        if (!grph->isActive(i)) continue;
-        if (Global::conc_nc > 0 && grph->isProfile(i)) {
-            double x[100], y[100];
-            double xscale, yscale;
-            tag = grph->get_tag(i);
-            int k = grph->get_dataIndex(i);
-            if (k == MULTI) {
-                ivar = field->cell_constituent;
-                QString title;
-                field->getTitle(ivar,&title);
-                pGraph[i]->setTitle(title);
-                k = Global::GUI_to_DLL_index[ivar];
-            }
-            n = Global::conc_nc;
-            int offset = k*n;
-            for (int j=0; j<n; j++) {
-                x[j] = j*Global::conc_dx*1.0e4;
-                y[j] = Global::concData[offset+j];
-            }
-            xscale = grph->get_xscale(x[n-1]);
-            double maxval = 0;
-            for (int j=0; j<n; j++) {
-                if (y[j] > maxval) maxval = y[j];
-            }
-            yscale = pGraph[i]->calc_yscale(maxval);
-            pGraph[i]->setAxisScale(QwtPlot::xBottom, 0, xscale, 0);
-            pGraph[i]->setAxisScale(QwtPlot::yLeft, 0, yscale, 0);
-//            if (k == CFSE){
-//                pGraph[i]->setAxisScale(QwtPlot::xBottom, -20.0, 1.0, 0);
-//            }
-            pGraph[i]->setAxisTitle(QwtPlot::xBottom, "Distance (microns)");
-            pGraph[i]->setAxisTitle(QwtPlot::yLeft, grph->get_yAxisTitle(i));
-            pGraph[i]->redraw(x, y, n, casename, tag, yscale, true);
-        }
-    }
+    updateProfilePlots();
+
     LOG_QMSG("did profile graphs");
     /*
     // Distribution plots
@@ -2364,6 +2328,52 @@ void MainWindow::showSummary(int hr)
     exthread->mutex1.unlock();
     exthread->summary_done.wakeOne();
 }
+
+//--------------------------------------------------------------------------------------------------------
+// nvars = 1 + Global::MAX_CHEMO + Global::N_EXTRA;
+//--------------------------------------------------------------------------------------------------------
+void MainWindow::updateProfilePlots()
+{
+    if (Global::casename == "") return;
+    int ivar=0;
+    for (int i=0; i<nGraphs; i++) {
+        if (!grph->isActive(i)) continue;
+        if (Global::conc_nc > 0 && grph->isProfile(i)) {
+            double x[100], y[100];
+            double xscale, yscale;
+            QString tag = grph->get_tag(i);
+            int k = grph->get_dataIndex(i);
+            if (k == MULTI) {
+                ivar = field->cell_constituent;
+                QString title;
+                field->getTitle(ivar,&title);
+                pGraph[i]->setTitle(title);
+                k = Global::GUI_to_DLL_index[ivar];
+            }
+            int n = Global::conc_nc;
+            int offset = k*n;
+            for (int j=0; j<n; j++) {
+                x[j] = j*Global::conc_dx*1.0e4;
+                y[j] = Global::concData[offset+j];
+            }
+            xscale = grph->get_xscale(x[n-1]);
+            double maxval = 0;
+            for (int j=0; j<n; j++) {
+                if (y[j] > maxval) maxval = y[j];
+            }
+            yscale = pGraph[i]->calc_yscale(maxval);
+            pGraph[i]->setAxisScale(QwtPlot::xBottom, 0, xscale, 0);
+            pGraph[i]->setAxisScale(QwtPlot::yLeft, 0, yscale, 0);
+//            if (k == CFSE){
+//                pGraph[i]->setAxisScale(QwtPlot::xBottom, -20.0, 1.0, 0);
+//            }
+            pGraph[i]->setAxisTitle(QwtPlot::xBottom, "Distance (microns)");
+            pGraph[i]->setAxisTitle(QwtPlot::yLeft, grph->get_yAxisTitle(i));
+            pGraph[i]->redraw(x, y, n, Global::casename, tag, yscale, true);
+        }
+    }
+}
+
 //--------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::outputData(QString qdata)
