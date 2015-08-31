@@ -776,7 +776,6 @@ void MainWindow::makeHistoPlot(int numValues, double xmin, double width,  QwtArr
 {
     QwtPlot *plot;
     double pos;
-
 //    LOG_MSG("makeHistoPlot");
     bool use_HistoBar = radioButton_histotype_1->isChecked();
     if (use_HistoBar) {
@@ -1708,10 +1707,12 @@ void MainWindow::goToField()
     Global::showingVTK = false;
     Global::showingFACS = false;
     LOG_MSG("goToField");
-//    field->displayField(hour,&res);
-//    if (res != 0) {
+    int res;
+    field->displayField(-1,&res);
+    if (res != 0) {
+        LOG_QMSG("displayField error")
 //        stopServer();
-//    }
+    }
 }
 
 //-------------------------------------------------------------

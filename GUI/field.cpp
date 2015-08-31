@@ -416,7 +416,7 @@ void Field::displayField(int hr, int *res)
     LOG_QMSG("displayField: field: " + QString::number(field_constituent) + " --> " + QString::number(ichemo));
     use_log = false;    // temporary
     *res = 0;
-    hour = hr;
+    if (hr >= 0) hour = hr;
 	if (slice_changed) {
         get_fielddata(&axis, &fraction, &fdata, res);
         if (*res != 0) {

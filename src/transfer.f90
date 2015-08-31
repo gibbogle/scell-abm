@@ -196,7 +196,7 @@ do ichemo = 1,MAX_CHEMO
 	nvars = nvars + 1
 	var_index(nvars) = ichemo
 enddo
-do iextra = 1,N_EXTRA
+do iextra = 1,N_EXTRA-1
 	nvars = nvars + 1
 	var_index(nvars) = MAX_CHEMO + iextra
 enddo
