@@ -11,14 +11,6 @@
 
 #define CANVAS_WIDTH 696
 
-//struct old_field_data {
-//    int site[3];
-//    int state;
-//    double volume;
-//    double conc[MAX_CONC+NEXTRA+1];    // added CFSE, dVdt, volume, O2byVol
-//};
-//typedef old_field_data old_FIELD_DATA;
-
 struct field_data {
     int NX, NY, NZ;
     int NCONST;

@@ -538,9 +538,6 @@ void Field::displayField(int hr, int *res)
 
     ichemo = Global::GUI_to_DLL_index[cell_constituent];
     LOG_QMSG("displayField: cell: " + QString::number(cell_constituent) + " --> " + QString::number(ichemo));
-    rgbcol[0] = 0;
-    rgbcol[1] = 200;
-    rgbcol[2] = 32;
     for (i=0; i<fdata.ncells; i++) {
         x = fdata.cell_data[i].centre[0];
         y = fdata.cell_data[i].centre[1];
@@ -548,6 +545,19 @@ void Field::displayField(int hr, int *res)
         xp = a*x + b;
         yp = a*y + b;
         d = 2*a*radius;
+        if (fdata.cell_data[i].status == 0) {
+            rgbcol[0] = 0;
+            rgbcol[1] = 200;
+            rgbcol[2] = 32;
+        } else if (fdata.cell_data[i].status == 1) {
+            rgbcol[0] = 50;
+            rgbcol[1] = 100;
+            rgbcol[2] = 32;
+        } else if (fdata.cell_data[i].status == 2) {
+            rgbcol[0] = 255;
+            rgbcol[1] = 0;
+            rgbcol[2] = 0;
+        }
         brush.setColor(QColor(rgbcol[0],rgbcol[1],rgbcol[2]));
         scene->addEllipse(xp,yp,d,d,Qt::NoPen, brush);
     }

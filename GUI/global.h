@@ -37,7 +37,8 @@ struct cell_data {
     double radius;
     double centre[3];
     int celltype;
-    int highlight;
+    int status;
+//    int highlight;
 };
 typedef cell_data CELL_DATA;
 

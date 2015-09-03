@@ -1444,7 +1444,7 @@ do kcell = 1,nlist
 		TC_list(nTC_list)%radius = 10000*cp%radius(is)		! cm -> um
 		TC_list(nTC_list)%centre = 10000*cp%centre(:,is)	! cm -> um
 		TC_list(nTC_list)%celltype = cp%celltype
-		TC_list(nTC_list)%highlight = 0
+		TC_list(nTC_list)%status = 0
 !		write(nflog,'(2i6,4e12.3)') nTC_list,TC_list(nTC_list)%tag,TC_list(nTC_list)%radius,TC_list(nTC_list)%centre
 	enddo
 enddo

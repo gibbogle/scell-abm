@@ -48,7 +48,8 @@ struct cell_pos {
 	double diameter;
 //    int state;
     int celltype;
-    int highlight;
+//    int highlight;
+    int status;
 };
 typedef cell_pos CELL_POS;
 

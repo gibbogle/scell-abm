@@ -98,6 +98,13 @@ do kcell = 1,nlist
 			cdata(nc)%radius = rad
 			cdata(nc)%centre(1:2) = [c(1),c(2)]		! always use centre(1:2) to store the 2D coordinates
 		endif
+		if (cp%anoxia_tag) then
+			cdata(nc)%status = 2	! tagged to die of anoxia
+		elseif (cp%Cin(OXYGEN) < 4e-3) then
+			cdata(nc)%status = 1	! radiobiological hypoxia
+		else
+			cdata(nc)%status = 0
+		endif
 	enddo
 enddo		
 fdata%ncells = nc

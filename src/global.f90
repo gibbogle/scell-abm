@@ -94,7 +94,7 @@ type, bind(C) :: celldata_type
 	real(c_double) :: radius
 	real(c_double) :: centre(3)
 	integer(c_int) :: celltype
-	integer(c_int) :: highlight
+	integer(c_int) :: status
 end type
 
 type, bind(C) :: fielddata_type

@@ -324,7 +324,7 @@ void MyVTK::get_cell_positions()
         cp.z = Global::cell_list[j].centre[2];
         cp.diameter = 2*Global::cell_list[j].radius;
         cp.celltype = Global::cell_list[j].celltype;
-        cp.highlight = Global::cell_list[j].highlight;
+        cp.status = Global::cell_list[j].status;
         TCpos_list.append(cp);
 	}
 }
@@ -550,7 +550,7 @@ void MyVTK::process_Tcells()
             }
 		}
         ap->actor->GetProperty()->SetColor(r, g, b);
-//        if (cp.highlight == 0) {
+//        if (cp.status == 0) {
         ap->actor->GetProperty()->SetOpacity(opacity[cp.celltype]);
 //        }
         ap->actor->SetPosition(cp.x, cp.y, cp.z);
