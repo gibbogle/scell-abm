@@ -346,6 +346,9 @@ endif
 DELTA_X = 1.0e-4*DELTA_X	! um -> cm
 dxf = DELTA_X
 dxb = NRF*dxf
+
+NX = 33		! fixed for now
+
 NY = NX
 NZ = NX
 NYB = NXB
@@ -1049,7 +1052,7 @@ use, intrinsic :: iso_c_binding
 integer(c_int) :: res
 integer :: kcell, hour, kpar=0
 real(REAL_KIND) :: radiation_dose, dt
-integer :: i, k, nit, nt_diff, it_diff, ncells0, nhypoxic(3)
+integer :: i, k, nit, irepeat, nrepeat, nt_diff, it_diff, ncells0, nhypoxic(3)
 integer :: nshow = 100
 integer :: Nhop, nt_hour
 integer :: nvars, ns
@@ -1069,7 +1072,7 @@ if (Ncells == 0) then
 endif
 t_simulation = (istep-1)*DELTA_T	! seconds
 radiation_dose = 0
-if (use_events) then
+if (use_events .and. ndrugs_used > 0) then
 	call ProcessEvent(radiation_dose)
 endif
 if (radiation_dose > 0) then
@@ -1079,9 +1082,6 @@ endif
 call SetupChemomap
 !dt = DELTA_T/NT_CONC
 ! the idea is to accumulate time steps until DELTA_T is reached 
-t_fmover = 0
-nit = 0
-done = .false.
 call make_perm_index(ok)
 if (.not.ok) then
 	call logger('make_perm_index error')
@@ -1089,6 +1089,15 @@ if (.not.ok) then
 	return
 endif
 !if (ncells > nshow) write(*,*) 'start moving'
+if (istep == 1) then
+	nrepeat = 1
+else
+	nrepeat = 1
+endif
+do irepeat = 1,nrepeat
+t_fmover = 0
+nit = 0
+done = .false.
 do while (.not.done)
 	nit = nit + 1
 !	call mover(ok)
@@ -1114,6 +1123,7 @@ do while (.not.done)
 	if (changed) then
 		call make_perm_index(ok)
 	endif
+enddo
 enddo
 
 !if (mod(istep,Nhop) == 0) then
@@ -1164,6 +1174,7 @@ if (mod(istep,nt_hour) == 0) then
 		call get_concdata(nvars, ns, dxc, ex_conc)
 	!	write(*,'(a,3f8.4)') 'cell #1: ',cell_list(1)%Cex(1),cell_list(1)%Cin(1),cell_list(1)%Cex(1)-cell_list(1)%Cin(1)
 	endif
+	call write_bdryconcs
 endif
 res = 0
 end subroutine
@@ -1481,12 +1492,16 @@ subroutine Execute(ncpu,infile_array,inbuflen,outfile_array,outbuflen,centre) BI
 !subroutine Execute() BIND(C)
 !DEC$ ATTRIBUTES DLLEXPORT :: execute
 use, intrinsic :: iso_c_binding
+use :: seq_mod
 character(c_char) :: infile_array(128), outfile_array(128)
 integer(c_int) :: ncpu, inbuflen, outbuflen
 real(c_double) :: centre(*)
 character*(128) :: infile, outfile
 integer :: i, res
 logical :: ok, isopen
+
+!call test_seq
+!stop
 
 infile = ''
 do i = 1,inbuflen

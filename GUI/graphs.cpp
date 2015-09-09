@@ -122,6 +122,12 @@ GRAPH_SET tsGraphSet[] = {
      "Average concentration of drug B in the medium (far-field)",
     19, true, 0, 0.001, 0, TS_TYPE},
 
+    {"cellspermm3",
+     "Cells/mm3",
+     "Density",
+     "Number of live cells per mm3 in the blob",
+     20, true, 0, 1, 0, TS_TYPE},
+
 // Profiles
     {"MULTI",
     "Multi-constituent",

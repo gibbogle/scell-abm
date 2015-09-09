@@ -490,6 +490,7 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
     {"mediumglucose",             0, 0,1,"","Average concentration of glucose in the medium (far-field)"},
     {"mediumdrugA",               0, 0,1,"","Average concentration of drug A in the medium (far-field)"},
     {"mediumdrugB",               0, 0,1,"","Average concentration of drug B in the medium (far-field)"},
+    {"cellspermm3",               0, 0,1,"","Number of cells per mm3 in the blob"},
 
 // Profile plots
     {"MULTI",                     1, 0,1,"","Selected constituent on a line through the blob centre"},

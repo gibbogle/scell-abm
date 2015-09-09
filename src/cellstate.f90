@@ -489,7 +489,6 @@ ityp = cp1%celltype
 ncells_type(ityp) = ncells_type(ityp) + 1
 ncells_mphase = ncells_mphase - 1
 kcell2 = nlist
-write(nflog,*) 'divider: ',kcell1,kcell2,cp1%ID
 cp2 => cell_list(kcell2)
 cp1%state = ALIVE
 cp1%V = cp1%V/2

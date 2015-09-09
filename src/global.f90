@@ -277,7 +277,7 @@ integer, parameter :: nflog=10, nfin=11, nfout=12, nfres=13, nfcell=14
 integer, parameter :: MAX_NLIST = 100000
 integer, parameter :: MAX_NBRS = 100
 integer, parameter :: ndt_max = 30
-real(REAL_KIND), parameter :: Raverage = 0.66e-3	! as in spheroid-abm.  was: 5.0e-4*1.5**(1./3)		! average cells radius (um) -> cm
+real(REAL_KIND), parameter :: Raverage = 0.64e-3	! as in spheroid-abm.  was: 5.0e-4*1.5**(1./3)		! average cells radius (um) -> cm
 
 character*(128) :: inputfile
 character*(128) :: outputfile
@@ -451,6 +451,35 @@ cntr = (rmax + rmin)/2
 rng = rmax - rmin
 diam = ((rng(1)**3 + rng(2)**3 + rng(3)**3)/3)**(1./3.)
 radius = diam/2
+end subroutine
+
+!-----------------------------------------------------------------------------------------
+! Find the cells that are at the min and max locations in the X, Y and Z directions
+!-----------------------------------------------------------------------------------------
+subroutine getBdryCells(bcells)
+integer :: bcells(3,2)
+real(REAL_KIND) :: rmin(3), rmax(3)
+integer :: kcell, k, i
+type(cell_type), pointer :: cp
+
+rmin = 1.0e10
+rmax = -1.0e10
+do kcell = 1,nlist
+	if (cell_list(kcell)%state == DEAD) cycle
+	cp => cell_list(kcell)
+	do k = 1,cp%nspheres
+		do i = 1,3
+			if (cp%centre(i,k) < rmin(i)) then
+				rmin(i) = cp%centre(i,k)
+				bcells(i,1) = kcell
+			endif
+			if (cp%centre(i,k) > rmax(i)) then
+				rmax(i) = cp%centre(i,k)
+				bcells(i,2) = kcell
+			endif
+		enddo
+	enddo
+enddo
 end subroutine
 
 !----------------------------------------------------------------------------------------- 

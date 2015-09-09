@@ -134,8 +134,9 @@ private slots:
     void on_cbox_SAVE_PROFILE_DATA_toggled(bool checked);
 
     void LoadProtocol(QString);
-    void SaveProtocol(QString);
+    void SaveProtocol(QTextStream *out, int);
     void ProtocolChanged(int, int);
+    bool ProtocolUsesDrug();
 
     void on_pushButton_savedrugdata_clicked();
 
@@ -272,6 +273,7 @@ private:
     void changeDrugParam(QObject *);
     void extractDrugname(QString *);
     void selectDrug(QString);
+    void readDrugData(QTextStream *in);
 
     QPlainTextEdit *textEdit;
     QString curFile;

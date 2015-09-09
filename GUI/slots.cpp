@@ -141,6 +141,9 @@ void MainWindow::on_cbox_USE_DRUG_A_toggled(bool checked)
         radioButton_drugA->setText(drugname);
         on_comb_DRUG_A_currentIndexChanged(0);
     } else {
+        radioButton_drugA->setChecked(false);
+        if (cbox_USE_DRUG_B->isChecked())
+            radioButton_drugB->setChecked(true);
         text_DRUG_A_NAME->setText("");
         radioButton_drugA->setText("");
     }
@@ -166,6 +169,9 @@ void MainWindow::on_cbox_USE_DRUG_B_toggled(bool checked)
         radioButton_drugB->setText(drugname);
         on_comb_DRUG_B_currentIndexChanged(1);
     } else {
+        radioButton_drugB->setChecked(false);
+        if (cbox_USE_DRUG_A->isChecked())
+            radioButton_drugA->setChecked(true);
         text_DRUG_B_NAME->setText("");
         radioButton_drugB->setText("");
     }

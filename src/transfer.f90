@@ -496,7 +496,7 @@ integer(c_int) :: summaryData(*), i_hypoxia_cutoff,i_growth_cutoff
 integer :: Ntagged_anoxia(MAX_CELLTYPES), Ntagged_drug(2,MAX_CELLTYPES), Ntagged_radiation(MAX_CELLTYPES)
 integer :: Nviable(MAX_CELLTYPES), plate_eff_10(MAX_CELLTYPES)
 integer :: diam_um, vol_mm3_1000, nhypoxic(3), ngrowth(3), hypoxic_percent_10, growth_percent_10, necrotic_percent_10, &
-    medium_oxygen_1000, medium_glucose_1000, medium_drug_1000(2)
+    medium_oxygen_1000, medium_glucose_1000, medium_drug_1000(2), npmm3
 integer :: TNanoxia_dead, TNdrug_dead(2), TNradiation_dead, &
            TNtagged_anoxia, TNtagged_drug(2), TNtagged_radiation, Tplate_eff_10
 real(REAL_KIND) :: vol_cm3, vol_mm3, hour, plate_eff(MAX_CELLTYPES), cmedium(MAX_CHEMO), necrotic_fraction
@@ -509,6 +509,7 @@ vol_cm3 = (4*PI/3)*radius**3
 vol_mm3 = vol_cm3*1000				! volume in mm^3
 vol_mm3_1000 = vol_mm3*1000			! 1000 * volume in mm^3
 diam_um = 2*radius*10000
+npmm3 = Ncells/vol_mm3
 !Ntagged_anoxia = Nanoxia_tag - Nanoxia_dead			! number currently tagged by anoxia
 !Ntagged_radiation = Nradiation_tag - Nradiation_dead	! number currently tagged by radiation
 call getHypoxicCount(nhypoxic)
@@ -544,10 +545,10 @@ TNtagged_drug(1) = sum(Ndrug_tag(1,1:Ncelltypes))
 TNtagged_drug(2) = sum(Ndrug_tag(2,1:Ncelltypes))
 TNtagged_radiation = sum(Nradiation_tag(1:Ncelltypes))
 Tplate_eff_10 = sum(plate_eff_10(1:Ncelltypes))
-summaryData(1:20) = [ istep, Ncells, TNanoxia_dead, TNdrug_dead(1), TNdrug_dead(2), TNradiation_dead, &
+summaryData(1:21) = [ istep, Ncells, TNanoxia_dead, TNdrug_dead(1), TNdrug_dead(2), TNradiation_dead, &
     TNtagged_anoxia, TNtagged_drug(1), TNtagged_drug(2), TNtagged_radiation, &
 	diam_um, vol_mm3_1000, hypoxic_percent_10, growth_percent_10, necrotic_percent_10, Tplate_eff_10, &
-	medium_oxygen_1000, medium_glucose_1000, medium_drug_1000(1), medium_drug_1000(2) ]
+	medium_oxygen_1000, medium_glucose_1000, medium_drug_1000(1), medium_drug_1000(2), npmm3 ]
 write(nfres,'(2a12,i8,2e12.4,19i7,13e12.4)') gui_run_version, dll_run_version, istep, hour, vol_mm3, diam_um, Ncells_type(1:2), &
     Nanoxia_dead(1:2), Ndrug_dead(1,1:2), Ndrug_dead(2,1:2), Nradiation_dead(1:2), &
     Ntagged_anoxia(1:2), Ndrug_tag(1,1:2), Ndrug_tag(2,1:2), Ntagged_radiation(1:2), &
@@ -1448,6 +1449,24 @@ else
 endif
 vol = (4./3.)*PI*R3 
 !write(*,'(a,2e12.3)') 'getNecroticVolume: R, vol: ',R, vol
+end subroutine
+
+subroutine write_bdryconcs
+integer :: bcells(3,2)
+real(REAL_KIND) :: c(3,2)
+integer :: ichemo, iaxis, iend, kcell
+
+call getBdryCells(bcells)
+do ichemo = 1,2
+	do iaxis = 1,3
+		do iend = 1,2
+			kcell = bcells(iaxis,iend)
+			c(iaxis,iend) = cell_list(kcell)%Cex(ichemo)
+		enddo
+	enddo
+	write(nflog,'(a,6f8.4,a,f8.4)') chemo(ichemo)%name,c,'  ave: ',sum(c)/6
+enddo
+	
 end subroutine
 
 end module

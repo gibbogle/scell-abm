@@ -203,7 +203,7 @@ integer :: ichemo
 real(REAL_KIND) :: a(:), Cave(:,:,:), Fcurr(:,:,:), rhs(:)
 integer :: k, ix, iy, iz, krow, kcol, nc
 integer :: nc_max = 10	! just a wild guess but not a bad one
-real(REAL_KIND) :: Kdiff, Kr, Vex, Cbdry
+real(REAL_KIND) :: Kdiff, Kr, Vex, Cbdry, Kdiff_sum
 logical, save :: first = .true.
 
 krow = 0
@@ -220,6 +220,8 @@ do k = 1,nnz
 !	endif
 enddo
 
+Kdiff_sum = 0
+k = 0
 do ix = 2,NX-1
 	do iy = 2,NY-1
 		do iz = 1,NZ-1
@@ -228,12 +230,17 @@ do ix = 2,NX-1
 			nc = grid(ix,iy,iz)%nc
 			Kdiff = chemo(ichemo)%medium_diff_coef
 			Kdiff = Kdiff*(1 - chemo(ichemo)%diff_reduction_factor*min(nc,nc_max)/nc_max)
+!			if (nc > 0) then
+!				write(*,'(a,2i4,f8.4)') 'Kdiff reduction: ',nc,nc_max,chemo(ichemo)%diff_reduction_factor*min(nc,nc_max)/nc_max
+!				k = k+1
+!				Kdiff_sum = Kdiff_sum + Kdiff
+!			endif
 			Kr = 1/(dxf*Kdiff)
 			rhs(krow) = -Kr*Fcurr(ix,iy,iz)
 		enddo
 	enddo
 enddo
-
+if (k > 0) write(nflog,'(a,i4,e12.3)') 'Kdiff ave: ',ichemo,Kdiff_sum/k
 ix = 2
 do iy = 2,NY-1
 	do iz = 1,NZ-1
@@ -430,7 +437,7 @@ end subroutine
 subroutine getF_const(ichemo, Cflux_const)
 integer :: ichemo
 real(REAL_KIND) :: Cflux_const(:,:,:)
-real(REAL_KIND) :: Kin, Kout
+real(REAL_KIND) :: Kin, Kout, total_flux
 integer :: kcell
 type(cell_type), pointer :: cp
 
@@ -439,13 +446,19 @@ Kin = chemo(ichemo)%membrane_diff_in
 Kout = chemo(ichemo)%membrane_diff_out
 
 ! Compute cell fluxes cp%dMdt
-!$omp parallel do private(cp)
+total_flux = 0
+!!$omp parallel do private(cp)
 do kcell = 1,nlist
 	cp => cell_list(kcell)
 	if (cp%state == DEAD) cycle
 	cp%dMdt(ichemo) = Kin*cp%Cex(ichemo) - Kout*cp%Cin(ichemo)
+	total_flux = total_flux + cp%dMdt(ichemo)
+	if (kcell == 1) then
+		write(nflog,'(a,i4,5e12.5)') 'getF_const: Cin, Cex, dMdt: ',ichemo, cp%Cin(ichemo), cp%Cex(ichemo),cp%dMdt(ichemo),Kin,Kout
+	endif
 enddo
-!$omp end parallel do
+!!$omp end parallel do
+write(nflog,'(a,2i4,e12.3)') 'total_flux: ',istep,ichemo,total_flux
 
 !if (ichemo == OXYGEN) write(*,'(a,2e12.3)') 'Cex(O2), O2 flux: ',cell_list(1)%Cex(ichemo),cell_list(1)%dMdt(ichemo)
 ! Estimate grid pt flux values F

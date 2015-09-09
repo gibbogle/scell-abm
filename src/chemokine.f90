@@ -105,8 +105,10 @@ do ichemo = 1,MAX_CHEMO
 	allocate(chemo(ichemo)%Fcurr_b(NXB,NYB,NZB))
 	chemo(ichemo)%diff_reduction_factor = 0.5		! default value, may need to be adjusted
 enddo
-chemo(OXYGEN)%diff_reduction_factor = 0.3
+chemo(OXYGEN)%diff_reduction_factor = 0.4
 
+! TRY this:
+!chemo(:)%diff_reduction_factor = 0.0
 end subroutine
 
 !-----------------------------------------------------------------------------------------

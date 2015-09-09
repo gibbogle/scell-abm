@@ -1368,6 +1368,75 @@ void MainWindow::showMore(QString moreText)
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::writeout()
 {
+    int ndrugs;
+    QString line;
+    QFile file(inputFile);
+    if (!file.open(QFile::WriteOnly | QFile::Text)) {
+        QMessageBox::warning(this, tr("Application"),
+                             tr("Cannot write file %1:\n%2.")
+                             .arg(inputFile)
+                             .arg(file.errorString()));
+        LOG_MSG("File open failed");
+        return;
+    }
+    QTextStream out(&file);
+    for (int k=0; k<parm->nParams; k++) {
+        PARAM_SET p = parm->get_param(k);
+        double val = p.value;
+        bool is_text = false;
+        if (p.tag.contains("_NAME")) {
+            is_text = true;
+            line = p.label;
+        } else if (val == int(val)) 	// whole number, write as integer
+            line = QString::number(int(val));
+        else
+            line = QString::number(val);
+        int nch = line.length();
+        for (int i=0; i<max(12-nch,1); i++)
+            line += " ";
+        line += p.tag;
+        nch = line.length();
+        for (int i=0; i<max(50-nch,1); i++)
+            line += " ";
+        if (is_text)
+            line += p.text;
+        else
+            line += p.label;
+        line += "\n";
+        out << line;
+        if (p.tag.contains("SAVE_PROFILE_DATA_NUMBER")) {   // insert the drug data here, before plot data
+            ndrugs = 0;
+            if (ProtocolUsesDrug()) {
+                if (cbox_USE_DRUG_A->isChecked()) ndrugs++;
+                if (cbox_USE_DRUG_B->isChecked()) ndrugs++;
+            }
+            line = QString::number(ndrugs);
+            int nch = line.length();
+            for (int k=0; k<max(16-nch,1); k++)
+                line += " ";
+            line += "NDRUGS_USED\n";
+            out << line;
+            if (ndrugs > 0) {
+                if (cbox_USE_DRUG_A->isChecked()) {
+                    writeDrugParams(&out,DRUG_A);
+                }
+                if (cbox_USE_DRUG_B->isChecked()) {
+                    writeDrugParams(&out,DRUG_B);
+                }
+            }
+        }
+    }
+    SaveProtocol(&out,ndrugs);
+    file.close();
+    paramSaved = true;
+    LOG_MSG("Input data saved");
+}
+
+/*
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
+void MainWindow::writeout()
+{
 	QString line;
     QFile file(inputFile);
     if (!file.open(QFile::WriteOnly | QFile::Text)) {
@@ -1426,7 +1495,7 @@ void MainWindow::writeout()
     paramSaved = true;
 	LOG_MSG("Input data saved");
 }
-
+*/
 //--------------------------------------------------------------------------------------------------------
 // Note: To be treated as text, a parameter tag must contain "_NAME"
 //--------------------------------------------------------------------------------------------------------
@@ -1475,7 +1544,10 @@ void MainWindow::readInputFile()
         } else {
 			parm->set_value(k,data[0].toDouble());
 		}
-	}
+        if (p.tag.contains("SAVE_PROFILE_DATA_NUMBER")) {   // drug data follows, before plot data
+            readDrugData(&in);
+        }
+    }
 
 //    qDebug() << in.readLine();
 //    qDebug() << in.readLine();

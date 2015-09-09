@@ -42,6 +42,8 @@ void MainWindow::LoadProtocol(QString fileName)
             return;
         }
     }
+//    line = in.readLine();
+//    qDebug() << line;
     line = in.readLine();
 //    qDebug() << line;
     nTimes = line.toInt();
@@ -50,8 +52,7 @@ void MainWindow::LoadProtocol(QString fileName)
 //        qDebug() << mode;
         if (mode.compare("DRUG") == 0) {
             QString drug = in.readLine();
-            qDebug() << drug;
-            selectDrug(drug);
+//            qDebug() << drug;
             setField(table, row, 1, drug);
             QString hour = in.readLine();
 //            qDebug() << hour;
@@ -84,7 +85,7 @@ void MainWindow::LoadProtocol(QString fileName)
     paramSaved = false;
 }
 
-void MainWindow::SaveProtocol(QString fileName)
+void MainWindow::SaveProtocol(QTextStream *out, int ndrugs)
 {
     int nTimes, eventType, kevents;
     int err;
@@ -98,6 +99,7 @@ void MainWindow::SaveProtocol(QString fileName)
     int row = tableWidget->currentRow();
     int col = tableWidget->currentColumn();
     tableWidget->setCurrentCell(row+1,col);
+    /*
     QFile file(fileName);
     if (!file.open(QFile::WriteOnly | QFile::Text | QIODevice::Append)) {
         QMessageBox::warning(this, tr("Application"),
@@ -108,8 +110,12 @@ void MainWindow::SaveProtocol(QString fileName)
         return;
     }
     QTextStream out(&file);
-
-    out << "PROTOCOL\n";
+    */
+    *out << "PROTOCOL\n";
+    if (ndrugs == 0) {
+        *out << 0 << "\n";
+        return;
+    }
     nTimes = 0;
     for (int row=0; row<tableWidget->rowCount(); row++) {
         item = tableWidget->item(row,0);
@@ -120,7 +126,7 @@ void MainWindow::SaveProtocol(QString fileName)
             }
         }
     }
-    out << nTimes << "\n";
+    *out << nTimes << "\n";
     for (int row=0; row<tableWidget->rowCount(); row++) {
         item = tableWidget->item(row,0);
         if (item != 0) {
@@ -147,48 +153,48 @@ void MainWindow::SaveProtocol(QString fileName)
                     QString msg = "No DRUG, RADIATION or MEDIUM data for event at hour: " + hour;
                     msgBox.setText(msg);
                     msgBox.exec();
-                    file.close();
+//                    file.close();
                     return;
                 }
                 if (kevents > 1) {
                     QString msg = "More than one event at hour: " + hour;
                     msgBox.setText(msg);
                     msgBox.exec();
-                    file.close();
+//                    file.close();
                     return;
                 }
                 if (eventType == idrug) {
-                    out << "DRUG" << "\n";
-                    out << drugEntry << "\n";
-                    out << hour << "\n";
+                    *out << "DRUG" << "\n";
+                    *out << drugEntry << "\n";
+                    *out << hour << "\n";
                     err = getField(table,row,2,&entry);
                     if (entry.compare("")) {   // Entry in Duration column
-                        out << entry << "\n";
+                        *out << entry << "\n";
                     } else {
                         msgBox.setText("Missing entry in Duration column");
                         msgBox.exec();
                         qDebug() << "Missing entry in Duration column";
-                        file.close();
+//                        file.close();
                         return;
                     }
                     err = getField(table,row,3,&entry);
                     if (entry.compare("")) {   // Entry in Volume column
-                        out << entry << "\n";
+                        *out << entry << "\n";
                     } else {
                         msgBox.setText("Missing entry in Volume column");
                         msgBox.exec();
                         qDebug() << "Missing entry in Volume column";
-                        file.close();
+//                        file.close();
                         return;
                     }
                     err = getField(table,row,4,&entry);
                     if (entry.compare("")) {   // Entry in Conc column
-                        out << entry << "\n";
+                        *out << entry << "\n";
                     } else {
                         msgBox.setText("Missing entry in Conc column");
                         msgBox.exec();
                         qDebug() << "Missing entry in Conc column";
-                        file.close();
+//                        file.close();
                         return;
                     }
                     continue;
@@ -196,17 +202,17 @@ void MainWindow::SaveProtocol(QString fileName)
 //                err = getField(table,row,5,&entry);
 //                if (entry.compare("")) {   // Entry in RADIATION column
                 else if (eventType == iradiation) {
-                    out << "RADIATION" << "\n";
-                    out << hour << "\n";
-                    out << radiationEntry << "\n";
+                    *out << "RADIATION" << "\n";
+                    *out << hour << "\n";
+                    *out << radiationEntry << "\n";
                     continue;
                 }
 //                err = getField(table,row,6,&entry);
 //                if (entry.compare("")) {   // Entry in MEDIUM column
                 else if (eventType == imedium) {
-                    out << "MEDIUM" << "\n";
-                    out << hour << "\n";
-                    out << mediumEntry << "\n";
+                    *out << "MEDIUM" << "\n";
+                    *out << hour << "\n";
+                    *out << mediumEntry << "\n";
                     continue;
                 }
 //                qDebug() << "No DRUG, RADIATION or MEDIUM data for event at hour: " << hour;
@@ -214,7 +220,22 @@ void MainWindow::SaveProtocol(QString fileName)
             }
         }
     }
-    file.close();
+//    file.close();
+}
+
+bool MainWindow::ProtocolUsesDrug()
+{
+    QTableWidgetItem *item;
+
+    for (int row=0; row<tableWidget->rowCount(); row++) {
+        item = tableWidget->item(row,1);
+        if (item != 0) {
+            if (item->text().compare("")) {    // true if <>
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 int MainWindow::getField(QTableWidget *table, int row, int col, QString *entry)
