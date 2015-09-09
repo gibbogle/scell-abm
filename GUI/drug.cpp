@@ -70,9 +70,9 @@ void MainWindow::readDrugParams(int idrug, QString fileName)
                     drug[idrug].param[kset].kill[ictyp].iparam[i-NDKILLPARAMS] = ival;
                 }
                 drug[idrug].param[kset].kill[ictyp].info[i] = (line.mid(data[0].size())).trimmed();
-                if (kset == 0) {
-                    LOG_QMSG(drug[idrug].param[kset].kill[ictyp].info[i]);
-                }
+//                if (kset == 0) {
+//                    LOG_QMSG(drug[idrug].param[kset].kill[ictyp].info[i]);
+//                }
             }
         }
     }
@@ -244,11 +244,14 @@ void MainWindow::on_buttonGroup_drug_buttonClicked(QAbstractButton* button)
 //    if (id == 1) {
 //        drugname =
 //    }
-    if (rb->objectName().contains("drugA"))
-        idrug = 0;
-    else if (rb->objectName().contains("drugB"))
-        idrug = 1;
-    populateDrugTable(idrug);
+//    if (rb->objectName().contains("drugA"))
+//        idrug = 0;
+//    else if (rb->objectName().contains("drugB"))
+//        idrug = 1;
+    if (radioButton_drugA->isChecked())
+        populateDrugTable(0);
+    if (radioButton_drugB->isChecked())
+        populateDrugTable(1);
 }
 
 

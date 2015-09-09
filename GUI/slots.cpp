@@ -90,7 +90,11 @@ void MainWindow::on_comb_DRUG_A_currentIndexChanged(int index)
         readDrugParams(0, filename);
         LOG_QMSG("populateDrugTable: drug A");
         populateDrugTable(0);
+    } else if (radioButton_drugB->isChecked()) {
+        LOG_QMSG("populateDrugTable: drug B");
+        populateDrugTable(1);
     }
+
 }
 
 //--------------------------------------------------------------------------------------------------------
@@ -109,7 +113,11 @@ void MainWindow::on_comb_DRUG_B_currentIndexChanged(int index)
         readDrugParams(1, filename);
         LOG_QMSG("populateDrugTable: drug B");
         populateDrugTable(1);
+    } else if (radioButton_drugA->isChecked()) {
+        LOG_QMSG("populateDrugTable: drug A");
+        populateDrugTable(0);
     }
+
 }
 
 //--------------------------------------------------------------------------------------------------------
@@ -142,8 +150,10 @@ void MainWindow::on_cbox_USE_DRUG_A_toggled(bool checked)
         on_comb_DRUG_A_currentIndexChanged(0);
     } else {
         radioButton_drugA->setChecked(false);
-        if (cbox_USE_DRUG_B->isChecked())
+        if (cbox_USE_DRUG_B->isChecked()) {
+            radioButton_drugB->click();
             radioButton_drugB->setChecked(true);
+        }
         text_DRUG_A_NAME->setText("");
         radioButton_drugA->setText("");
     }
@@ -169,9 +179,13 @@ void MainWindow::on_cbox_USE_DRUG_B_toggled(bool checked)
         radioButton_drugB->setText(drugname);
         on_comb_DRUG_B_currentIndexChanged(1);
     } else {
+        LOG_MSG("Uncheck rb_drugB");
         radioButton_drugB->setChecked(false);
-        if (cbox_USE_DRUG_A->isChecked())
+        if (cbox_USE_DRUG_A->isChecked()) {
+            LOG_MSG("Check rb_drugA");
+            radioButton_drugA->click();
             radioButton_drugA->setChecked(true);
+        }
         text_DRUG_B_NAME->setText("");
         radioButton_drugB->setText("");
     }
@@ -285,6 +299,7 @@ void MainWindow::on_line_CELLPERCENT_2_textEdited(QString pc2_str)
 void MainWindow::radioButtonChanged(QAbstractButton *b)
 {
     QString wtag = b->objectName();
+    LOG_QMSG("radioButtonChanged: " + wtag);
     int rbutton_case;
     if (b->isChecked()) {
         QString ptag = parse_rbutton(wtag,&rbutton_case);
