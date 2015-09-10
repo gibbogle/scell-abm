@@ -1492,7 +1492,7 @@ subroutine Execute(ncpu,infile_array,inbuflen,outfile_array,outbuflen,centre) BI
 !subroutine Execute() BIND(C)
 !DEC$ ATTRIBUTES DLLEXPORT :: execute
 use, intrinsic :: iso_c_binding
-use :: seq_mod
+!use :: seq_mod
 character(c_char) :: infile_array(128), outfile_array(128)
 integer(c_int) :: ncpu, inbuflen, outbuflen
 real(c_double) :: centre(*)

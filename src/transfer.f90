@@ -489,33 +489,9 @@ end subroutine
 
 !-----------------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------------
-subroutine get_summary(summaryData,i_hypoxia_cutoff,i_growth_cutoff) BIND(C)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_summary
-use, intrinsic :: iso_c_binding
-integer(c_int) :: summaryData(*), i_hypoxia_cutoff,i_growth_cutoff
-integer :: Ntagged_anoxia(MAX_CELLTYPES), Ntagged_drug(2,MAX_CELLTYPES), Ntagged_radiation(MAX_CELLTYPES)
-integer :: Nviable(MAX_CELLTYPES), plate_eff_10(MAX_CELLTYPES)
-integer :: diam_um, vol_mm3_1000, nhypoxic(3), ngrowth(3), hypoxic_percent_10, growth_percent_10, necrotic_percent_10, &
-    medium_oxygen_1000, medium_glucose_1000, medium_drug_1000(2), npmm3
-integer :: TNanoxia_dead, TNdrug_dead(2), TNradiation_dead, &
-           TNtagged_anoxia, TNtagged_drug(2), TNtagged_radiation, Tplate_eff_10
-real(REAL_KIND) :: vol_cm3, vol_mm3, hour, plate_eff(MAX_CELLTYPES), cmedium(MAX_CHEMO), necrotic_fraction
-real(REAL_KIND) :: radius, necrotic_vol_cm3, cntr(3), rng(3)
-    
-!Radius = getRadius()	! cm
-call getBlobCentreRange(cntr,rng,radius)
-hour = istep*DELTA_T/3600.
-vol_cm3 = (4*PI/3)*radius**3
-vol_mm3 = vol_cm3*1000				! volume in mm^3
-vol_mm3_1000 = vol_mm3*1000			! 1000 * volume in mm^3
-diam_um = 2*radius*10000
-npmm3 = Ncells/vol_mm3
-!Ntagged_anoxia = Nanoxia_tag - Nanoxia_dead			! number currently tagged by anoxia
-!Ntagged_radiation = Nradiation_tag - Nradiation_dead	! number currently tagged by radiation
-call getHypoxicCount(nhypoxic)
-hypoxic_percent_10 = (1000*nhypoxic(i_hypoxia_cutoff))/Ncells
-call getGrowthCount(ngrowth)
-growth_percent_10 = (1000*ngrowth(i_growth_cutoff))/Ncells
+subroutine getNecroticFraction(necrotic_fraction, vol_cm3)
+real(REAL_KIND) :: necrotic_fraction, vol_cm3
+real(REAL_KIND) :: necrotic_vol_cm3
 if (Ncells < 4000) then
 	necrotic_vol_cm3 = 0
 	necrotic_fraction = 0
@@ -525,6 +501,114 @@ else
 !	if (necrotic_fraction > 0) stop
 endif
 !write(*,'(a,4e12.3)') 'R,n_vol,vol,necrotic_fraction: ',Radius,necrotic_vol_cm3,vol_cm3,necrotic_fraction
+end subroutine
+
+!-----------------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------------------
+subroutine getDiamVol(diam_cm,vol_cm3)
+real(REAL_KIND) :: diam_cm, vol_cm3
+real(REAL_KIND) :: radius, cntr(3), rng(3)
+call getBlobCentreRange(cntr,rng,radius)
+diam_cm = 2*radius
+vol_cm3 = (4*PI/3)*radius**3
+end subroutine
+
+!-----------------------------------------------------------------------------------------
+subroutine get_summary(summaryData,i_hypoxia_cutoff,i_growth_cutoff) BIND(C)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_summary
+use, intrinsic :: iso_c_binding
+integer(c_int) :: summaryData(*), i_hypoxia_cutoff,i_growth_cutoff
+integer :: Nviable(MAX_CELLTYPES), plate_eff_10(MAX_CELLTYPES)
+integer :: diam_um, vol_mm3_1000, nhypoxic(3), ngrowth(3), hypoxic_percent_10, growth_percent_10, necrotic_percent_10, &
+    medium_oxygen_1000, medium_glucose_1000, medium_drug_1000(2), npmm3
+integer :: TNanoxia_dead, TNradiation_dead, TNdrug_dead(2),  &
+           Ntagged_anoxia(MAX_CELLTYPES), Ntagged_radiation(MAX_CELLTYPES), Ntagged_drug(2,MAX_CELLTYPES), &
+           TNtagged_anoxia, TNtagged_radiation, TNtagged_drug(2)
+integer :: Tplate_eff_10   
+real(REAL_KIND) :: diam_cm, vol_cm3, vol_mm3, hour, plate_eff(MAX_CELLTYPES), cmedium(MAX_CHEMO), necrotic_fraction
+
+hour = istep*DELTA_T/3600.
+call getDiamVol(diam_cm,vol_cm3)
+vol_mm3 = vol_cm3*1000				! volume in mm^3
+vol_mm3_1000 = vol_mm3*1000			! 1000 * volume in mm^3
+diam_um = diam_cm*10000
+npmm3 = Ncells/vol_mm3
+
+Ntagged_anoxia(:) = Nanoxia_tag(:) - Nanoxia_dead(:)			! number currently tagged by anoxia
+Ntagged_radiation(:) = Nradiation_tag(:) - Nradiation_dead(:)	! number currently tagged by radiation
+Ntagged_drug(1,:) = Ndrug_tag(1,:) - Ndrug_dead(1,:)				! number currently tagged by drugA
+Ntagged_drug(2,:) = Ndrug_tag(2,:) - Ndrug_dead(2,:)				! number currently tagged by drugA
+
+TNtagged_anoxia = sum(Ntagged_anoxia(1:Ncelltypes))
+TNtagged_radiation = sum(Ntagged_radiation(1:Ncelltypes))
+TNtagged_drug(1) = sum(Ntagged_drug(1,1:Ncelltypes))
+TNtagged_drug(2) = sum(Ntagged_drug(2,1:Ncelltypes))
+
+TNanoxia_dead = sum(Nanoxia_dead(1:Ncelltypes))
+TNradiation_dead = sum(Nradiation_dead(1:Ncelltypes))
+TNdrug_dead(1) = sum(Ndrug_dead(1,1:Ncelltypes))
+TNdrug_dead(2) = sum(Ndrug_dead(2,1:Ncelltypes))
+
+call getHypoxicCount(nhypoxic)
+hypoxic_percent_10 = (1000*nhypoxic(i_hypoxia_cutoff))/Ncells
+call getGrowthCount(ngrowth)
+growth_percent_10 = (1000*ngrowth(i_growth_cutoff))/Ncells
+call getNecroticFraction(necrotic_fraction,vol_cm3)
+necrotic_percent_10 = 1000*necrotic_fraction
+call getNviable(Nviable)
+plate_eff = real(Nviable)/Ncells
+plate_eff_10 = 1000*plate_eff
+Tplate_eff_10 = sum(plate_eff_10(1:Ncelltypes))
+call getMediumConc(cmedium)
+medium_oxygen_1000 = cmedium(OXYGEN)*1000
+medium_glucose_1000 = cmedium(GLUCOSE)*1000
+medium_drug_1000(1) = cmedium(DRUG_A)*1000
+medium_drug_1000(2) = cmedium(DRUG_B)*1000
+
+summaryData(1:21) = [ istep, Ncells, TNanoxia_dead, TNdrug_dead(1), TNdrug_dead(2), TNradiation_dead, &
+    TNtagged_anoxia, TNtagged_drug(1), TNtagged_drug(2), TNtagged_radiation, &
+	diam_um, vol_mm3_1000, hypoxic_percent_10, growth_percent_10, necrotic_percent_10, Tplate_eff_10, &
+	medium_oxygen_1000, medium_glucose_1000, medium_drug_1000(1), medium_drug_1000(2), npmm3 ]
+write(nfres,'(2a12,i8,2e12.4,19i7,13e12.4)') gui_run_version, dll_run_version, istep, hour, vol_mm3, diam_um, Ncells_type(1:2), &
+    Nanoxia_dead(1:2), Ndrug_dead(1,1:2), Ndrug_dead(2,1:2), Nradiation_dead(1:2), &
+    Ntagged_anoxia(1:2), Ntagged_drug(1,1:2), Ntagged_drug(2,1:2), Ntagged_radiation(1:2), &
+	nhypoxic(:)/real(Ncells), ngrowth(:)/real(Ncells), necrotic_fraction, plate_eff(1:2), &
+	cmedium(OXYGEN), cmedium(GLUCOSE), cmedium(DRUG_A), cmedium(DRUG_B)
+
+!write(nfres,'(a)') 'istep hour vol_mm3 diam_um Ncells(2) &
+!Nanoxia_dead(2) NdrugA_dead(2) NdrugB_dead(2) Nradiation_dead(2) &
+!Ntagged_anoxia(2) Ntagged_drugA(2) Ntagged_drugB(2) Ntagged_radiation(2) &
+!f_hypox(3) f_growth(3) f_necrot plating_efficiency(2) &
+!medium_oxygen medium_glucose medium_drugA medium_drugB'
+		
+call sum_dMdt(GLUCOSE)
+end subroutine
+
+!-----------------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------------------
+subroutine get_summary1(summaryData,i_hypoxia_cutoff,i_growth_cutoff) BIND(C)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_summary
+use, intrinsic :: iso_c_binding
+integer(c_int) :: summaryData(*), i_hypoxia_cutoff,i_growth_cutoff
+integer :: Ntagged_anoxia(MAX_CELLTYPES), Ntagged_drug(2,MAX_CELLTYPES), Ntagged_radiation(MAX_CELLTYPES)
+integer :: Nviable(MAX_CELLTYPES), plate_eff_10(MAX_CELLTYPES)
+integer :: diam_um, vol_mm3_1000, nhypoxic(3), ngrowth(3), hypoxic_percent_10, growth_percent_10, necrotic_percent_10, &
+    medium_oxygen_1000, medium_glucose_1000, medium_drug_1000(2), npmm3
+integer :: TNanoxia_dead, TNdrug_dead(2), TNradiation_dead, &
+           TNtagged_anoxia, TNtagged_drug(2), TNtagged_radiation, Tplate_eff_10
+real(REAL_KIND) :: diam_cm, vol_cm3, vol_mm3, hour, plate_eff(MAX_CELLTYPES), cmedium(MAX_CHEMO), necrotic_fraction
+    
+hour = istep*DELTA_T/3600.
+call getDiamVol(diam_cm,vol_cm3)
+vol_mm3 = vol_cm3*1000				! volume in mm^3
+vol_mm3_1000 = vol_mm3*1000			! 1000 * volume in mm^3
+diam_um = diam_cm*10000
+npmm3 = Ncells/vol_mm3
+call getHypoxicCount(nhypoxic)
+hypoxic_percent_10 = (1000*nhypoxic(i_hypoxia_cutoff))/Ncells
+call getGrowthCount(ngrowth)
+growth_percent_10 = (1000*ngrowth(i_growth_cutoff))/Ncells
+call getNecroticFraction(necrotic_fraction, vol_cm3)
 necrotic_percent_10 = 1000*necrotic_fraction	! need to estimate necrotic_fraction - how?
 call getNviable(Nviable)
 plate_eff = real(Nviable)/Ncells
@@ -557,6 +641,8 @@ write(nfres,'(2a12,i8,2e12.4,19i7,13e12.4)') gui_run_version, dll_run_version, i
 		
 !	call sum_dMdt(GLUCOSE)
 end subroutine
+
+
 
 !--------------------------------------------------------------------------------
 ! Estimate average concentrations in the medium.
