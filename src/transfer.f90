@@ -102,6 +102,8 @@ do kcell = 1,nlist
 			cdata(nc)%status = 2	! tagged to die of anoxia
 		elseif (cp%Cin(OXYGEN) < 4e-3) then
 			cdata(nc)%status = 1	! radiobiological hypoxia
+		elseif (cp%mitosis > 0) then
+			cdata(nc)%status = 3	! in mitosis
 		else
 			cdata(nc)%status = 0
 		endif
@@ -113,8 +115,8 @@ end subroutine
 
 !-----------------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------------
-subroutine get_cell_constituents(nvars,cvar_index,nvarlen,name_array,narraylen) BIND(C)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_cell_constituents
+subroutine get_constituents(nvars,cvar_index,nvarlen,name_array,narraylen) BIND(C)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_constituents
 use, intrinsic :: iso_c_binding
 character(c_char) :: name_array(0:*)
 integer(c_int) :: nvars, cvar_index(0:*), nvarlen, narraylen
@@ -536,8 +538,8 @@ npmm3 = Ncells/vol_mm3
 
 Ntagged_anoxia(:) = Nanoxia_tag(:) - Nanoxia_dead(:)			! number currently tagged by anoxia
 Ntagged_radiation(:) = Nradiation_tag(:) - Nradiation_dead(:)	! number currently tagged by radiation
-Ntagged_drug(1,:) = Ndrug_tag(1,:) - Ndrug_dead(1,:)				! number currently tagged by drugA
-Ntagged_drug(2,:) = Ndrug_tag(2,:) - Ndrug_dead(2,:)				! number currently tagged by drugA
+Ntagged_drug(1,:) = Ndrug_tag(1,:) - Ndrug_dead(1,:)			! number currently tagged by drugA
+Ntagged_drug(2,:) = Ndrug_tag(2,:) - Ndrug_dead(2,:)			! number currently tagged by drugA
 
 TNtagged_anoxia = sum(Ntagged_anoxia(1:Ncelltypes))
 TNtagged_radiation = sum(Ntagged_radiation(1:Ncelltypes))
@@ -736,7 +738,7 @@ do kcell = 1,nlist
 	endif
 enddo
 total_dMdt = total_dMdt + asum
-write(*,'(a,2i6,2e12.3)') 'sum_dMdt: ',ichemo,Nc,asum,total_dMdt*3600
+!write(*,'(a,2i6,2e12.3)') 'sum_dMdt: ',ichemo,Nc,asum,total_dMdt*3600
 end subroutine
 
 !--------------------------------------------------------------------------------

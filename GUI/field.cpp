@@ -81,61 +81,6 @@ void Field::setOxyPlot(bool status)
     useOxyPlot = status;
 }
 
-//------------------------------------------------------------------------------------------------
-// To create the group of radiobuttons for cell constituent selection.
-// This uses information about active constituents fetched from the DLL.
-// Need to distinguish field constituent from cell constituent, because for the cell we are
-// interested in CFSE, volume, O2byvol in addition to the dissolved constituents:
-// oxygen, glucose, drugA, drugB, metabolites...
-//------------------------------------------------------------------------------------------------
-void Field::setCellConstituentButtons(QGroupBox *gbox, QButtonGroup *bg, QVBoxLayout **vbox, QList<QRadioButton *> *rb_list, QString tag)
-{
-    int ivar;
-    QString name, str;
-    QRadioButton *rb;
-
-    LOG_QMSG("setCellConstituentButtons: " + tag);
-    if (rb_list->length() != 0) {
-        LOG_MSG("rb_list not NULL, delete it");
-        for (ivar=0; ivar<rb_list->length(); ivar++) {
-            rb = (*rb_list)[ivar];
-            bg->removeButton(rb);
-            delete rb;
-        }
-        rb_list->clear();
-    }
-    if (!*vbox) {
-        LOG_MSG("vbox = NULL, create it");
-        *vbox = new QVBoxLayout;
-        gbox->setLayout(*vbox);
-    }
-    name = "rb_cell_constituent_"+tag;
-    LOG_QMSG(name);
-//    sprintf(msg,"rb_list: %p vbox: %p bg: %p nvars_used: %d",p,*vbox,bg,Global::nvars_used);
-//    LOG_MSG(msg);
-    for (ivar=0; ivar<Global::nvars_used; ivar++) {
-        str = Global::var_string[ivar];
-        rb = new QRadioButton;
-        rb->setText(str);
-        rb->setObjectName(name+ivar);
-        (*vbox)->addWidget(rb);
-        rb->setEnabled(true);
-        bg->addButton(rb,ivar);
-        rb_list->append(rb);
-    }
-    LOG_MSG("added buttons");
-    if (tag.contains("FACS")) {
-        (*rb_list)[0]->setChecked(true);   // CFSE
-    } else {
-        (*rb_list)[1]->setChecked(true);   // Oxygen
-    }
-    QRect rect = gbox->geometry();
-    rect.setHeight(25*Global::nvars_used);
-    gbox->setGeometry(rect);
-    gbox->show();
-    LOG_MSG("completed");
-}
-
 /*
 void Field::setCellConstituentButtons(QGroupBox *gbox, QButtonGroup *bg, QVBoxLayout **vbox, QRadioButton ***rb_list, QString tag)
 {
@@ -183,6 +128,62 @@ void Field::setCellConstituentButtons(QGroupBox *gbox, QButtonGroup *bg, QVBoxLa
     gbox->show();
 }
 */
+
+//------------------------------------------------------------------------------------------------
+// To create the group of radiobuttons for cell constituent selection.
+// This uses information about active constituents fetched from the DLL.
+// Need to distinguish field constituent from cell constituent, because for the cell we are
+// interested in CFSE, volume, O2byvol in addition to the dissolved constituents:
+// oxygen, glucose, drugA, drugB, metabolites...
+//------------------------------------------------------------------------------------------------
+void Field::setCellConstituentButtons(QGroupBox *gbox, QButtonGroup *bg, QVBoxLayout **vbox, QList<QRadioButton *> *rb_list, QString tag)
+{
+    int ivar;
+    QString name, str;
+    QRadioButton *rb;
+
+    LOG_QMSG("setCellConstituentButtons: " + tag);
+    if (rb_list->length() != 0) {
+        LOG_MSG("rb_list not NULL, delete it");
+        for (ivar=0; ivar<rb_list->length(); ivar++) {
+            rb = (*rb_list)[ivar];
+            bg->removeButton(rb);
+            delete rb;
+        }
+        rb_list->clear();
+    }
+    if (!*vbox) {
+        LOG_MSG("vbox = NULL, create it");
+        *vbox = new QVBoxLayout;
+        gbox->setLayout(*vbox);
+    }
+    name = "rb_cell_constituent_"+tag;
+    LOG_QMSG(name);
+    sprintf(msg,"rb_list: %p vbox: %p bg: %p nvars_used: %d",rb_list,*vbox,bg,Global::nvars_used);
+    LOG_MSG(msg);
+    for (ivar=0; ivar<Global::nvars_used; ivar++) {
+        str = Global::var_string[ivar];
+        rb = new QRadioButton;
+        rb->setText(str);
+        rb->setObjectName(name+ivar);
+        (*vbox)->addWidget(rb);
+        rb->setEnabled(true);
+        bg->addButton(rb,ivar);
+        rb_list->append(rb);
+    }
+    LOG_MSG("added buttons");
+    if (tag.contains("FACS")) {
+        (*rb_list)[0]->setChecked(true);   // CFSE
+    } else {
+        (*rb_list)[1]->setChecked(true);   // Oxygen
+    }
+    QRect rect = gbox->geometry();
+    rect.setHeight(25*Global::nvars_used);
+    gbox->setGeometry(rect);
+    gbox->show();
+    LOG_MSG("completed");
+}
+
 
 //------------------------------------------------------------------------------------------------
 // To create the group of radiobuttons for field constituent selection.
@@ -557,6 +558,10 @@ void Field::displayField(int hr, int *res)
             rgbcol[0] = 255;
             rgbcol[1] = 0;
             rgbcol[2] = 0;
+        } else if (fdata.cell_data[i].status == 3) {
+            rgbcol[0] = 255;
+            rgbcol[1] = 0;
+            rgbcol[2] = 255;
         }
         brush.setColor(QColor(rgbcol[0],rgbcol[1],rgbcol[2]));
         scene->addEllipse(xp,yp,d,d,Qt::NoPen, brush);

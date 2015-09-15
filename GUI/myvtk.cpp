@@ -526,7 +526,7 @@ void MyVTK::process_Tcells()
             ren->AddActor(ap->actor);
             ap->active = true;
         }
-        if (cp.celltype < 0) {
+        if (cp.celltype < 1) {
 //			if (cp.state == -1) {	// non-cognate
 //				r = 0.5; g = 0.5; b = 0.5;
 //			} else if (cp.state == axis_centre) {
@@ -538,13 +538,22 @@ void MyVTK::process_Tcells()
 //            }
 		} else {
             if (USE_CELLTYPE_COLOUR) {
-//                r = 0.5;
-//                g = 0.5;
-//                b = 0.0;
-                qcolor = celltype_colour[cp.celltype];
-                r = qcolor.red()/255.;
-                g = qcolor.green()/255.;
-                b = qcolor.blue()/255.;
+                if (cp.status == 0) {
+                    qcolor = celltype_colour[cp.celltype];
+                    r = qcolor.red()/255.;
+                    g = qcolor.green()/255.;
+                    b = qcolor.blue()/255.;
+                } else if (cp.status == 1) {
+                    if (cp.celltype == 1) {
+                        r = 0.7;
+                        g = 0;
+                        b = 0.7;
+                    } else if (cp.celltype == 2) {
+                        r = 1.0;
+                        g = 0.0;
+                        b = 1.0;
+                    }
+                }
             } else {
                 unpack(cp.celltype, &r, &g, &b);
             }

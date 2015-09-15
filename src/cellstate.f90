@@ -531,6 +531,9 @@ cp2%CFSE = cfse1
 cp2%ID = cp1%ID
 cp2%p_death = cp1%p_death
 cp2%radiation_tag = cp1%radiation_tag
+if (cp2%radiation_tag) then
+	Nradiation_tag(ityp) = Nradiation_tag(ityp) + 1
+endif
 !cp2%drugA_tag = .false.
 !cp2%drugB_tag = .false.
 cp2%drug_tag = .false.

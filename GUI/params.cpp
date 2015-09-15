@@ -414,6 +414,10 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 "Use parallel O2 relaxation solver",
 "Use over- and under-relaxation to solve reaction-diffusion for oxygen, with parallelized over-relaxation"},
 
+{"FD_SOLVER_1", 0, 0, 1,
+"Use FD solver?",
+"Use the FD solver in the far field"},
+
 //{"USE_RADIATION", 1, 0, 1,
 //"Use radiation?",
 //"Treatment with radiation"},

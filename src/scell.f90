@@ -66,7 +66,7 @@ subroutine ReadCellParams(ok)
 logical :: ok
 integer :: i, idrug, nmetab, im, ichemo
 integer :: Nmm3, itestcase, ictype, ishow_progeny
-integer :: iuse_oxygen, iuse_glucose, iuse_tracer, iuse_drug, iuse_metab, iV_depend, iV_random
+integer :: iuse_oxygen, iuse_glucose, iuse_tracer, iuse_drug, iuse_metab, iV_depend, iV_random, iuse_FD
 integer :: iuse_extra, iuse_relax, iuse_par_relax
 real(REAL_KIND) :: days, percent, fluid_fraction, d_layer, sigma(MAX_CELLTYPES), Vsite_cm3, bdry_conc, spcrad_value
 integer :: iuse_drop, iconstant, isaveprofiledata
@@ -314,6 +314,7 @@ read(nfcell,*) spcrad_value
 read(nfcell,*) iuse_extra
 read(nfcell,*) iuse_relax
 read(nfcell,*) iuse_par_relax
+read(nfcell,*) iuse_FD
 read(nfcell,*) iuse_drop
 read(nfcell,*) Ndrop
 read(nfcell,*) alpha_shape
@@ -1456,6 +1457,9 @@ do kcell = 1,nlist
 		TC_list(nTC_list)%centre = 10000*cp%centre(:,is)	! cm -> um
 		TC_list(nTC_list)%celltype = cp%celltype
 		TC_list(nTC_list)%status = 0
+		if (cp%mitosis > 0) then
+			TC_list(nTC_list)%status = 1
+		endif
 !		write(nflog,'(2i6,4e12.3)') nTC_list,TC_list(nTC_list)%tag,TC_list(nTC_list)%radius,TC_list(nTC_list)%centre
 	enddo
 enddo

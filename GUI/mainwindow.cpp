@@ -2327,18 +2327,7 @@ void MainWindow::showSummary(int hr)
 
     Global::casename = newR->casename;
     newR->tnow[step] = step;
-/*
-    if (field->isConcPlot()) {
-        field->updateConcPlot();
-    }
 
-    if (field->isVolPlot()) {
-        field->updateVolPlot();
-    }
-    if (field->isOxyPlot()) {
-        field->updateOxyPlot();
-    }
-*/
     // TS plots
 	for (int i=0; i<nGraphs; i++) {
         if (!grph->isTimeseries(i)) continue;
@@ -2355,39 +2344,7 @@ void MainWindow::showSummary(int hr)
 
     // Profile plots
     updateProfilePlots();
-
     LOG_QMSG("did profile graphs");
-    /*
-    // Distribution plots
-    for (int i=0; i<nGraphs; i++) {
-        if (!grph->isActive(i)) continue;
-        if (grph->isDistribution(i)) {
-            double x[100], y[100];
-            double yscale;
-            QString tag = grph->get_tag(i);
-            int k = grph->get_dataIndex(i);
-            double v1 = Global::distData[k].v0 - Global::distData[k].dv/2;
-            double v2 = Global::distData[k].v0 + (Global::dist_nv-0.5)*Global::distData[k].dv;
-            pGraph[i]->setAxisScale(QwtPlot::xBottom, v1, v2, 0);
-            n = Global::dist_nv;
-
-            double pmax = 0;
-            for (int j=0; j<n; j++) {
-                x[j] = Global::distData[k].v0 + j*Global::distData[k].dv;
-                y[j] = Global::distData[k].prob[j];
-                pmax = MAX(pmax,y[j]);
-            }
-            int j = pmax/0.1;
-            pmax = (j+1)*0.1;
-            yscale = pmax;
-            pGraph[i]->setAxisScale(QwtPlot::yLeft, 0, pmax, 0);
-            pGraph[i]->setAxisTitle(QwtPlot::xBottom, "Concentration");
-            pGraph[i]->setAxisTitle(QwtPlot::yLeft, grph->get_yAxisTitle(i));
-            pGraph[i]->redraw(x, y, n, casename, tag, yscale, true);
-        }
-    }
-    */
-//    LOG_QMSG("did distribution graphs");
 
     field->setSliceChanged();
     if (step > 0 && !action_field->isEnabled()) {
@@ -3398,7 +3355,7 @@ void MainWindow::setupConstituents()
 
     narraylen = 1000;
     name_array = (char *)malloc(narraylen*sizeof(char));
-    get_cell_constituents(&Global::nvars_used, Global::GUI_to_DLL_index, &nvarlen, name_array, &narraylen);
+    get_constituents(&Global::nvars_used, Global::GUI_to_DLL_index, &nvarlen, name_array, &narraylen);
     for (ichemo=0; ichemo<32; ichemo++)
         Global::DLL_to_GUI_index[ichemo] = -1;
     for (ivar=0; ivar<Global::nvars_used; ivar++)

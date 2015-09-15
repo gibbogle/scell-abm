@@ -24,7 +24,7 @@ void get_nfacs(int *);
 void get_facs(double *);
 void get_histo(int, double *, double *, double *, double *, double *, double *);
 
-void get_cell_constituents(int *, int *, int *, char *, int *);
+void get_constituents(int *, int *, int *, char *, int *);
 
 //void get_profile_oxygen(double *, double *, int *);
 
