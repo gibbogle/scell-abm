@@ -156,11 +156,6 @@ if (nbrs == 0) return
 do i = 1,nbrs
     t(i) = i
 enddo
-!if (istep > 335) then
-!	write(*,*) 'update_nbrlist: kcell: ',kcell,nbrs
-!	write(*,*) 'nbr_d:'
-!	write(*,'(10f7.1)') 1.0e4*nbr_d(1:nbrs)
-!endif
 call qqsort(nbr_d,nbrs,t)     ! sort in increasing order
 ! Now the ith nearest is nbrlist(t(i))
 ! set cp1%nbrlist(:) as the closest #

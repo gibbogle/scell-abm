@@ -21,6 +21,7 @@ use chemokine
 use react_diff
 use transfer
 use cellstate
+use packer
 
 #include "../src/version.h"
 
@@ -506,6 +507,7 @@ character*(1)  :: numstr
 real(REAL_KIND) :: t, dt, vol, conc, dose
 type(event_type) :: E
 
+write(nflog,*) 'ReadProtocol'
 chemo(TRACER+1:)%used = .false.
 do
 	read(nf,'(a)') line
@@ -576,6 +578,7 @@ do itime = 1,ntimes
 		event(kevent)%ichemo = 0
 		event(kevent)%volume = 0
 		event(kevent)%conc = 0
+		write(nflog,'(a,2f8.3)') 'Radiation event: ',t,dose
 	endif
 enddo
 Nevents = kevent
@@ -863,47 +866,75 @@ end subroutine
 !-----------------------------------------------------------------------------------------
 subroutine PlaceCells(ok)
 logical :: ok
-integer :: ix, iy, iz, kcell, site(3), irad, lastid
-real(REAL_KIND) :: Radius, d, r2lim, r2, rad(3), rsite(3)
+integer :: ix, iy, iz, kcell, i, site(3), irad, lastid, nblob
+real(REAL_KIND) :: Radius, cellradius, d, r2lim, r2, rad(3), rsite(3), centre(3), ave(3)
 logical, allocatable :: occup(:,:,:)
 
 blobcentre = DELTA_X*[(NX+1)/2,(NY+1)/2,(NZ+1)/2]
-d = 2.2*Raverage
-Radius = (3.0*initial_count/(4.0*PI))**(1./3.)	! approx initial blob radius, scaled by /d
-write(nflog,*) 'blobcentre, d: ',blobcentre,d,Radius
-irad = Radius + 2
-allocate(occup(-irad:irad,-irad:irad,-irad:irad))
-occup = .false.
-r2lim = 0.97*Radius*Radius
-lastID = 0
-ncells_mphase = 0
-kcell = 0
-do ix = -irad, irad
-	do iy = -irad, irad
-		do iz = -irad, irad
-			site = (/ix,iy,iz/)
-			rad = site
-			r2 = dot_product(rad,rad)
-			if (r2 > r2lim) cycle
-			kcell = kcell + 1
-			rsite = blobcentre + d*site
-			call AddCell(kcell,rsite)
-			occup(ix,iy,iz) = .true.
+if (use_packer) then
+	nblob = initial_count
+	cellradius = Raverage
+	call SelectCellLocations(nblob, cellradius)
+	ave = 0
+	do i = 1,nblob
+		call get_cellcentre(i,centre)
+		ave = ave + centre
+	enddo
+	ave = ave/nblob
+!	write(*,'(a,3f8.4)') 'Average cell centre: ',ave
+!	write(*,'(a,3f8.4)') 'blobcentre: ',blobcentre
+!	write(*,*) 'Cell centres:'
+	kcell = 0
+	do i = 1,nblob
+		call get_cellcentre(i,centre)
+		centre = centre - ave + blobcentre
+		kcell = kcell + 1
+		rsite = centre
+!		write(*,'(i6,3f8.4)') kcell,rsite
+		call AddCell(kcell,rsite)
+	enddo
+	call FreeCellLocations
+else
+	d = 2.2*Raverage
+	Radius = (3.0*initial_count/(4.0*PI))**(1./3.)	! approx initial blob radius, scaled by /d
+	write(nflog,*) 'blobcentre, d: ',blobcentre,d,Radius
+	irad = Radius + 2
+	allocate(occup(-irad:irad,-irad:irad,-irad:irad))
+	occup = .false.
+	r2lim = 0.97*Radius*Radius
+	lastID = 0
+	ncells_mphase = 0
+!	write(*,'(a,3f8.4)') 'blobcentre: ',blobcentre
+!	write(*,*) 'Cell centres:'
+	kcell = 0
+	do ix = -irad, irad
+		do iy = -irad, irad
+			do iz = -irad, irad
+				site = (/ix,iy,iz/)
+				rad = site
+				r2 = dot_product(rad,rad)
+				if (r2 > r2lim) cycle
+				kcell = kcell + 1
+				rsite = blobcentre + d*site
+				call AddCell(kcell,rsite)
+!				write(*,'(i6,3f8.4)') kcell,rsite
+				occup(ix,iy,iz) = .true.
+			enddo
 		enddo
 	enddo
-enddo
-if (kcell > initial_count) then
-	write(logmsg,*) 'Cell count already exceeds specified number: ',kcell,initial_count
-	call logger(logmsg)
-	ok = .false.
-	return
+	if (kcell > initial_count) then
+		write(logmsg,*) 'Cell count already exceeds specified number: ',kcell,initial_count
+		call logger(logmsg)
+		ok = .false.
+		return
+	endif
+	! Now add cells to make the count up to the specified initial_count
+	if (kcell < initial_count) then
+		call AddBdryCells(kcell, occup, irad, d, blobcentre)
+		kcell = initial_count
+	endif
+	deallocate(occup)
 endif
-! Now add cells to make the count up to the specified initial_count
-if (kcell < initial_count) then
-	call AddBdryCells(kcell, occup, irad, d, blobcentre)
-	kcell = initial_count
-endif
-deallocate(occup)
 nlist = kcell
 ncells = kcell
 end subroutine
@@ -1073,7 +1104,7 @@ if (Ncells == 0) then
 endif
 t_simulation = (istep-1)*DELTA_T	! seconds
 radiation_dose = 0
-if (use_events .and. ndrugs_used > 0) then
+if (use_events) then
 	call ProcessEvent(radiation_dose)
 endif
 if (radiation_dose > 0) then
@@ -1082,7 +1113,7 @@ if (radiation_dose > 0) then
 endif
 call SetupChemomap
 !dt = DELTA_T/NT_CONC
-! the idea is to accumulate time steps until DELTA_T is reached 
+! the idea is to accumulate time steps until DELTA_T is reached  
 call make_perm_index(ok)
 if (.not.ok) then
 	call logger('make_perm_index error')

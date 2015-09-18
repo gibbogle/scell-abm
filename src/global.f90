@@ -377,6 +377,7 @@ logical :: suppress_growth = .false.
 logical :: use_hysteresis = .false.
 logical :: use_permute = .false.
 logical :: use_SS = .true.
+logical :: use_packer = .true.
 logical :: dbug = .false.
 
 integer :: kcell_now

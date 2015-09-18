@@ -418,6 +418,42 @@ enddo
 end subroutine
 
 !-------------------------------------------------------------------------------------------
+subroutine update_Cin_const_SS(ichemo, dt)
+integer :: ichemo
+real(REAL_KIND) :: dt
+integer :: kcell, ix, iy, iz
+real(REAL_KIND) :: alfa(3), Kin, Kout
+type(cell_type), pointer :: cp
+real(REAL_KIND), pointer :: Cextra(:,:,:)
+!real(REAL_KIND), pointer :: Cprev(:,:,:)
+
+!write(*,*) 'update_Cex_Cin_dCdt_const: ',ichemo
+
+Cextra => Caverage(:,:,:,ichemo)		! currently using the average concentration!
+!Cprev => chemo(ichemo)%Cprev
+Kin = chemo(ichemo)%membrane_diff_in
+Kout = chemo(ichemo)%membrane_diff_out
+!$omp parallel do private(cp, ix, iy, iz, alfa)
+do kcell = 1,nlist
+	cp => cell_list(kcell)
+	if (cp%state == DEAD) cycle
+	call grid_interp(kcell, alfa)
+	ix = cp%site(1)
+	iy = cp%site(2)
+	iz = cp%site(3)
+	cp%Cex(ichemo) = (1-alfa(1))*(1-alfa(2))*(1-alfa(3))*Cextra(ix,iy,iz)  &
+        + (1-alfa(1))*alfa(2)*(1-alfa(3))*Cextra(ix,iy+1,iz)  &
+        + (1-alfa(1))*alfa(2)*alfa(3)*Cextra(ix,iy+1,iz+1)  &
+        + (1-alfa(1))*(1-alfa(2))*alfa(3)*Cextra(ix,iy,iz+1)  &
+        + alfa(1)*(1-alfa(2))*(1-alfa(3))*Cextra(ix+1,iy,iz)  &
+        + alfa(1)*alfa(2)*(1-alfa(3))*Cextra(ix+1,iy+1,iz)  &
+        + alfa(1)*alfa(2)*alfa(3)*Cextra(ix+1,iy+1,iz+1)  &
+        + alfa(1)*(1-alfa(2))*alfa(3)*Cextra(ix+1,iy,iz+1)
+	cp%Cin(ichemo) = getCin_SS(kcell,ichemo,cp%V,cp%Cex(ichemo))
+enddo
+!$omp end parallel do
+end subroutine
+!-------------------------------------------------------------------------------------------
 ! Estimate total flux values associated with each fine grid pt, consistent with the current
 ! average concentrations Cave in the neighbourhood of the grid pt.  The grid pt flux is
 ! determined from the uptake fluxes of nearby cells, and a positive computed flux F 
@@ -598,10 +634,6 @@ else	! parent drug or drug metabolite
 			a = K1 + Kd + Kout/Vin
 			b = -Kin*Cex/Vin
 			Cin = -b/a
-		endif
-		if (Cin > Cex) then
-			write(*,'(a,2e12.3)') 'Cex,Cin: ',Cex,Cin
-			stop
 		endif
 	elseif (im == 1) then	! metab1
 		CO2 = cell_list(kcell)%Cin(OXYGEN)
@@ -1173,7 +1205,11 @@ do ic = 1,nfinemap
 				! Probably should set all concentrations to 0
 			endif
 			Cflux_prev(:,:,:,ichemo) = Fcurr
-			call update_Cex_Cin_dCdt_const(ichemo,dt)
+			if (use_SS) then
+				call update_Cin_const_SS(ichemo,dt)				! true steady-state
+			else
+				call update_Cex_Cin_dCdt_const(ichemo,dt)		! quasi steady-state
+			endif
 			call getF_const(ichemo, Fcurr)
 			Cprev = Cave
 				

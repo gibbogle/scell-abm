@@ -112,9 +112,28 @@ void MainWindow::SaveProtocol(QTextStream *out, int ndrugs)
     QTextStream out(&file);
     */
     *out << "PROTOCOL\n";
+    nTimes = 0;
     if (ndrugs == 0) {
-        *out << 0 << "\n";
-        return;
+        for (int row=0; row<tableWidget->rowCount(); row++) {
+            item = tableWidget->item(row,5);
+            if (item != 0) {
+                entry = item->text();
+                if (entry.compare("")) {    // true if <>
+                    nTimes++;
+                }
+            }
+            item = tableWidget->item(row,6);
+            if (item != 0) {
+                entry = item->text();
+                if (entry.compare("")) {    // true if <>
+                    nTimes++;
+                }
+            }
+        }
+        if (nTimes == 0) {      // nothing in the protocol
+            *out << 0 << "\n";
+            return;
+        }
     }
     nTimes = 0;
     for (int row=0; row<tableWidget->rowCount(); row++) {

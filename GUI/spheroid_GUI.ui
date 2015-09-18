@@ -79,7 +79,7 @@ padding: 8px
            <enum>QTabWidget::West</enum>
           </property>
           <property name="currentIndex">
-           <number>3</number>
+           <number>7</number>
           </property>
           <property name="elideMode">
            <enum>Qt::ElideNone</enum>
@@ -631,7 +631,7 @@ padding: 8px
              <rect>
               <x>140</x>
               <y>30</y>
-              <width>111</width>
+              <width>51</width>
               <height>21</height>
              </rect>
             </property>
@@ -660,7 +660,7 @@ padding: 8px
              <rect>
               <x>140</x>
               <y>60</y>
-              <width>111</width>
+              <width>71</width>
               <height>16</height>
              </rect>
             </property>
@@ -5344,7 +5344,7 @@ padding: 8px
               <x>290</x>
               <y>20</y>
               <width>261</width>
-              <height>201</height>
+              <height>151</height>
              </rect>
             </property>
             <property name="title">
@@ -5356,7 +5356,7 @@ padding: 8px
                <x>10</x>
                <y>10</y>
                <width>241</width>
-               <height>152</height>
+               <height>131</height>
               </rect>
              </property>
              <layout class="QGridLayout" name="gridLayout">
@@ -5555,25 +5555,6 @@ padding: 8px
               </item>
              </layout>
             </widget>
-            <widget class="QMyCheckBox" name="cbox_USE_EXTRA">
-             <property name="geometry">
-              <rect>
-               <x>20</x>
-               <y>170</y>
-               <width>131</width>
-               <height>20</height>
-              </rect>
-             </property>
-             <property name="layoutDirection">
-              <enum>Qt::RightToLeft</enum>
-             </property>
-             <property name="text">
-              <string>Use extracellular O2</string>
-             </property>
-             <property name="checked">
-              <bool>false</bool>
-             </property>
-            </widget>
            </widget>
            <widget class="QGroupBox" name="groupBox_run1">
             <property name="geometry">
@@ -5581,7 +5562,7 @@ padding: 8px
               <x>10</x>
               <y>20</y>
               <width>271</width>
-              <height>391</height>
+              <height>411</height>
              </rect>
             </property>
             <property name="title">
@@ -5593,7 +5574,7 @@ padding: 8px
                <x>10</x>
                <y>10</y>
                <width>251</width>
-               <height>371</height>
+               <height>391</height>
               </rect>
              </property>
              <layout class="QGridLayout" name="gridLayout_GL4">
@@ -6540,45 +6521,13 @@ padding: 8px
              </property>
             </widget>
            </widget>
-           <widget class="QMyCheckBox" name="cbox_USE_RELAX">
-            <property name="geometry">
-             <rect>
-              <x>300</x>
-              <y>230</y>
-              <width>141</width>
-              <height>20</height>
-             </rect>
-            </property>
-            <property name="layoutDirection">
-             <enum>Qt::RightToLeft</enum>
-            </property>
-            <property name="text">
-             <string>Use O2 relaxation solver</string>
-            </property>
-           </widget>
-           <widget class="QMyCheckBox" name="cbox_USE_PAR_RELAX">
-            <property name="geometry">
-             <rect>
-              <x>460</x>
-              <y>230</y>
-              <width>71</width>
-              <height>21</height>
-             </rect>
-            </property>
-            <property name="text">
-             <string>Parallel</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
            <widget class="QGroupBox" name="groupBox_drop">
             <property name="geometry">
              <rect>
               <x>290</x>
-              <y>270</y>
+              <y>300</y>
               <width>261</width>
-              <height>141</height>
+              <height>131</height>
              </rect>
             </property>
             <property name="title">
@@ -6825,6 +6774,131 @@ padding: 8px
             <property name="text">
              <string>basecase.inp</string>
             </property>
+           </widget>
+           <widget class="QGroupBox" name="groupBox_O2solver">
+            <property name="geometry">
+             <rect>
+              <x>290</x>
+              <y>170</y>
+              <width>261</width>
+              <height>61</height>
+             </rect>
+            </property>
+            <property name="title">
+             <string/>
+            </property>
+            <widget class="QMyCheckBox" name="cbox_USE_PAR_RELAX">
+             <property name="geometry">
+              <rect>
+               <x>170</x>
+               <y>30</y>
+               <width>71</width>
+               <height>21</height>
+              </rect>
+             </property>
+             <property name="text">
+              <string>Parallel</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+            <widget class="QMyCheckBox" name="cbox_USE_RELAX">
+             <property name="geometry">
+              <rect>
+               <x>10</x>
+               <y>30</y>
+               <width>141</width>
+               <height>20</height>
+              </rect>
+             </property>
+             <property name="layoutDirection">
+              <enum>Qt::RightToLeft</enum>
+             </property>
+             <property name="text">
+              <string>Use O2 relaxation solver</string>
+             </property>
+            </widget>
+            <widget class="QMyCheckBox" name="cbox_USE_EXTRA">
+             <property name="geometry">
+              <rect>
+               <x>20</x>
+               <y>10</y>
+               <width>131</width>
+               <height>20</height>
+              </rect>
+             </property>
+             <property name="layoutDirection">
+              <enum>Qt::RightToLeft</enum>
+             </property>
+             <property name="text">
+              <string>Use extracellular O2</string>
+             </property>
+             <property name="checked">
+              <bool>false</bool>
+             </property>
+            </widget>
+           </widget>
+           <widget class="QGroupBox" name="groupBox_farfield">
+            <property name="geometry">
+             <rect>
+              <x>290</x>
+              <y>230</y>
+              <width>261</width>
+              <height>71</height>
+             </rect>
+            </property>
+            <property name="title">
+             <string/>
+            </property>
+            <widget class="QLabel" name="alabel_ff">
+             <property name="geometry">
+              <rect>
+               <x>70</x>
+               <y>6</y>
+               <width>81</width>
+               <height>20</height>
+              </rect>
+             </property>
+             <property name="text">
+              <string>Far-field solver</string>
+             </property>
+            </widget>
+            <widget class="QRadioButton" name="rbut_FD_SOLVER_0">
+             <property name="geometry">
+              <rect>
+               <x>70</x>
+               <y>30</y>
+               <width>82</width>
+               <height>18</height>
+              </rect>
+             </property>
+             <property name="text">
+              <string>Fully mixed</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+             <attribute name="buttonGroup">
+              <string>buttonGroup_farfield</string>
+             </attribute>
+            </widget>
+            <widget class="QRadioButton" name="rbut_FD_SOLVER_1">
+             <property name="geometry">
+              <rect>
+               <x>70</x>
+               <y>50</y>
+               <width>111</width>
+               <height>18</height>
+              </rect>
+             </property>
+             <property name="text">
+              <string>Finite difference</string>
+             </property>
+             <attribute name="buttonGroup">
+              <string>buttonGroup_farfield</string>
+             </attribute>
+            </widget>
            </widget>
           </widget>
          </widget>
@@ -8053,6 +8127,7 @@ padding: 8px
  </resources>
  <connections/>
  <buttongroups>
+  <buttongroup name="buttonGroup_farfield"/>
   <buttongroup name="buttonGroup_histotype"/>
   <buttongroup name="buttonGroup_plane"/>
   <buttongroup name="buttonGroup_celltype"/>

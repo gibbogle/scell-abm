@@ -494,6 +494,11 @@ end subroutine
 subroutine getNecroticFraction(necrotic_fraction, vol_cm3)
 real(REAL_KIND) :: necrotic_fraction, vol_cm3
 real(REAL_KIND) :: necrotic_vol_cm3
+
+! Until this is fixed
+necrotic_vol_cm3 = 0
+necrotic_fraction = 0
+return
 if (Ncells < 4000) then
 	necrotic_vol_cm3 = 0
 	necrotic_fraction = 0
@@ -536,10 +541,14 @@ vol_mm3_1000 = vol_mm3*1000			! 1000 * volume in mm^3
 diam_um = diam_cm*10000
 npmm3 = Ncells/vol_mm3
 
-Ntagged_anoxia(:) = Nanoxia_tag(:) - Nanoxia_dead(:)			! number currently tagged by anoxia
-Ntagged_radiation(:) = Nradiation_tag(:) - Nradiation_dead(:)	! number currently tagged by radiation
-Ntagged_drug(1,:) = Ndrug_tag(1,:) - Ndrug_dead(1,:)			! number currently tagged by drugA
-Ntagged_drug(2,:) = Ndrug_tag(2,:) - Ndrug_dead(2,:)			! number currently tagged by drugA
+!Ntagged_anoxia(:) = Nanoxia_tag(:) - Nanoxia_dead(:)			! number currently tagged by anoxia
+!Ntagged_radiation(:) = Nradiation_tag(:) - Nradiation_dead(:)	! number currently tagged by radiation
+!Ntagged_drug(1,:) = Ndrug_tag(1,:) - Ndrug_dead(1,:)			! number currently tagged by drugA
+!Ntagged_drug(2,:) = Ndrug_tag(2,:) - Ndrug_dead(2,:)			! number currently tagged by drugA
+Ntagged_anoxia(:) = Nanoxia_tag(:) 			! number currently tagged by anoxia
+Ntagged_radiation(:) = Nradiation_tag(:)	! number currently tagged by radiation
+Ntagged_drug(1,:) = Ndrug_tag(1,:)			! number currently tagged by drugA
+Ntagged_drug(2,:) = Ndrug_tag(2,:)			! number currently tagged by drugA
 
 TNtagged_anoxia = sum(Ntagged_anoxia(1:Ncelltypes))
 TNtagged_radiation = sum(Ntagged_radiation(1:Ncelltypes))
@@ -732,10 +741,10 @@ do kcell = 1,nlist
 	if (cp%state == DEAD) cycle
 	Nc = Nc + 1
 	asum = asum + cp%dMdt(ichemo)
-	if (ichemo==GLUCOSE .and. cp%dMdt(ichemo) < 1.0e-15) then
-		write(*,*) 'sum_dMdt: glucose small dMdt: ',kcell,cp%dMdt(ichemo)
-		stop
-	endif
+!	if (ichemo==GLUCOSE .and. cp%dMdt(ichemo) < 1.0e-15) then
+!		write(*,*) 'sum_dMdt: glucose small dMdt: ',kcell,cp%dMdt(ichemo)
+!		stop
+!	endif
 enddo
 total_dMdt = total_dMdt + asum
 !write(*,'(a,2i6,2e12.3)') 'sum_dMdt: ',ichemo,Nc,asum,total_dMdt*3600
