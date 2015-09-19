@@ -495,18 +495,8 @@ subroutine getNecroticFraction(necrotic_fraction, vol_cm3)
 real(REAL_KIND) :: necrotic_fraction, vol_cm3
 real(REAL_KIND) :: necrotic_vol_cm3
 
-! Until this is fixed
-necrotic_vol_cm3 = 0
-necrotic_fraction = 0
-return
-if (Ncells < 4000) then
-	necrotic_vol_cm3 = 0
-	necrotic_fraction = 0
-else
-	call getNecroticVolume(necrotic_vol_cm3)
-	necrotic_fraction = necrotic_vol_cm3/vol_cm3
-!	if (necrotic_fraction > 0) stop
-endif
+call getNecroticVolume(necrotic_vol_cm3)
+necrotic_fraction = necrotic_vol_cm3/vol_cm3
 !write(*,'(a,4e12.3)') 'R,n_vol,vol,necrotic_fraction: ',Radius,necrotic_vol_cm3,vol_cm3,necrotic_fraction
 end subroutine
 
@@ -564,7 +554,11 @@ call getHypoxicCount(nhypoxic)
 hypoxic_percent_10 = (1000*nhypoxic(i_hypoxia_cutoff))/Ncells
 call getGrowthCount(ngrowth)
 growth_percent_10 = (1000*ngrowth(i_growth_cutoff))/Ncells
-call getNecroticFraction(necrotic_fraction,vol_cm3)
+if (TNanoxia_dead > 0) then
+	call getNecroticFraction(necrotic_fraction,vol_cm3)
+else
+	necrotic_fraction = 0
+endif
 necrotic_percent_10 = 1000*necrotic_fraction
 call getNviable(Nviable)
 plate_eff = real(Nviable)/Ncells
@@ -1197,8 +1191,190 @@ end subroutine
 
 !-----------------------------------------------------------------------------------------
 ! Estimate necrotic volume by determining the range in the three axis directions
+! Try to improve the method so as to handle "no-hit" cases.
+! The idea is to use a sheaf of chords in each axis direction instead of a single one,
+! e.g. a 5x5 = 25 sheaf.
 !-----------------------------------------------------------------------------------------
 subroutine getNecroticVolume(vol)
+real(REAL_KIND) :: vol
+real(REAL_KIND) :: rmin(3), rmax(3), cblob(3), cb(3), c(3), r, smin, smax, R3, Rn(3), Rdiv, Rsum
+integer :: kcell, i, j, k, js, ix0, iy0, iz0
+integer :: ixx, iyy, izz, axis, axis1, axis2, ixyz, rng(3,2), dx, dy, dz, dxm, dym, dzm, n
+logical :: overlap, hit1, hit2
+type(cell_type), pointer :: cp
+real(REAL_KIND) :: fac = 1.2
+integer :: rsheaf = 2
+
+! First estimate blob centre location
+rmin = 1.0e10
+rmax = 0
+do kcell = 1,nlist
+	if (cell_list(kcell)%state == DEAD) cycle
+	cp => cell_list(kcell)
+	do k = 1,cp%nspheres
+		rmin = min(rmin,cp%centre(:,k)-cp%radius(k))
+		rmax = max(rmax,cp%centre(:,k)+cp%radius(k))
+	enddo
+enddo
+cblob(:) = (rmin(:) + rmax(:))/2	! approximate blob centre
+!write(*,'(a,3f8.4,a,3f8.4)') 'cblob: ',cblob,'  size: ',rmax-rmin
+ix0 = cblob(1)/DELTA_X + 1
+iy0 = cblob(2)/DELTA_X + 1
+iz0 = cblob(3)/DELTA_X + 1
+!write(*,*) 'getNecroticVolume:'
+!write(*,'(a,3f8.4)') 'centre: ',cblob
+!write(*,'(a,3i4)') 'centre gridsite: ',ix,iy,iz
+! Check if any cells in this gridcell overlap with C(:)
+! A cell is treated here as a cube with side = cell diameter
+overlap = .false.
+do k = 1,grid(ix0,iy0,iz0)%nc
+	kcell = grid(ix0,iy0,iz0)%cell(k)
+	cp => cell_list(kcell)
+	do js = 1,cp%nspheres
+		r = fac*cp%radius(js)
+		c = cp%centre(:,js)
+!		write(*,'(a,i6,3(2f8.4,2x))') 'kcell,bnds: ',kcell,c(1)-r,c(1)+r,c(2)-r,c(2)+r,c(3)-r,c(3)+r
+		if ((cblob(1) >= c(1)-r .and. cblob(1) <= c(1)+r) .and. &
+			(cblob(2) >= c(2)-r .and. cblob(2) <= c(2)+r) .and. &
+			(cblob(3) >= c(3)-r .and. cblob(3) <= c(3)+r)) then
+			overlap = .true.
+			exit
+		endif
+	enddo
+	if (overlap) exit
+enddo
+if (overlap) then
+	vol = 0
+	return
+endif
+! There is a gap in the centre, find the gap extent in each axis direction
+
+do axis = 1,3
+	rng(1,:) = [ix0, ix0]
+	rng(2,:) = [iy0, iy0]
+	rng(3,:) = [iz0, iz0]
+	if (axis == 1) then
+		rng(1,1) = 1
+		rng(1,2) = NX-1
+		axis1 = 2
+		axis2 = 3
+		dxm = 0
+		dym = rsheaf
+		dzm = rsheaf
+	elseif (axis == 2) then
+		rng(2,1) = 1
+		rng(2,2) = NY-1
+		axis1 = 1
+		axis2 = 3
+		dxm = rsheaf
+		dym = 0
+		dzm = rsheaf
+	elseif (axis == 3) then
+		rng(3,1) = 1
+		rng(3,2) = NZ-1
+		axis1 = 1
+		axis2 = 2
+		dxm = rsheaf
+		dym = rsheaf
+		dzm = 0
+	endif
+!	write(*,'(a,i2,3(2i3,2x))') 'axis: ',axis,((rng(i,j),j=1,2),i=1,3)
+	! X direction.  
+	!write(*,*) 'seeking rmin, rmax in X direction'
+	
+	Rsum = 0
+	n = 0
+	do dx = -dxm,dxm
+	do dy = -dym,dym
+	do dz = -dzm,dzm
+	
+	cb(1) = cblob(1) + 0.5*dx*Raverage
+	cb(2) = cblob(2) + 0.5*dy*Raverage
+	cb(3) = cblob(3) + 0.5*dz*Raverage
+
+	smin = 1.0e10
+	smax = -1.0e10
+	hit1 = .false.
+	hit2 = .false.
+	do ixx = rng(1,1),rng(1,2)
+	do iyy = rng(2,1),rng(2,2)
+	do izz = rng(3,1),rng(3,2)
+!		write(*,*) 'ixx,iyy,izz,nc: ',ixx,iyy,izz,grid(ixx,iyy,izz)%nc
+		do k = 1,grid(ixx,iyy,izz)%nc
+			kcell = grid(ixx,iyy,izz)%cell(k)
+			cp => cell_list(kcell)
+!			write(*,'(a,2i6,3f8.4)') 'k,kcell,cp%centre: ',k,kcell,cp%centre(:,1)
+			do js = 1,cp%nspheres
+!				r = fac*cp%radius(js)
+				r = fac*Raverage
+				c = cp%centre(:,js)
+				if ((cb(axis1) > c(axis1)-r .and. cb(axis1) < c(axis1)+r) .and. &	! chord passes through the cube enclosing the cell
+					(cb(axis2) > c(axis2)-r .and. cb(axis2) < c(axis2)+r)) then
+	!				write(*,'(3(2f8.4,2x))') c(1)-r,c(1)+r,c(2)-r,c(2)+r,c(3)-r,c(3)+r
+					if (smax < c(axis)+r .and. cb(axis) > c(axis)+r) then
+						smax = c(axis)+r
+	!					write(*,'(a,f8.4)') 'smax: ',smax
+						hit1 = .true.
+					endif
+					if (smin > c(axis)-r .and. cb(axis) < c(axis)-r) then
+						smin = c(axis)-r
+	!					write(*,'(a,f8.4)') 'smin: ',smin
+						hit2 = .true.
+					endif
+				endif
+			enddo
+		enddo
+	enddo
+	enddo
+	enddo
+	if (hit1 .and. hit2 .and. smax < smin) then
+		n = n + 1
+		Rsum = Rsum + smin - smax
+!		write(*,'(a,2i4,3f8.4)') 'axis,n,smin,smax,Rsum: ',axis,n,smin,smax,Rsum
+	endif
+	
+	enddo
+	enddo
+	enddo
+	
+	if (Rsum == 0) then
+		vol = 0
+		return
+	endif
+	Rn(axis) = Rsum/(2*n)
+!	write(*,'(a,2i4,2f8.4)') 'axis done: ',axis,n,Rsum,Rn(axis)
+enddo
+	
+R3 = (1./3.)*(Rn(1)**3 + Rn(2)**3 + Rn(3)**3)
+Rdiv = (3*Vdivide0/(4*PI))**(1./3.)
+!write(*,'(a,e12.3)') 'Rdiv: ',Rdiv
+!write(*,'(a,3e12.3)') 'Rn: ',Rn
+if (Rn(1) < 0 .or. Rn(2) < 0 .or. Rn(3) < 0) then
+	write(logmsg,*) 'Rn < 0'
+	call logger(logmsg)
+	stop
+endif
+if (R3 > 0) then
+	R = R3**(1./3)
+	if (R < 4*Rdiv) then
+		R3 = 0
+		vol = 0
+	endif
+elseif (R3 == 0) then
+	R = 0
+else
+	write(logmsg,*) 'Error: getNecroticVolume: R3 < 0: ',R3
+	call logger(logmsg)
+	stop
+endif
+vol = (4./3.)*PI*R3 
+!write(*,'(a,e12.3)') 'vol: ',vol
+end subroutine
+
+!-----------------------------------------------------------------------------------------
+! Estimate necrotic volume by determining the range in the three axis directions
+!-----------------------------------------------------------------------------------------
+subroutine getNecroticVolume1(vol)
 real(REAL_KIND) :: vol
 real(REAL_KIND) :: rmin(3), rmax(3), rng(3), cblob(3), c(3), r, smin, smax, R3, Rn(3), Rdiv
 integer :: kcell, k, js, ix, iy, iz, ixx, iyy, izz
