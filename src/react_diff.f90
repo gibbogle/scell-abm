@@ -849,13 +849,16 @@ end subroutine
 ! (see below)
 ! There are 5 faces.
 !
+! Average over the faces to obtain an approximation to the average blob boundary conc.
+!
 ! Interpolate over the whole fine grid?
 !--------------------------------------------------------------------------------------
-subroutine interpolate_Cave(Cave, Cave_b)
+subroutine interpolate_Cave(ichemo, Cave, Cave_b)
+integer :: ichemo
 real(REAL_KIND) :: Cave(:,:,:), Cave_b(:,:,:)
 integer :: idx, idy, idz, xb0, yb0, idxb, idyb, xb1, xb2, yb1, yb2, zb1, zb2
-integer :: ixb, iyb, izb, ix0, iy0, iz0, ix, iy, iz, nsum
-real(REAL_KIND) :: ax, ay, az, asum(2), Cnew
+integer :: ixb, iyb, izb, ix0, iy0, iz0, ix, iy, iz, nsum, ncsum
+real(REAL_KIND) :: ax, ay, az, asum(2), Cnew, csum
 real(REAL_KIND) :: alfa = 0.3
 
 xb0 = (NXB+1)/2			
@@ -868,6 +871,9 @@ yb1 = yb0 - idyb
 yb2 = yb0 + idyb
 zb1 = 1
 zb2 = (NZ-1)/NRF + 1
+
+csum = 0
+ncsum = 0
 
 ! Left and right faces: ixb = xb1, xb2  
 !                       iyb = yb1..yb2
@@ -900,6 +906,8 @@ do iyb = yb1,yb2-1
 							(1-ay)*(1-az)*Cave_b(ixb,iyb+1,izb+1)
 				Cave(ix,iy,iz) = alfa*Cnew + (1-alfa)*Cave(ix,iy,iz)
 				asum(2) = asum(2) + Cave(ix,iy,iz)
+				csum = csum + Cave(ix,iy,iz)
+				ncsum = ncsum + 1
 			enddo
 		enddo
 	enddo
@@ -937,6 +945,8 @@ do ixb = xb1,xb2-1
 							(1-ax)*(1-az)*Cave_b(ixb+1, iyb, izb+1)
 				Cave(ix,iy,iz) = alfa*Cnew + (1-alfa)*Cave(ix,iy,iz)
 				asum(2) = asum(2) + Cave(ix,iy,iz)
+				csum = csum + Cave(ix,iy,iz)
+				ncsum = ncsum + 1
 			enddo
 		enddo
 	enddo
@@ -968,10 +978,13 @@ do ixb = xb1,xb2-1
 								ax*(1-ay)*Cave_b(ixb,   iyb+1, izb) + &
 							(1-ax)*(1-ay)*Cave_b(ixb+1, iyb+1, izb)
 				Cave(ix,iy,iz) = alfa*Cnew + (1-alfa)*Cave(ix,iy,iz)
+				csum = csum + Cave(ix,iy,iz)
+				ncsum = ncsum + 1
 			enddo
 		enddo
 	enddo
 enddo
+chemo(ichemo)%medium_cbnd = csum/ncsum		! average concentration on the boundary of the fine grid
 end subroutine
 
 !--------------------------------------------------------------------------------------
@@ -1107,7 +1120,7 @@ do ic = 1,nchemo
 		enddo
 	enddo
 	! interpolate Cave_b on fine grid boundary
-	call interpolate_Cave(Cave, Cave_b)
+	call interpolate_Cave(ichemo, Cave, Cave_b)
 	deallocate(a_b, x, rhs)
 enddo
 !$omp end parallel do

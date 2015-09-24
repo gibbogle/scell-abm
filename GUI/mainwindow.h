@@ -36,6 +36,9 @@ using namespace std;
 #include <qwt_interval_data.h>
 #include "histogram_item.h"
 
+#include "qcustomplot.h"
+#include "plotwin.h"
+
 QT_BEGIN_NAMESPACE
 class QAction;
 class QMenu;
@@ -134,10 +137,10 @@ private slots:
     void on_cbox_SAVE_PROFILE_DATA_toggled(bool checked);
 
     void LoadProtocol(QString);
+//    void SaveProtocol(QString, int);
     void SaveProtocol(QTextStream *out, int);
     void ProtocolChanged(int, int);
     bool ProtocolUsesDrug();
-
     void on_pushButton_savedrugdata_clicked();
 
 public slots:
@@ -149,6 +152,7 @@ public slots:
 	void displayScene();
     void reportBadDLL(QString);
     void showSummary(int);
+    void updateProfilePlots();
     void showFACS();
     void showHisto();
     void startRecorderVTK();
@@ -157,6 +161,7 @@ public slots:
     void stopRecorderFACS();
     bool getVideoFileInfo(int *nframes, QString *itemFormat, QString *itemCodec, QString *videoFileName);
 
+    void buttonClick_constituent(QAbstractButton* button);
     void buttonClick_cell_constituent(QAbstractButton* button);
     void buttonClick_field_constituent(QAbstractButton* button);
     void buttonClick_plane(QAbstractButton* button);
@@ -164,13 +169,7 @@ public slots:
     void textChanged_fraction(QString text);
 	void textEdited_fraction(QString text);
     void setupConstituents();
-    void setFields();
-    void updateProfilePlots();
 
-//    void on_cbox_USE_TPZ_DRUG_toggled(bool checked);
-//    void on_cbox_USE_DNB_DRUG_toggled(bool checked);
-//    void on_comb_TPZ_currentIndexChanged(int);
-//    void on_comb_DNB_currentIndexChanged(int);
     void on_cbox_USE_DRUG_A_toggled(bool checked);
     void on_cbox_USE_DRUG_B_toggled(bool checked);
     void on_comb_DRUG_A_currentIndexChanged(int);
@@ -179,15 +178,15 @@ public slots:
     void on_line_CELLPERCENT_1_textEdited(QString pc1_str);
     void on_line_CELLPERCENT_2_textEdited(QString pc2_str);
     void radioButtonChanged(QAbstractButton *b);
-//    void killModelChanged();
     void on_buttonGroup_celltype_buttonClicked(QAbstractButton* button);
     void on_buttonGroup_histotype_buttonClicked(QAbstractButton* button);
     void on_checkBox_histo_logscale_toggled();
     void on_buttonGroup_drug_buttonClicked(QAbstractButton* button);
- 
-// For Kd computed in the GUI
-//    void on_pushButton_SN30K_Kd_1_clicked();
-//    void on_pushButton_SN30K_Kd_2_clicked();
+
+    void pushButton_clicked();
+    void makeSFPlot(QString, double, double, QVector<double> *x, QVector<double> *y);
+    void makeGlucosePlot(double *ndays, QVector<double> *x, QVector<double> *y);
+    void makeDrugPlot(QString drugTypeStr, QString cellTypeStr, double *maxdose, QVector<double> *x, QVector<double> *y);
 
     void processGroupBoxClick(QString);
 signals:
@@ -212,15 +211,6 @@ private:
     void disableUseGlucose();
     void enableUseTracer();
     void disableUseTracer();
-//    void enableUseSN30K();
-//    void disableUseSN30K();
-//    void enableUseTPZ();
-//    void disableUseTPZ();
-//    void enableUseDNB();
-//    void disableUseDNB();
-//    void enableUseTreatmentFile();
-//    void disableUseTreatmentFile();
-//    void setTreatmentFileUsage();
 
 	void writeout();
 	void execute_para();
@@ -272,8 +262,8 @@ private:
     void makeDrugFileLists();
     void changeDrugParam(QObject *);
     void extractDrugname(QString *);
-    void selectDrug(QString);
     void readDrugData(QTextStream *in);
+    void setupPopup();
 
     QPlainTextEdit *textEdit;
     QString curFile;
@@ -313,8 +303,7 @@ private:
 	bool DCmotion;
 	bool done;
 	bool first;
-    bool firstDisplay;
-    bool started;
+	bool started;
 	bool firstVTK;
 	bool playingVTK;
 	int tickVTK;
@@ -389,6 +378,8 @@ private:
     QVideoOutput   *videoFACS;
 
     QStringList Drug_FilesList;
+
+    PlotWin *plotwin;
 
 signals:
     void pause_requested();

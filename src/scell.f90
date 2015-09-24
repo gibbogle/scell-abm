@@ -401,14 +401,15 @@ write(nflog,'(a,a)') 'DLL version: ',dll_run_version
 write(nflog,*)
 
 open(nfres,file='scell_ts.out',status='replace')
-write(nfres,'(a,a)') 'GUI version: ',gui_run_version
-write(nfres,'(a,a)') 'DLL version: ',dll_run_version
-write(nfres,*)
-write(nfres,'(a)') 'istep hour vol_mm3 diam_um Ncells(2) &
-Nanoxia_dead(2) NdrugA_dead(2) NdrugB_dead(2) Nradiation_dead(2) &
-Ntagged_anoxia(2) Ntagged_drugA(2) Ntagged_drugB(2) Ntagged_radiation(2) &
-f_hypox_1 f_hypox_2 f_hypox_3 f_growth_1 f_growth_2 f_growth_3 f_necrot plating_efficiency(2) &
-medium_oxygen medium_glucose medium_TPZ medium_DNB'
+write(nfres,'(a)') 'GUI_version DLL_version &
+istep hour vol_mm3 diam_um Ncells(1) Ncells(2) &
+Nanoxia_dead(1) Nanoxia_dead(2) NdrugA_dead(1) NdrugA_dead(2) &
+NdrugB_dead(1) NdrugB_dead(2) Nradiation_dead(1) Nradiation_dead(2) &
+Ntagged_anoxia(1) Ntagged_anoxia(2) Ntagged_drugA(1) Ntagged_drugA(2) &
+Ntagged_drugB(1) Ntagged_drugB(2) Ntagged_radiation(1) Ntagged_radiation(2) &
+f_hypox(1) f_hypox(2) f_hypox(3) f_growth(1) f_growth(2) f_growth(3) &
+f_necrot plating_efficiency(1) plating_efficiency(2) &
+medium_oxygen medium_glucose medium_drugA medium_drugB'
 
 write(logmsg,*) 'Opened nfout: ',outputfile
 call logger(logmsg)

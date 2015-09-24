@@ -164,6 +164,7 @@ MainWindow::MainWindow(QWidget *parent)
     videoFACS = new QVideoOutput(this, QWT_SOURCE, NULL, qpFACS);
 
     tabs->setCurrentIndex(6);
+    setupPopup();
     goToInputs();
 }
 
