@@ -1,8 +1,36 @@
 #include <qstring.h>
 #include "params.h"
+#include "QDebug"
 
 Params::Params()
 {
+    static infoStruct label_info[] = {
+        {"PARENT_0", "Info about PARENT_0 field"},
+        {"PARENT_1", "Info about PARENT_1 field"},
+        {"PARENT_2", "Info about PARENT_2 field"},
+        {"PARENT_3", "Info about PARENT_3 field"},
+        {"PARENT_4", "Info about PARENT_4 field"},
+        {"PARENT_CT1_0", "Info about PARENT_CT1_0 field"},
+        {"PARENT_CT1_1", "Info about PARENT_CT1_1 field"},
+        {"PARENT_CT1_2", "Info about PARENT_CT1_2 field"},
+        {"PARENT_CT1_3", "Info about PARENT_CT1_3 field"},
+        {"PARENT_CT1_4", "Info about PARENT_CT1_4 field"},
+        {"PARENT_CT1_5", "Info about PARENT_CT1_5 field"},
+        {"PARENT_CT1_6", "Info about PARENT_CT1_6 field"},
+        {"PARENT_CT1_7", "Info about PARENT_CT1_7 field"},
+        {"PARENT_CT1_8", "Info about PARENT_CT1_8 field"},
+        {"PARENT_CT1_9", "Info about PARENT_CT1_9 field"},
+        {"PARENT_CT1_10", "Info about PARENT_CT1_10 field"},
+        {"PARENT_CT1_11", "Info about PARENT_CT1_11 field"},
+        {"PARENT_CT1_12", "Info about PARENT_CT1_12 field"},
+        {"PARENT_CT1_13", "Info about PARENT_CT1_13 field"},
+        {"PARENT_CT1_14", "Info about PARENT_CT1_14 field"},
+        {"PARENT_CT1_15", "Info about PARENT_CT1_15 field"},
+    };
+
+//    static infoStruct checkbox_info[] = {
+//    };
+
     PARAM_SET params[] = {
 
 /*
@@ -25,7 +53,7 @@ The shape value must be greater than 1, and values close to 1 give distributions
  "DLL0.00",
  "DLL version number."},
 
-{"NX", 33, 0, 0,
+{"NX", 120, 0, 0,
 "Fine grid size",
 "Dimension of the fine grid (number of grid pts in X,Y and Z directions).  Must = 1 + multiple of 8."},
 
@@ -139,7 +167,7 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 "Medium volume",
 "Volume of the medium in which the spheroid is growing."},
 
-{"UNSTIRRED_LAYER", 0.001, 0, 0,
+{"UNSTIRRED_LAYER", 0.01, 0, 0,
 "Unstirred layer width",
 "Thickness of the unstirred layer around the spheroid (cm)."},
 
@@ -254,7 +282,7 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 "Use Glucose?",
 "Glucose is simulated"},
 
-{"GLUCOSE_DIFF_COEF", 3.0e-6, 0, 0,
+{"GLUCOSE_DIFF_COEF", 3.0e-7, 0, 0,
  "Spheroid diffusion coeff",
  "GLUCOSE diffusion coefficient"},
 
@@ -418,18 +446,6 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 "Use FD solver?",
 "Use the FD solver in the far field"},
 
-//{"USE_RADIATION", 1, 0, 1,
-//"Use radiation?",
-//"Treatment with radiation"},
-
-//{"USE_TREATMENT_FILE", 0, 0, 1,
-//"Use treatment file?",
-//"Treatment programme is specified in the treatment file"},
-
-//{"TREATMENT_FILE_NAME", 0, 0, 0,
-//"treatment.data",
-//"The treatment file contains data describing the drug and radiation dosing schedule"},
-
 {"USE_DROP", 0, 0, 1,
 "Account for drop deformation",
 "Account for drop deformation when it is released to sit at the bottom of the well"},
@@ -488,7 +504,7 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
     {"volume",                    0, 0,1,"","Spheroid volume (mm3)"},
     {"hypoxicfraction",           1, 0,1,"","Fraction of cells with oxygen level below the specified threshold for hypoxia"},
     {"growthfraction",            1, 0,1,"","Percentage of cells that are growing at a rate less than the specified fraction of the mean growth rate with no nutrient limits"},
-    {"necroticfraction",          0, 0,1,"","Percentage of the spheroid that is necrotic = (number of vacant sites)/(number of sites taken up by the spheroid)"},
+    {"necroticfraction",          1, 0,1,"","Percentage of the spheroid that is necrotic = (number of vacant sites)/(number of sites taken up by the spheroid)"},
     {"platingefficiency",         0, 0,1,"","Percentage of live cells that are viable"},
     {"mediumoxygen",              0, 0,1,"","Average concentration of oxygen in the medium (far-field)"},
     {"mediumglucose",             0, 0,1,"","Average concentration of glucose in the medium (far-field)"},
@@ -521,6 +537,19 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 	for (int i=0; i<nParams; i++) {
 		workingParameterList[i] = params[i];
 	}
+
+    nInfolabel = sizeof(label_info)/sizeof(INFOSTRUCT);
+    workingInfolabelList = new INFOSTRUCT[nInfolabel];
+    for (int i=0; i<nInfolabel; i++) {
+        workingInfolabelList[i] = label_info[i];
+    }
+    /*
+    nInfocheckbox = sizeof(checkbox_info)/sizeof(INFOSTRUCT);
+    workingInfocheckboxList = new INFOSTRUCT[nInfocheckbox];
+    for (int i=0; i<nInfocheckbox; i++) {
+        workingInfocheckboxList[i] = checkbox_info[i];
+    }
+    */
 }
 
 
@@ -538,3 +567,21 @@ void Params::set_label(int k, QString str)
 {
 	workingParameterList[k].label = str;
 }
+
+void Params::get_labeltag(int i, QString *tag)
+{
+    *tag = workingInfolabelList[i].tag;
+}
+
+void Params::infoLabelInfo(QString tag, QString *info)
+{
+    for (int i=0; i<nInfolabel; i++) {
+        if (tag == workingInfolabelList[i].tag) {
+            *info = workingInfolabelList[i].info;
+            return;
+        } else {
+            *info = "";
+        }
+    }
+}
+

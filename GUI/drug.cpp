@@ -215,7 +215,7 @@ void MainWindow::populateDrugTable(int idrug)
                 if (i == KILL_kills || i == KILL_sensitises) {
                    flag = (drug[idrug].param[kset].kill[ictyp].iparam[ii] == 1);
                    numstr = QString::number(i);
-                   objname = "cbox_" + basestr + ctypstr + numstr;
+                   objname = "checkbox_" + basestr + ctypstr + numstr;
                    QCheckBox* qbox = this->findChild<QCheckBox*>(objname);
                    qbox->setChecked(flag);
                 } else if (i == KILL_expt_kill_model) {
@@ -302,7 +302,7 @@ void MainWindow::changeDrugParam(QObject *w)
             drug[idrug].param[kset].kill[ictyp].iparam[ii] = lineEdit->text().toInt();
         else
             drug[idrug].param[kset].kill[ictyp].dparam[i] = lineEdit->text().toDouble();
-    } else if (name.contains("cbox_")) {
+    } else if (name.contains("checkbox_")) {
         QCheckBox *cbox = (QCheckBox *)w;
         int val;
         if (cbox->isChecked())

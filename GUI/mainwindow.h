@@ -187,7 +187,7 @@ public slots:
     void pushButton_clicked();
     void makeSFPlot(QString, double, double, QVector<double> *x, QVector<double> *y);
     void makeGlucosePlot(double *ndays, QVector<double> *x, QVector<double> *y);
-    void makeDrugPlot(QString drugTypeStr, QString cellTypeStr, double *maxdose, QVector<double> *x, QVector<double> *y);
+    void makeDrugPlot(QString drugTypeStr, QString cellTypeStr, double *maxdose, QString, QVector<double> *x, QVector<double> *y);
 
     void processGroupBoxClick(QString);
 signals:

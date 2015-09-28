@@ -11,10 +11,11 @@
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::setupPopup()
 {
-    connect(pushButton_SF_1,SIGNAL(clicked()),this,SLOT(pushButton_clicked()));
-    connect(pushButton_SF_2,SIGNAL(clicked()),this,SLOT(pushButton_clicked()));
+    connect(pushButton_radSF_1,SIGNAL(clicked()),this,SLOT(pushButton_clicked()));
+    connect(pushButton_radSF_2,SIGNAL(clicked()),this,SLOT(pushButton_clicked()));
     connect(pushButton_glucose_0,SIGNAL(clicked()),this,SLOT(pushButton_clicked()));
-    connect(pushButton_drug_0,SIGNAL(clicked()),this,SLOT(pushButton_clicked()));
+    connect(pushButton_drugKF_0,SIGNAL(clicked()),this,SLOT(pushButton_clicked()));
+    connect(pushButton_drugSF_0,SIGNAL(clicked()),this,SLOT(pushButton_clicked()));
 }
 
 //--------------------------------------------------------------------------------------------------------
@@ -28,7 +29,6 @@ void MainWindow::pushButton_clicked()
 
     QObject *senderObj = sender(); // This will give Sender object
     QString senderObjName = senderObj->objectName();
-//    qDebug() << senderObjName << "\n";
     plotwin = new PlotWin(this);
     QWidget *cw = plotwin->centralWidget();
     QFrame *plotFrame = cw->findChild<QFrame *>("plotFrame");
@@ -43,7 +43,7 @@ void MainWindow::pushButton_clicked()
     if (list.size() == 3) {
         plotType = list[1];
         cellType = list[2].toInt();
-        if (plotType == "SF") {
+        if (plotType == "radSF") {
             plotName = "Survival Fraction cell type " + list[2];
             plotwin->setWindowTitle(plotName);
             double C_O2;
@@ -101,7 +101,7 @@ void MainWindow::pushButton_clicked()
             popup_plot->yAxis->setAutoTickStep(false);
             popup_plot->yAxis->setTickStep(2);
             popup_plot->yAxis->setRange(0, 10);
-        } else if (plotType == "drug") {
+        } else if (plotType == "drugKF") {
             plotName = "Drug Kill Fraction";
             plotwin->setWindowTitle(plotName);
             QString cellTypeStr, drugTypeStr;
@@ -113,13 +113,15 @@ void MainWindow::pushButton_clicked()
             if (radioButton_drugtype_1->isChecked()) {
                 drugTypeStr = "PARENT";
             } else if (radioButton_drugtype_2->isChecked()) {
-                cellTypeStr = "METAB1";
+                drugTypeStr = "METAB1";
             } else {
-                cellTypeStr = "METAB2";
+                drugTypeStr = "METAB2";
             }
             QVector<double> x0(NPLOT), y0(NPLOT);
             double maxdrug;
-            makeDrugPlot(drugTypeStr, cellTypeStr, &maxdrug, &x0, &y0);
+            x0[0] = 1;
+            makeDrugPlot(drugTypeStr, cellTypeStr, &maxdrug, "KF", &x0, &y0);
+            if (x0[0] == 1) return; // does not kill
             // create graph and assign data to it:
             popup_plot->addGraph();
             popup_plot->graph(0)->setData(x0, y0);
@@ -134,6 +136,43 @@ void MainWindow::pushButton_clicked()
             popup_plot->yAxis->setAutoTickStep(false);
             popup_plot->yAxis->setTickStep(0.2);
             popup_plot->yAxis->setRange(0, 1);
+        } else if (plotType == "drugSF") {
+            plotName = "Drug Survival Fraction";
+            plotwin->setWindowTitle(plotName);
+            QString cellTypeStr, drugTypeStr;
+            if (radioButton_drugcelltype_1->isChecked()) {
+                cellTypeStr = "CT1";
+            } else {
+                cellTypeStr = "CT2";
+            }
+            if (radioButton_drugtype_1->isChecked()) {
+                drugTypeStr = "PARENT";
+            } else if (radioButton_drugtype_2->isChecked()) {
+                drugTypeStr = "METAB1";
+            } else {
+                drugTypeStr = "METAB2";
+            }
+            QVector<double> x0(NPLOT), y0(NPLOT);
+            double maxdrug;
+            x0[0] = 1;
+            makeDrugPlot(drugTypeStr, cellTypeStr, &maxdrug, "SF", &x0, &y0);
+            if (x0[0] == 1) return; // does not kill
+            // create graph and assign data to it:
+            popup_plot->addGraph();
+            popup_plot->graph(0)->setData(x0, y0);
+            popup_plot->graph(0)->setPen(QPen(Qt::blue));
+            // give the axes some labels:
+            popup_plot->xAxis->setLabel("Drug concentration (mM)");
+            popup_plot->yAxis->setLabel("Survival fraction/hour");
+            // set axes ranges
+            popup_plot->xAxis->setAutoTickStep(false);
+            popup_plot->xAxis->setTickStep(maxdrug/5);
+            popup_plot->xAxis->setRange(0, maxdrug);
+            popup_plot->yAxis->setRange(1.e-5, 1);
+            popup_plot->yAxis->setScaleType(QCPAxis::stLogarithmic);
+            popup_plot->yAxis->setScaleLogBase(10);
+            popup_plot->yAxis->setNumberFormat("eb"); // e = exponential, b = beautiful decimal powers
+            popup_plot->yAxis->setNumberPrecision(0); // makes sure "1*10^4" is displayed only as "10^4"
         }
     }
     plotwin->show();
@@ -257,7 +296,7 @@ void MainWindow::makeSFPlot(QString cellTypeStr, double C_O2, double maxdose, QV
 //
 // Note that Kmet0, KO2, kill_duration need to be scaled to time units of sec
 //--------------------------------------------------------------------------------------------------------
-void MainWindow::makeDrugPlot(QString drugTypeStr, QString cellTypeStr, double *maxdose, QVector<double> *x, QVector<double> *y)
+void MainWindow::makeDrugPlot(QString drugTypeStr, QString cellTypeStr, double *maxdose, QString plotStr, QVector<double> *x, QVector<double> *y)
 {
     QLineEdit *line;
     QString objName0, objName;
@@ -265,12 +304,16 @@ void MainWindow::makeDrugPlot(QString drugTypeStr, QString cellTypeStr, double *
     double C_O2, C2, Kmet0, KO2, Ckill_O2, f, T, Ckill, Kd, dt;
     double Cdrug, kmet, dMdt, SF, kill_prob;
 
-    objName = "cbox_" + drugTypeStr + "_" + cellTypeStr + "_13";
+    objName = "checkbox_" + drugTypeStr + "_" + cellTypeStr + "_13";
     QCheckBox *cbox = findChild<QCheckBox *>(objName);
-    if (!cbox->isChecked()) return;     // Does not kill
+    if (!cbox->isChecked()) {
+        LOG_MSG("Does not kill");
+        return;     // Does not kill
+    }
 
     objName0 = "line_" + drugTypeStr + "_" + cellTypeStr + "_";
     objName = objName0 + "14";
+    LOG_QMSG("objName:"+objName);
     line = findChild<QLineEdit *>(objName);
     killmodel = line->text().toInt();
     objName = objName0 + "0";
@@ -338,7 +381,10 @@ void MainWindow::makeDrugPlot(QString drugTypeStr, QString cellTypeStr, double *
             SF = SF*(1 - kill_prob);
         }
         (*x)[i] = Cdrug;
-        (*y)[i] = (1 - SF);
+        if (plotStr == "KF")
+            (*y)[i] = (1 - SF);
+        else
+            (*y)[i] = SF;
     }
 /*
 killmodel = dp%kill_model(ityp,im)		// could use %drugclass to separate kill modes

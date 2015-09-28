@@ -229,6 +229,14 @@ void MainWindow::createActions()
 
     connect(this,SIGNAL(pause_requested()),SLOT(pauseServer()));
 
+    for (int i=0; i<parm->nInfolabel; i++) {
+        QString tag;
+        parm->get_labeltag(i, &tag);
+        QString objName = "infolabel_" + tag;
+        QLabel *label = findChild<QLabel *>(objName);
+        connect((QObject *)label, SIGNAL(labelClicked(QString)), this, SLOT(showMore(QString)));
+    }
+
 	for (int i=0; i<nLabels; i++) {
 		QLabel *label = label_list[i];
 		QString label_str = label->objectName();
@@ -1549,12 +1557,6 @@ void MainWindow::readInputFile()
             readDrugData(&in);
         }
     }
-
-//    qDebug() << in.readLine();
-//    qDebug() << in.readLine();
-//    qDebug() << in.readLine();
-//    qDebug() << in.readLine();
-//    qDebug() << in.readLine();
 
     LoadProtocol(fileName);
 

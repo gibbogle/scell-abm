@@ -81,54 +81,6 @@ void Field::setOxyPlot(bool status)
     useOxyPlot = status;
 }
 
-/*
-void Field::setCellConstituentButtons(QGroupBox *gbox, QButtonGroup *bg, QVBoxLayout **vbox, QRadioButton ***rb_list, QString tag)
-{
-    int ivar;
-    QString name, str;
-    int **ip;
-    QRadioButton **p;
-    QRadioButton *rb;
-
-    p = *rb_list;
-    LOG_QMSG("setCellConstituentButtons: " + tag);
-    if (p) {
-        LOG_MSG("rb_list not NULL, delete it");
-        for (ivar=0; ivar<Global::nvars_used; ivar++) {
-            rb = p[ivar];
-            bg->removeButton(rb);
-            delete rb;
-        }
-        delete p;
-    }
-    if (!*vbox) {
-        LOG_MSG("vbox = NULL, create it");
-        *vbox = new QVBoxLayout;
-        gbox->setLayout(*vbox);
-    }
-    name = "rb_cell_constituent_"+tag;
-    LOG_QMSG(name);
-    *rb_list = new QRadioButton*[Global::nvars_used];
-    p = *rb_list;
-//    sprintf(msg,"rb_list: %p vbox: %p bg: %p nvars_used: %d",p,*vbox,bg,Global::nvars_used);
-//    LOG_MSG(msg);
-    for (ivar=0; ivar<Global::nvars_used; ivar++) {
-        str = Global::var_string[ivar];
-        p[ivar] = new QRadioButton;
-        p[ivar]->setText(str);
-        p[ivar]->setObjectName(name+ivar);
-        (*vbox)->addWidget(p[ivar],ivar,0);
-        p[ivar]->setEnabled(true);
-        bg->addButton(p[ivar],ivar);
-    }
-    p[1]->setChecked(true);   // Oxygen
-    QRect rect = gbox->geometry();
-    rect.setHeight(25*Global::nvars_used);
-    gbox->setGeometry(rect);
-    gbox->show();
-}
-*/
-
 //------------------------------------------------------------------------------------------------
 // To create the group of radiobuttons for cell constituent selection.
 // This uses information about active constituents fetched from the DLL.
@@ -401,6 +353,87 @@ void Field::setUseLogScale(bool use_logscale)
 }
 
 //-----------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------
+void Field::chooseFieldColor(double c, double cmin, double cmax, bool use_logscale, int rgbcol[])
+{
+    double f, denom, logcmin, logc;
+    int rgb_lo[3], rgb_hi[3], i;
+
+    if (use_logscale) {
+        if (cmin == cmax) {
+            f = 1;
+        } else {
+//            if (cmin > 0.0001)
+//                logcmin = log(cmin);
+//            else
+//                logcmin = 1.0e6;
+//            if (c > 0.0001)
+//                logc = log(c);
+//            else
+//                logc = 1.0e6;
+            cmin = max(cmin, 0.00001);
+            c = max(c, 0.00001);
+            denom = (log(cmax) - log(cmin));
+            if (denom < 0.001)
+                f = 1;
+            else
+                f = (log(c) - log(cmin))/denom;
+        }
+    } else {
+        f = c/cmax;
+    }
+    if (cell_constituent == OXYGEN) {
+        rgb_hi[0] =   0; rgb_hi[1] =   0; rgb_hi[2] = 0;
+        rgb_lo[0] = 255; rgb_lo[1] =   0; rgb_lo[2] = 0;
+        for (i=0; i<3; i++) {
+            rgbcol[i] = int((1-f)*rgb_lo[i] + f*rgb_hi[i]);
+            if (rgbcol[i] < 0 || rgbcol[i] > 255) {
+                sprintf(msg,"chooseFieldColor: %f %f %f %f %d %d",c,cmin,cmax,f,i,rgbcol[i]);
+                LOG_MSG(msg);
+                exit(1);
+            }
+        }
+    } else {
+        rgb_hi[0] =   0; rgb_hi[1] =   255; rgb_hi[2] = 255;
+        rgb_lo[0] =   0; rgb_lo[1] =   0; rgb_lo[2] = 0;
+        for (i=0; i<3; i++) {
+            rgbcol[i] = int((1-f)*rgb_lo[i] + f*rgb_hi[i]);
+            if (rgbcol[i] < 0 || rgbcol[i] > 255) {
+                sprintf(msg,"chooseFieldColor: %f %f %f %f %d %d",c,cmin,cmax,f,i,rgbcol[i]);
+                LOG_MSG(msg);
+                exit(1);
+            }
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------
+void Field::chooseRateColor(double f, int rgbcol[])
+{
+    int rgb_lo[3], rgb_hi[3], i;
+
+    rgb_hi[0] = 0; rgb_hi[1] = 255; rgb_hi[2] = 0;
+    rgb_lo[0] = 0; rgb_lo[1] =  64; rgb_lo[2] = 0;
+    for (i=0; i<3; i++) {
+        rgbcol[i] = int((1-f)*rgb_lo[i] + f*rgb_hi[i]);
+    }
+}
+
+//-----------------------------------------------------------------------------------------
+// Now 'constituent' is an index of the active constituents: 0 - nvars_used
+//-----------------------------------------------------------------------------------------
+void Field::getTitle(int iconst, QString *title)
+{
+    QString name = Global::var_string[iconst];
+    if (Global::GUI_to_DLL_index[iconst] <= Global::MAX_CHEMO) {
+        *title = name + " Concentration";
+    } else {
+        *title = name;
+    }
+}
+
+//-----------------------------------------------------------------------------------------
 // New version, site/cell size is fixed, the blob grows
 //-----------------------------------------------------------------------------------------
 void Field::displayField(int hr, int *res)
@@ -587,84 +620,3 @@ void Field::displayField(int hr, int *res)
     }
 }
 
-
-//-----------------------------------------------------------------------------------------
-//-----------------------------------------------------------------------------------------
-void Field::chooseFieldColor(double c, double cmin, double cmax, bool use_logscale, int rgbcol[])
-{
-    double f, denom, logcmin, logc;
-    int rgb_lo[3], rgb_hi[3], i;
-
-    if (use_logscale) {
-        if (cmin == cmax) {
-            f = 1;
-        } else {
-//            if (cmin > 0.0001)
-//                logcmin = log(cmin);
-//            else
-//                logcmin = 1.0e6;
-//            if (c > 0.0001)
-//                logc = log(c);
-//            else
-//                logc = 1.0e6;
-            cmin = max(cmin, 0.00001);
-            c = max(c, 0.00001);
-            denom = (log(cmax) - log(cmin));
-            if (denom < 0.001)
-                f = 1;
-            else
-                f = (log(c) - log(cmin))/denom;
-        }
-    } else {
-        f = c/cmax;
-    }
-    if (cell_constituent == OXYGEN) {
-        rgb_hi[0] =   0; rgb_hi[1] =   0; rgb_hi[2] = 0;
-        rgb_lo[0] = 255; rgb_lo[1] =   0; rgb_lo[2] = 0;
-        for (i=0; i<3; i++) {
-            rgbcol[i] = int((1-f)*rgb_lo[i] + f*rgb_hi[i]);
-            if (rgbcol[i] < 0 || rgbcol[i] > 255) {
-                sprintf(msg,"chooseFieldColor: %f %f %f %f %d %d",c,cmin,cmax,f,i,rgbcol[i]);
-                LOG_MSG(msg);
-                exit(1);
-            }
-        }
-    } else {
-        rgb_hi[0] =   0; rgb_hi[1] =   255; rgb_hi[2] = 255;
-        rgb_lo[0] =   0; rgb_lo[1] =   0; rgb_lo[2] = 0;
-        for (i=0; i<3; i++) {
-            rgbcol[i] = int((1-f)*rgb_lo[i] + f*rgb_hi[i]);
-            if (rgbcol[i] < 0 || rgbcol[i] > 255) {
-                sprintf(msg,"chooseFieldColor: %f %f %f %f %d %d",c,cmin,cmax,f,i,rgbcol[i]);
-                LOG_MSG(msg);
-                exit(1);
-            }
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------------------
-//-----------------------------------------------------------------------------------------
-void Field::chooseRateColor(double f, int rgbcol[])
-{
-    int rgb_lo[3], rgb_hi[3], i;
-
-    rgb_hi[0] = 0; rgb_hi[1] = 255; rgb_hi[2] = 0;
-    rgb_lo[0] = 0; rgb_lo[1] =  64; rgb_lo[2] = 0;
-    for (i=0; i<3; i++) {
-        rgbcol[i] = int((1-f)*rgb_lo[i] + f*rgb_hi[i]);
-    }
-}
-
-//-----------------------------------------------------------------------------------------
-// Now 'constituent' is an index of the active constituents: 0 - nvars_used
-//-----------------------------------------------------------------------------------------
-void Field::getTitle(int iconst, QString *title)
-{
-    QString name = Global::var_string[iconst];
-    if (Global::GUI_to_DLL_index[iconst] <= Global::MAX_CHEMO) {
-        *title = name + " Concentration";
-    } else {
-        *title = name;
-    }
-}
