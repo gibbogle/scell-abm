@@ -8,7 +8,7 @@ implicit none
 
 integer, parameter :: nfmap = 20
 
-!integer, parameter :: NX = 33
+!integer, parameter :: NX = 33 
 !integer, parameter :: NY = NX
 !integer, parameter :: NZ = NX
 !integer, parameter :: NXB = 35
@@ -23,9 +23,9 @@ contains
 
 !-------------------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------------------
-subroutine read_map_file(mapfile,is_fine)
+subroutine read_map_file(mapfile,is_fine,ok)
 character*(*) :: mapfile
-logical :: is_fine
+logical :: is_fine, ok
 integer :: k, NX_f, NY_f, NZ_f, nrow_f
 
 write(nflog,*) 'Read map file'
@@ -34,11 +34,18 @@ read(nfmap,'(3i4)') NX_f, NY_f, NZ_f
 read(nfmap,'(i8)') nrow_f
 if (is_fine) then
 	if (NX_f /= NX .or. NY_f /= NY .or. NZ_f /= NZ .or. nrow_f /= nrow) then
-		write(*,*) 'Error: read_map_file: ',mapfile
-		write(*,*) 'inconsistent parameters: NZ, NY, NZ, nrow'
-		write(*,*) 'this file: ',NZ_f, NY_f, NZ_f, nrow_f
-		write(*,*) 'this run:  ',NZ, NY, NZ, nrow
-		stop
+		write(logmsg,*) 'Error: read_map_file: ',mapfile
+		call logger(logmsg)
+		write(logmsg,*) 'inconsistent parameters: NZ, NY, NZ, nrow'
+		call logger(logmsg)
+		write(logmsg,*) 'this file: ',NZ_f, NY_f, NZ_f, nrow_f
+		call logger(logmsg)
+		write(logmsg,*) 'this run:  ',NZ, NY, NZ, nrow
+		call logger(logmsg)
+		write(logmsg,*) 'Delete ',mapfile, ' and run the program again'
+		call logger(logmsg)
+		ok = .false.
+		return
 	endif
 	read(nfmap,'(i8)') nnz
 	read(nfmap,*)
@@ -51,11 +58,18 @@ if (is_fine) then
 	enddo
 else
 	if (NX_f /= NXB .or. NY_f /= NYB .or. NZ_f /= NZB .or. nrow_f /= nrow_b) then
-		write(*,*) 'Error: read_map_file: ',mapfile
-		write(*,*) 'inconsistent parameters: NZ, NY, NZ, nrow'
-		write(*,*) 'this file: ',NZ_f, NY_f, NZ_f, nrow_f
-		write(*,*) 'this run:  ',NZB, NYB, NZB, nrow_b
-		stop
+		write(logmsg,*) 'Error: read_map_file: ',mapfile
+		call logger(logmsg)
+		write(logmsg,*) 'inconsistent parameters: NZ, NY, NZ, nrow'
+		call logger(logmsg)
+		write(logmsg,*) 'this file: ',NZ_f, NY_f, NZ_f, nrow_f
+		call logger(logmsg)
+		write(logmsg,*) 'this run:  ',NZB, NYB, NZB, nrow_b
+		call logger(logmsg)
+		write(logmsg,*) 'Delete ',mapfile, ' and run the program again'
+		call logger(logmsg)
+		ok = .false.
+		return
 	endif
 	read(nfmap,'(i8)') nnz_b
 	read(nfmap,*)
@@ -69,6 +83,7 @@ else
 endif
 close(nfmap)
 write(nflog,*) 'nnz_b: ',nnz_b
+ok = .true.
 !write(*,'(10i6)') ja_b(1:100)
 !write(*,'(10i6)') amap_b(1:100,0)
 end subroutine
@@ -114,9 +129,9 @@ end subroutine
 ! This assumes impermeable (reflective) boundaries on all sides.
 ! Does not account for OXYGEN!!!!!
 !-------------------------------------------------------------------------------------------
-subroutine make_sparse_map(mapfile,is_fine)
+subroutine make_sparse_map(mapfile,is_fine,ok)
 character*(*) :: mapfile
-logical :: is_fine
+logical :: is_fine, ok
 integer :: ix, iy, iz, k, i, nnz_t, nrow_t, nx_t, ny_t, nz_t, krow, kcol
 integer :: idx, idy, idz, ixx, iyy, izz, chk(7), knt
 real(REAL_KIND) :: Kd, Kr, aval(7)
@@ -126,7 +141,7 @@ integer, parameter :: m = 3
 
 inquire(file=mapfile,exist=file_exists)
 if (file_exists) then
-	call read_map_file(mapfile,is_fine)
+	call read_map_file(mapfile,is_fine,ok)
 	return
 endif
 if (is_fine) then
@@ -252,32 +267,42 @@ else
 endif
 deallocate(arow)
 call write_map_file(mapfile,is_fine)
+ok = .true.
 end subroutine
 
 
 !-------------------------------------------------------------------------------------------
 ! This version is for the embedded fine grid.
 !-------------------------------------------------------------------------------------------
-subroutine read_emap_file(mapfile,is_fine)
+subroutine read_emap_file(mapfile,is_fine,ok)
 character*(*) :: mapfile
-logical :: is_fine
+logical :: is_fine, ok
 integer :: k, NX_f, NY_f, NZ_f, nrow_f
 
 write(nflog,*) 'Read emap file'
 if (.not.is_fine) then
-	write(*,*) 'emap is only for the embedded (fine) grid'
-	stop
+	write(logmsg,*) 'emap is only for the embedded (fine) grid'
+	call logger(logmsg)
+	ok = .false.
+	return
 endif
 open(nfmap,file=mapfile,status='old')
 read(nfmap,'(3i4)') NX_f, NY_f, NZ_f
 read(nfmap,'(i8)') nrow_f
 if (is_fine) then
 	if (NX_f+2 /= NX .or. NY_f+2 /= NY .or. NZ_f+1 /= NZ .or. nrow_f /= nrow) then
-		write(*,*) 'Error: read_map_file: ',mapfile
-		write(*,*) 'inconsistent parameters: NZ, NY, NZ, nrow'
-		write(*,*) 'this file: ',NZ_f+2, NY_f+2, NZ_f+1, nrow_f
-		write(*,*) 'this run:  ',NZ, NY, NZ, nrow
-		stop
+		write(logmsg,*) 'Error: read_map_file: ',mapfile
+		call logger(logmsg)
+		write(logmsg,*) 'inconsistent parameters: NZ, NY, NZ, nrow'
+		call logger(logmsg)
+		write(logmsg,*) 'this file: ',NZ_f+2, NY_f+2, NZ_f+1, nrow_f
+		call logger(logmsg)
+		write(logmsg,*) 'this run:  ',NZ, NY, NZ, nrow
+		call logger(logmsg)
+		write(logmsg,*) 'Delete ',mapfile, ' and run the program again'
+		call logger(logmsg)
+		ok = .false.
+		return
 	endif
 	read(nfmap,'(i8)') nnz
 	read(nfmap,*)
@@ -290,11 +315,18 @@ if (is_fine) then
 	enddo
 else
 	if (NX_f /= NXB .or. NY_f /= NYB .or. NZ_f /= NZB .or. nrow_f /= nrow_b) then
-		write(*,*) 'Error: read_map_file: ',mapfile
-		write(*,*) 'inconsistent parameters: NZ, NY, NZ, nrow'
-		write(*,*) 'this file: ',NZ_f, NY_f, NZ_f, nrow_f
-		write(*,*) 'this run:  ',NZB, NYB, NZB, nrow_b
-		stop
+		write(logmsg,*) 'Error: read_map_file: ',mapfile
+		call logger(logmsg)
+		write(logmsg,*) 'inconsistent parameters: NZ, NY, NZ, nrow'
+		call logger(logmsg)
+		write(logmsg,*) 'this file: ',NZ_f, NY_f, NZ_f, nrow_f
+		call logger(logmsg)
+		write(logmsg,*) 'this run:  ',NZB, NYB, NZB, nrow_b
+		call logger(logmsg)
+		write(logmsg,*) 'Delete ',mapfile, ' and run the program again'
+		call logger(logmsg)
+		ok = .false.
+		return
 	endif
 	read(nfmap,'(i8)') nnz_b
 	read(nfmap,*)
@@ -307,6 +339,7 @@ else
 	enddo
 endif
 close(nfmap)
+ok = .true.
 !write(*,*) 'nnz, nrow_f: ',nnz,nrow_f
 !write(*,*) 'ia: '
 !write(*,'(20i6)') ia
@@ -325,7 +358,7 @@ integer :: k
 
 write(nflog,*) 'Write emap file'
 if (.not.is_fine) then
-	write(*,*) 'emap is only for the embedded (fine) grid'
+	write(logmsg,*) 'emap is only for the embedded (fine) grid'
 	stop
 endif
 open(nfmap,file=mapfile,status='replace')
@@ -362,9 +395,9 @@ end subroutine
 ! This assumes impermeable (reflective) boundaries on the iz=1 boundary.  All other boundaries
 ! will use prescribed concentrations, computed on the coarse grid.
 !-------------------------------------------------------------------------------------------
-subroutine make_sparse_emap(mapfile,is_fine)
+subroutine make_sparse_emap(mapfile,is_fine,ok)
 character*(*) :: mapfile
-logical :: is_fine
+logical :: is_fine, ok
 integer :: ix, iy, iz, k, i, nnz_t, nrow_t, nx_t, ny_t, nz_t, krow, kcol
 integer :: idx, idy, idz, ixx, iyy, izz, chk(7), knt, asum
 real(REAL_KIND) :: Kd, Kr, aval(7)
@@ -374,7 +407,7 @@ integer, parameter :: m = 3
 
 inquire(file=mapfile,exist=file_exists)
 if (file_exists) then
-	call read_emap_file(mapfile,is_fine)
+	call read_emap_file(mapfile,is_fine,ok)
 	return
 endif
 if (is_fine) then
@@ -383,8 +416,10 @@ if (is_fine) then
 	nz_t = NZ-1
 	nrow_t = nx_t*ny_t*nz_t	! now the number of rows is reduced!
 else
-	write(*,*) 'emap is only for the embedded (fine) grid'
-	stop
+	write(logmsg,*) 'emap is only for the embedded (fine) grid'
+	call logger(logmsg)
+	ok = .false.
+	return
 endif
 allocate(arow(nrow_t))
 nnz_t = 0
@@ -486,6 +521,7 @@ write(nflog,*) 'nnz: ',nnz
 !write(*,'(10i5)') amap(1:nnz,0)
 deallocate(arow)
 call write_emap_file(mapfile,is_fine)
+ok = .true.
 end subroutine
 
 

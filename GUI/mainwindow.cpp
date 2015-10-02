@@ -136,6 +136,7 @@ MainWindow::MainWindow(QWidget *parent)
     LOG_QMSG("Did loadparams");
 
     setFields();
+    spin_NX->setValue(33);
 
     SetupProtocol();
 
@@ -217,15 +218,9 @@ void MainWindow::createActions()
     connect(checkBox_FACS_log_y, SIGNAL(stateChanged(int)), this, SIGNAL(facs_update()));
     connect(buttonGroup_histo, SIGNAL(buttonClicked(QAbstractButton*)), this, SIGNAL(histo_update()));
 
-//    connect(line_TPZ_KILL_MODEL_CELL1,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
-//    connect(line_TPZ_KILL_MODEL_CELL2,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
-//    connect(line_DNB_KILL_MODEL_CELL1_MET1,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
-//    connect(line_DNB_KILL_MODEL_CELL1_MET2,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
-//    connect(line_DNB_KILL_MODEL_CELL2_MET1,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
-//    connect(line_DNB_KILL_MODEL_CELL2_MET2,SIGNAL(textChanged(QString)),this,SLOT(killModelChanged()));
-
     connect(line_NXB,SIGNAL(textChanged(QString)),this,SLOT(setFields()));
-    connect(line_DELTA_X,SIGNAL(textChanged(QString)),this,SLOT(setFields()));
+    connect(line_NZB,SIGNAL(textChanged(QString)),this,SLOT(setFields()));
+    connect(line_DXF,SIGNAL(textChanged(QString)),this,SLOT(setFields()));
 
     connect(this,SIGNAL(pause_requested()),SLOT(pauseServer()));
 
@@ -1143,7 +1138,7 @@ void MainWindow::loadParams()
 
 //--------------------------------------------------------------------------------------------------------
 // This is to disable unused fields (because spheroid_GUI.ui is shared with spheroid_GUI).
-// The MEDIUM_VOLUME field value is computed from the specified DELTA_X and NXB.
+// The MEDIUM_VOLUME field value is computed from the specified DXF, NXB and NZB.
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::setFields()
 {
@@ -1151,12 +1146,15 @@ void MainWindow::setFields()
     line_NMM3->setEnabled(false);
     line_FLUID_FRACTION->setEnabled(false);
     line_UNSTIRRED_LAYER->setEnabled(false);
+//    line_NXB->setEnabled(false);
+//    line_NZB->setEnabled(false);
     cbox_USE_RELAX->setEnabled(false);
     cbox_USE_PAR_RELAX->setEnabled(false);
     groupBox_drop->setEnabled(false);
     int nxb = line_NXB->text().toInt();
-    double dx = line_DELTA_X->text().toDouble();
-    double vol_cm3 = pow(4*nxb*dx,3)*1.0e-12;
+    int nzb = line_NZB->text().toInt();
+    double dx = line_DXF->text().toDouble();
+    double vol_cm3 = nxb*nxb*nzb*pow(4*dx,3)*1.0e-12;
     QString str = QString::number(vol_cm3,'g',3);
     line_MEDIUM_VOLUME->setText(str);
 }
@@ -3468,52 +3466,27 @@ void MainWindow::setupGraphSelector()
 {
     QGridLayout *grid = new QGridLayout;
     int row[3];
+	int col;
     row[0] = row[1] = row[2] = -1;
 
-/* // superceded by profile plots
-    checkBox_conc = new QMyCheckBox();
-    checkBox_conc->setText("Concentration Profile");
-    checkBox_conc->setChecked(field->isConcPlot());
-    checkBox_conc->setObjectName("checkBox_conc");
-    checkBox_conc->description = "Concentration along a line through the centre of the blob";
-    row[0]++;
-    grid->addWidget(checkBox_conc,row[0],0);
-    connect((QObject *)checkBox_conc, SIGNAL(checkBoxClicked(QString)), this, SLOT(showMore(QString)));
-
-    checkBox_vol = new QMyCheckBox();
-    checkBox_vol->setText("Cell Volume Distribution");
-    checkBox_vol->setChecked(field->isVolPlot());
-    checkBox_vol->setObjectName("checkBox_vol");
-    checkBox_vol->description = "Probability distribution (histogram) of cell volume";
-    row[0]++;
-    grid->addWidget(checkBox_vol,row[0],0);
-    connect((QObject *)checkBox_vol, SIGNAL(checkBoxClicked(QString)), this, SLOT(showMore(QString)));
-
-    checkBox_oxy = new QMyCheckBox();
-    checkBox_oxy->setText("Cell Oxygen Distribution");
-    checkBox_oxy->setChecked(field->isOxyPlot());
-    checkBox_oxy->setObjectName("checkBox_oxy");
-    checkBox_oxy->description = "Probability distribution (histogram) of cell oxygen concentration";
-    row[0]++;
-    grid->addWidget(checkBox_oxy,row[0],0);
-    connect((QObject *)checkBox_oxy, SIGNAL(checkBoxClicked(QString)), this, SLOT(showMore(QString)));
-*/
     cbox_ts = new QMyCheckBox*[grph->n_tsGraphs];
     for (int i=0; i<grph->n_tsGraphs; i++) {
-        int col = grph->tsGraphs[i].type;
+        int itype = grph->tsGraphs[i].type;
+        if (itype == 0) {
+            if (i < 16)
+                col = 0;
+            else
+                col = 1;
+        } else {
+            col = 2;
+        }
         row[col]++;
         QString text = grph->tsGraphs[i].title;
         cbox_ts[i] = new QMyCheckBox;
         cbox_ts[i]->setText(text);
-//        cbox_ts[i]->setChecked(grph->tsGraphs[i].active);
         cbox_ts[i]->setObjectName("cbox_"+grph->tsGraphs[i].tag);
         grid->addWidget(cbox_ts[i],row[col],col);
         connect((QObject *)cbox_ts[i], SIGNAL(checkBoxClicked(QString)), this, SLOT(showMore(QString)));
-//        if (col == 2) {
-//            LOG_QMSG(grph->tsGraphs[i].tag);
-//            sprintf(msg,"graph: %d %d",i,grph->tsGraphs[i].active);
-//            LOG_MSG(msg);
-//        }
     }
     groupBox_graphselect->setLayout(grid);
 

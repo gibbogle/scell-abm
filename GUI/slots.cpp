@@ -237,6 +237,9 @@ void MainWindow::radioButtonChanged(QAbstractButton *b)
             }
         }
 //    }
+        if (wtag.contains("FD_SOLVER")) {
+            setFields();
+        }
 }
 
 void MainWindow::buttonClick_cell_constituent(QAbstractButton* button)
@@ -277,7 +280,7 @@ void MainWindow::textEdited_fraction(QString text)
 void MainWindow::onSelectConstituent()
 {
     if (exthread != NULL)
-        field->selectCellConstituent();
+        field->selectCellConstituent();     //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
         updateProfilePlots();
 }
 

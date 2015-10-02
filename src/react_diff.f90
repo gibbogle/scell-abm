@@ -47,14 +47,14 @@ contains
 
 !-------------------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------------------
-subroutine setup_react_diff
+subroutine setup_react_diff(ok)
+logical :: ok
 integer :: ix, iy, iz, ic, maxnz, ichemo
 real(REAL_KIND) :: C0
 character*(10) :: emapfile, bmapfile
 real(REAL_KIND), pointer :: Cprev(:,:,:), Fprev(:,:,:), Fcurr(:,:,:)
 real(REAL_KIND), pointer :: Cave_b(:,:,:), Cprev_b(:,:,:), Fprev_b(:,:,:), Fcurr_b(:,:,:)
 logical :: zero
-logical :: ok
 
 write(nflog,*) 'setup_react_diff: NX,NY,NZ: ',NX,NY,NZ
 dxf = DELTA_X
@@ -81,13 +81,15 @@ allocate(ia_b(nrow_b+1))
 emapfile = ''
 write(emapfile,'(a,i2.0,a)') 'emap',NX,'.dat'
 write(nflog,*) 'setup_react_diff: ',emapfile
-call make_sparse_emap(emapfile,.true.)
+call make_sparse_emap(emapfile,.true.,ok)
+if (.not.ok) return
 write(nflog,*) 'made emapfile: ',emapfile
 
 bmapfile = ''
 write(bmapfile,'(a,i2.0,a)') 'bmap',NXB,'.dat'
 write(nflog,*) 'setup_react_diff: ',bmapfile
-call make_sparse_map(bmapfile,.false.)
+call make_sparse_map(bmapfile,.false.,ok)
+if (.not.ok) return
 write(nflog,*) 'made bmapfile: ',bmapfile
 
 call make_grid_flux_weights
@@ -118,6 +120,7 @@ do ichemo = 1,MAX_CHEMO
 	call makeF_b(Fprev_b,Fprev,DELTA_T,zero)
 	Fcurr_b = Fprev_b
 enddo
+ok = .true.
 end subroutine
 
 !-------------------------------------------------------------------------------------------
@@ -489,12 +492,12 @@ do kcell = 1,nlist
 	if (cp%state == DEAD) cycle
 	cp%dMdt(ichemo) = Kin*cp%Cex(ichemo) - Kout*cp%Cin(ichemo)
 	total_flux = total_flux + cp%dMdt(ichemo)
-	if (kcell == 1) then
-		write(nflog,'(a,i4,5e12.5)') 'getF_const: Cin, Cex, dMdt: ',ichemo, cp%Cin(ichemo), cp%Cex(ichemo),cp%dMdt(ichemo),Kin,Kout
-	endif
+!	if (kcell == 1) then
+!		write(nflog,'(a,i4,5e12.5)') 'getF_const: Cin, Cex, dMdt: ',ichemo, cp%Cin(ichemo), cp%Cex(ichemo),cp%dMdt(ichemo),Kin,Kout
+!	endif
 enddo
 !!$omp end parallel do
-write(nflog,'(a,2i4,e12.3)') 'total_flux: ',istep,ichemo,total_flux
+!write(nflog,'(a,2i4,e12.3)') 'total_flux: ',istep,ichemo,total_flux
 
 !if (ichemo == OXYGEN) write(*,'(a,2e12.3)') 'Cex(O2), O2 flux: ',cell_list(1)%Cex(ichemo),cell_list(1)%dMdt(ichemo)
 ! Estimate grid pt flux values F

@@ -172,8 +172,8 @@ end subroutine
 subroutine CellDeath(dt,changed,ok)
 real(REAL_KIND) :: dt
 logical :: changed, ok
-integer :: kcell, nlist0, site(3), i, ichemo, idrug, im, ityp, kpar=0 
-real(REAL_KIND) :: C_O2, kmet, Kd, dMdt, killmodel, kill_prob, tnow
+integer :: kcell, nlist0, site(3), i, ichemo, idrug, im, ityp, killmodel, kpar=0 
+real(REAL_KIND) :: C_O2, kmet, Kd, dMdt, Cdrug, kill_prob, dkill_prob, tnow
 !logical :: use_TPZ_DRUG, use_DNB_DRUG
 type(drug_type), pointer :: dp
 
@@ -226,24 +226,13 @@ do kcell = 1,nlist
 		do im = 0,2
 			if (.not.dp%kills(ityp,im)) cycle
 			killmodel = dp%kill_model(ityp,im)		! could use %drugclass to separate kill modes
+			Cdrug = cell_list(kcell)%Cin(ichemo + im)
 			Kd = dp%Kd(ityp,im)
 			kmet = (1 - dp%C2(ityp,im) + dp%C2(ityp,im)*dp%KO2(ityp,im)/(dp%KO2(ityp,im) + C_O2))*dp%Kmet0(ityp,im)
 !			dMdt = kmet*cell_list(kcell)%conc(ichemo + im)
 			dMdt = kmet*cell_list(kcell)%Cin(ichemo + im)
-			if (killmodel == 1) then
-				kill_prob = kill_prob + Kd*dMdt*dt
-			elseif (killmodel == 2) then
-!				kill_prob = kill_prob + Kd*dMdt*cell_list(kcell)%conc(ichemo + im)*dt
-				kill_prob = kill_prob + Kd*dMdt*cell_list(kcell)%Cin(ichemo + im)*dt
-			elseif (killmodel == 3) then
-				kill_prob = kill_prob + Kd*dMdt**2*dt
-			elseif (killmodel == 4) then
-!				kill_prob = kill_prob + Kd*cell_list(kcell)%conc(ichemo + im)*dt
-				kill_prob = kill_prob + Kd*cell_list(kcell)%Cin(ichemo + im)*dt
-			elseif (killmodel == 5) then
-!				kill_prob = kill_prob + Kd*(cell_list(kcell)%conc(ichemo + im)**2)*dt
-				kill_prob = kill_prob + Kd*(cell_list(kcell)%Cin(ichemo + im)**2)*dt
-			endif
+			call getDrugKillProb(killmodel,Kd,dMdt,Cdrug,dt,dkill_prob)
+			kill_prob = kill_prob + dkill_prob
 		enddo
 	    if (.not.cell_list(kcell)%drug_tag(idrug) .and. par_uni(kpar) < kill_prob) then	! don't tag more than once
 !            cell_list(kcell)%drugB_tag = .true.			! actually either drugA_tag or drugB_tag
@@ -253,6 +242,29 @@ do kcell = 1,nlist
 		endif
 	enddo
 enddo
+end subroutine
+
+!-----------------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------------------
+subroutine getDrugKillProb(kill_model,Kd,dMdt,Cdrug,dt,dkill_prob)
+integer :: kill_model
+real(REAL_KIND) :: Kd, dMdt, Cdrug, dt, dkill_prob
+real(REAL_KIND) :: SF, dtstep, kill_prob, c
+integer :: Nsteps, istep
+
+if (kill_model == 1) then
+	c = Kd*dMdt
+elseif (kill_model == 2) then
+	c = Kd*dMdt*Cdrug
+elseif (kill_model == 3) then
+	c = Kd*dMdt**2
+elseif (kill_model == 4) then
+	c = Kd*Cdrug
+elseif (kill_model == 5) then
+	c = Kd*Cdrug**2
+endif
+SF = exp(-c*dt)
+dkill_prob = 1 - SF
 end subroutine
 
 !-----------------------------------------------------------------------------------------

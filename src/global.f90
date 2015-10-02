@@ -76,7 +76,7 @@ end type
 
 type :: grid_type
 	integer :: nc
-	integer :: cell(40)
+	integer :: cell(100)
 end type
 
 type dist_type
@@ -274,7 +274,7 @@ type LQ_type
 end type
 
 integer, parameter :: nflog=10, nfin=11, nfout=12, nfres=13, nfcell=14
-integer, parameter :: MAX_NLIST = 100000
+integer, parameter :: MAX_NLIST = 1000000
 integer, parameter :: MAX_NBRS = 100
 integer, parameter :: ndt_max = 30
 real(REAL_KIND), parameter :: Raverage = 0.64e-3	! as in spheroid-abm.  was: 5.0e-4*1.5**(1./3)		! average cells radius (um) -> cm

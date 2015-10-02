@@ -44,7 +44,7 @@ write(*,'(4f6.0)') a
 end subroutine
 
 !-----------------------------------------------------------------------------------------
-! Distances are still all cm
+! Distances are still all cm 
 !-----------------------------------------------------------------------------------------
 subroutine get_fielddata(axis, fraction, fdata, res) bind(C)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_fielddata
@@ -52,7 +52,7 @@ use, intrinsic :: iso_c_binding
 integer(c_int) :: axis, res
 real(c_double) :: fraction
 type (fielddata_type)    :: fdata
-type(celldata_type), save :: cdata(1000)
+type(celldata_type), save :: cdata(4000)
 type(cell_type), pointer :: cp
 real(REAL_KIND) :: x, y, z, c(3), r, rad
 integer :: i, kcell, nc
@@ -493,39 +493,37 @@ end subroutine
 ! Estimate average concentrations in the medium.
 ! In fact the average is over the coarse grid points that lie outside the blob.
 !--------------------------------------------------------------------------------
-subroutine getMediumConc(cmedium)
-real(REAL_KIND) :: cmedium(:)
+subroutine getMediumConc(cmedium, cbdry)
+real(REAL_KIND) :: cmedium(:), cbdry(:)
 real(REAL_KIND) :: cntr(3), rng(3), radius, r2, d2
 integer :: x, y, z
 integer :: ixb, iyb, izb, nsum, ic, ichemo
 logical :: bdry = .true.
 
-if (bdry) then
-	cmedium(:) = chemo(:)%medium_Cbnd
-else
-	call getBlobCentreRange(cntr,rng,radius)
-	r2 = radius**2
-	cmedium = 0
-	nsum = 0
-	do ixb = 1,NXB
-		x = (ixb-1)*dxb
-		do iyb = 1,NYB
-			y = (iyb-1)*dxb
-			do izb = 1,NZB
-				z = (izb-1)*dxb
-				d2 = (x - cntr(1))**2 + (y - cntr(2))**2 + (z - cntr(3))**2
-				if (d2 > r2) then
-					nsum = nsum + 1
-					do ic = 1,nchemo
-						ichemo = chemomap(ic)
-						cmedium(ichemo) = cmedium(ichemo) + chemo(ichemo)%cave_b(ixb,iyb,izb)
-					enddo
-				endif
-			enddo
+
+cbdry(:) = chemo(:)%medium_Cbnd
+call getBlobCentreRange(cntr,rng,radius)
+r2 = radius**2
+cmedium = 0
+nsum = 0
+do ixb = 1,NXB
+	x = (ixb-1)*dxb
+	do iyb = 1,NYB
+		y = (iyb-1)*dxb
+		do izb = 1,NZB
+			z = (izb-1)*dxb
+			d2 = (x - cntr(1))**2 + (y - cntr(2))**2 + (z - cntr(3))**2
+			if (d2 > r2) then
+				nsum = nsum + 1
+				do ic = 1,nchemo
+					ichemo = chemomap(ic)
+					cmedium(ichemo) = cmedium(ichemo) + chemo(ichemo)%cave_b(ixb,iyb,izb)
+				enddo
+			endif
 		enddo
 	enddo
-	cmedium = cmedium/nsum
-endif
+enddo
+cmedium = cmedium/nsum
 end subroutine
 
 !-----------------------------------------------------------------------------------------
@@ -555,13 +553,15 @@ subroutine get_summary(summaryData,i_hypoxia_cutoff,i_growth_cutoff) BIND(C)
 use, intrinsic :: iso_c_binding
 integer(c_int) :: summaryData(*), i_hypoxia_cutoff,i_growth_cutoff
 integer :: Nviable(MAX_CELLTYPES), plate_eff_10(MAX_CELLTYPES)
-integer :: diam_um, vol_mm3_1000, nhypoxic(3), ngrowth(3), hypoxic_percent_10, growth_percent_10, necrotic_percent_10, &
-    medium_oxygen_1000, medium_glucose_1000, medium_drug_1000(2), npmm3
+integer :: diam_um, vol_mm3_1000, nhypoxic(3), ngrowth(3), hypoxic_percent_10, growth_percent_10, necrotic_percent_10,  npmm3, &
+    medium_oxygen_1000, medium_glucose_1000, medium_drug_1000(2), &
+    bdry_oxygen_1000, bdry_glucose_1000, bdry_drug_1000(2)
 integer :: TNanoxia_dead, TNradiation_dead, TNdrug_dead(2),  &
            Ntagged_anoxia(MAX_CELLTYPES), Ntagged_radiation(MAX_CELLTYPES), Ntagged_drug(2,MAX_CELLTYPES), &
            TNtagged_anoxia, TNtagged_radiation, TNtagged_drug(2)
 integer :: Tplate_eff_10   
-real(REAL_KIND) :: diam_cm, vol_cm3, vol_mm3, hour, plate_eff(MAX_CELLTYPES), cmedium(MAX_CHEMO), necrotic_fraction
+real(REAL_KIND) :: diam_cm, vol_cm3, vol_mm3, hour, plate_eff(MAX_CELLTYPES), necrotic_fraction
+real(REAL_KIND) :: cmedium(MAX_CHEMO), cbdry(MAX_CHEMO)
 
 hour = istep*DELTA_T/3600.
 call getDiamVol(diam_cm,vol_cm3)
@@ -570,11 +570,7 @@ vol_mm3_1000 = vol_mm3*1000			! 1000 * volume in mm^3
 diam_um = diam_cm*10000
 npmm3 = Ncells/vol_mm3
 
-!Ntagged_anoxia(:) = Nanoxia_tag(:) - Nanoxia_dead(:)			! number currently tagged by anoxia
-!Ntagged_radiation(:) = Nradiation_tag(:) - Nradiation_dead(:)	! number currently tagged by radiation
-!Ntagged_drug(1,:) = Ndrug_tag(1,:) - Ndrug_dead(1,:)			! number currently tagged by drugA
-!Ntagged_drug(2,:) = Ndrug_tag(2,:) - Ndrug_dead(2,:)			! number currently tagged by drugA
-Ntagged_anoxia(:) = Nanoxia_tag(:) 			! number currently tagged by anoxia
+Ntagged_anoxia(:) = Nanoxia_tag(:)			! number currently tagged by anoxia
 Ntagged_radiation(:) = Nradiation_tag(:)	! number currently tagged by radiation
 Ntagged_drug(1,:) = Ndrug_tag(1,:)			! number currently tagged by drugA
 Ntagged_drug(2,:) = Ndrug_tag(2,:)			! number currently tagged by drugA
@@ -603,17 +599,22 @@ call getNviable(Nviable)
 plate_eff = real(Nviable)/Ncells
 plate_eff_10 = 1000*plate_eff
 Tplate_eff_10 = sum(plate_eff_10(1:Ncelltypes))
-call getMediumConc(cmedium)
+call getMediumConc(cmedium, cbdry)
 medium_oxygen_1000 = cmedium(OXYGEN)*1000
 medium_glucose_1000 = cmedium(GLUCOSE)*1000
 medium_drug_1000(1) = cmedium(DRUG_A)*1000
 medium_drug_1000(2) = cmedium(DRUG_B)*1000
+bdry_oxygen_1000 = cbdry(OXYGEN)*1000
+bdry_glucose_1000 = cbdry(GLUCOSE)*1000
+bdry_drug_1000(1) = cbdry(DRUG_A)*1000
+bdry_drug_1000(2) = cbdry(DRUG_B)*1000
 
-summaryData(1:21) = [ istep, Ncells, TNanoxia_dead, TNdrug_dead(1), TNdrug_dead(2), TNradiation_dead, &
+summaryData(1:25) = [ istep, Ncells, TNanoxia_dead, TNdrug_dead(1), TNdrug_dead(2), TNradiation_dead, &
     TNtagged_anoxia, TNtagged_drug(1), TNtagged_drug(2), TNtagged_radiation, &
-	diam_um, vol_mm3_1000, hypoxic_percent_10, growth_percent_10, necrotic_percent_10, Tplate_eff_10, &
-	medium_oxygen_1000, medium_glucose_1000, medium_drug_1000(1), medium_drug_1000(2), npmm3 ]
-write(nfres,'(2a12,i8,2e12.4,19i7,13e12.4)') gui_run_version, dll_run_version, &
+	diam_um, vol_mm3_1000, hypoxic_percent_10, growth_percent_10, necrotic_percent_10, Tplate_eff_10, npmm3, &
+	medium_oxygen_1000, medium_glucose_1000, medium_drug_1000(1), medium_drug_1000(2), &
+	bdry_oxygen_1000, bdry_glucose_1000, bdry_drug_1000(1), bdry_drug_1000(2) ]
+write(nfres,'(2a12,i8,2e12.4,19i7,17e12.4)') gui_run_version, dll_run_version, &
 	istep, hour, vol_mm3, diam_um, Ncells_type(1:2), &
     Nanoxia_dead(1:2), Ndrug_dead(1,1:2), &
     Ndrug_dead(2,1:2), Nradiation_dead(1:2), &
@@ -621,7 +622,8 @@ write(nfres,'(2a12,i8,2e12.4,19i7,13e12.4)') gui_run_version, dll_run_version, &
     Ntagged_drug(2,1:2), Ntagged_radiation(1:2), &
 	nhypoxic(:)/real(Ncells), ngrowth(:)/real(Ncells), &
 	necrotic_fraction, plate_eff(1:2), &
-	cmedium(OXYGEN), cmedium(GLUCOSE), cmedium(DRUG_A), cmedium(DRUG_B)
+	cmedium(OXYGEN), cmedium(GLUCOSE), cmedium(DRUG_A), cmedium(DRUG_B), &
+	cbdry(OXYGEN), cbdry(GLUCOSE), cbdry(DRUG_A), cbdry(DRUG_B)
 		
 call sum_dMdt(GLUCOSE)
 end subroutine

@@ -52,6 +52,7 @@ void MainWindow::readDrugParams(int idrug, QString fileName)
             if (i > 0) dval = data[0].toDouble();
             if (i==0) {
                 drug[idrug].param[kset].name = data[0];
+//                qDebug() << drug[idrug].param[kset].name;
             } else {
                 drug[idrug].param[kset].dparam[i-1] = dval;
                 drug[idrug].param[kset].info[i-1] = (line.mid(data[0].size())).trimmed();
@@ -357,13 +358,6 @@ void MainWindow::makeDrugFileLists()
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::initDrugComboBoxes()
 {
-//    comb_TPZ->addItem("SN30000");
-//    comb_TPZ->addItem("TPZ");
-//    comb_TPZ->addItem("Drug3");
-//    comb_DNB->addItem("PR104A");
-//    comb_DNB->addItem("DNB2");
-//    comb_DNB->addItem("DNB3");
-//    comb_DNB->addItem("DNB4");
     for (int i=0; i<Drug_FilesList.size(); i++) {
         comb_DRUG_A->addItem(Drug_FilesList[i]);
         comb_DRUG_B->addItem(Drug_FilesList[i]);
@@ -382,9 +376,11 @@ void MainWindow::readDrugData(QTextStream *in)
         line = in->readLine();
 //        QStringList data = line.split(" ",QString::SkipEmptyParts);     // CLASS_NAME
         line = in->readLine();
+//        qDebug() << "line: " + line;
         QStringList data = line.split(" ",QString::SkipEmptyParts);     // DRUG_NAME
         QString drugname = data[0];
         QString fileName = drugname + ".drugdata";
+//        qDebug() << "readDrugData from input file: drugname: " + drugname;
         readDrugParams(idrug, fileName);
         if (idrug == 0) {
             text_DRUG_A_NAME->setText(drugname);

@@ -29,7 +29,7 @@ void MainWindow::LoadProtocol(QString fileName)
                              .arg(file.errorString()));
         return;
     }
-    qDebug() << "Opened " << fileName;
+//    qDebug() << "Opened " << fileName;
     QTextStream in(&file);
     QString line;
     // Skip lines
@@ -52,7 +52,7 @@ void MainWindow::LoadProtocol(QString fileName)
 //        qDebug() << mode;
         if (mode.compare("DRUG") == 0) {
             QString drug = in.readLine();
-//            qDebug() << drug;
+//            qDebug() << "LoadProtocol: DRUG: " + drug;
             setField(table, row, 1, drug);
             QString hour = in.readLine();
 //            qDebug() << hour;

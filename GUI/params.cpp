@@ -5,45 +5,42 @@
 Params::Params()
 {
     static infoStruct label_info[] = {
-        {"PARENT_0", "Info about PARENT_0 field"},
-        {"PARENT_1", "Info about PARENT_1 field"},
-        {"PARENT_2", "Info about PARENT_2 field"},
-        {"PARENT_3", "Info about PARENT_3 field"},
-        {"PARENT_4", "Info about PARENT_4 field"},
-        {"PARENT_CT1_0", "Info about PARENT_CT1_0 field"},
-        {"PARENT_CT1_1", "Info about PARENT_CT1_1 field"},
-        {"PARENT_CT1_2", "Info about PARENT_CT1_2 field"},
-        {"PARENT_CT1_3", "Info about PARENT_CT1_3 field"},
-        {"PARENT_CT1_4", "Info about PARENT_CT1_4 field"},
-        {"PARENT_CT1_5", "Info about PARENT_CT1_5 field"},
-        {"PARENT_CT1_6", "Info about PARENT_CT1_6 field"},
-        {"PARENT_CT1_7", "Info about PARENT_CT1_7 field"},
-        {"PARENT_CT1_8", "Info about PARENT_CT1_8 field"},
-        {"PARENT_CT1_9", "Info about PARENT_CT1_9 field"},
-        {"PARENT_CT1_10", "Info about PARENT_CT1_10 field"},
-        {"PARENT_CT1_11", "Info about PARENT_CT1_11 field"},
-        {"PARENT_CT1_12", "Info about PARENT_CT1_12 field"},
-        {"PARENT_CT1_13", "Info about PARENT_CT1_13 field"},
-        {"PARENT_CT1_14", "Info about PARENT_CT1_14 field"},
-        {"PARENT_CT1_15", "Info about PARENT_CT1_15 field"},
+        {"PARENT_0", "Diffusion coefficient within the blob."},
+        {"PARENT_1", "Diffusion coefficient in the medium."},
+        {"PARENT_2", "Cell influx parameter Kin.  The rate of mass transport into the cell is Kin.Cex - Kout.Cin (currently no dependence on cell surface area)."},
+        {"PARENT_3", "Cell efflux parameter Kout.  The rate of mass transport into the cell is Kin.Cex - Kout.Cin (currently no dependence on cell surface area)."},
+        {"PARENT_4", "Half-life of the compound, used to calculate the decay rate.  This is the same in the cell and in the medium."},
+        {"PARENT_CT1_0", "Kmet0 is the maximum rate of metabolism.  The actual rate is the product of drug concentration Cdrug, Kmet0 and a sigmoid function of O2 concentration C_O2, with parameters C2 and KO2:\n\
+metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2/(KO2 + C_O2)).Kmet0   If Vmax > 0, Kmet0 is replaced by (Kmet0 + Vmax/(Km + Cdrug)) \n\
+This the rate of transformation of parent drug to metabolite 1, or of metabolite 1 to metabolite 2, or removal of metabolite 2"},
+        {"PARENT_CT1_1", "C2 is one of the two parameters of the basic sigmoid function of C_O2 that determines metabolism rate.  When C_O2 = 0, the function = 1, when C_O2 >> KO2, the function = 1 - C2: \n\
+metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2/(KO2 + C_O2)).Kmet0   If Vmax > 0, Kmet0 is replaced by (Kmet0 + Vmax/(Km + Cdrug)) \n\
+This the rate of transformation of parent drug to metabolite 1, or of metabolite 1 to metabolite 2, or removal of metabolite 2"},
+        {"PARENT_CT1_2",  "KO2 is one of the two parameters of the basic sigmoid function of C_O2 that determines metabolism rate: \n\
+metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2/(KO2 + C_O2)).Kmet0   If Vmax > 0, Kmet0 is replaced by (Kmet0 + Vmax/(Km + Cdrug)) \n\
+This the rate of transformation of parent drug to metabolite 1, or of metabolite 1 to metabolite 2, or removal of metabolite 2"},
+        {"PARENT_CT1_3", "Vmax and Km are parameters that determine the dependence of the maximum rate of metabolism on drug concentration: \n\
+metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2/(KO2 + C_O2)).Kmet0   If Vmax > 0, Kmet0 is replaced by (Kmet0 + Vmax/(Km + Cdrug)) "},
+         {"PARENT_CT1_4", "Vmax and Km are parameters that determine the dependence of the maximum rate of metabolism on drug concentration: \n\
+metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2/(KO2 + C_O2)).Kmet0   If Vmax > 0, Kmet0 is replaced by (Kmet0 + Vmax/(Km + Cdrug)) "},
+        {"PARENT_CT1_5", "Klesion is currently unused."},
+        {"PARENT_CT1_6", "The O2 concentration in the kill experiment."},
+        {"PARENT_CT1_7", "The drug concentration in the kill experiment."},
+        {"PARENT_CT1_8", "The duration the kill experiment."},
+        {"PARENT_CT1_9", "The kill fraction achieved in the kill experiment (1 - SF)."},
+        {"PARENT_CT1_10", "Sensitisation of the cells to radiation is determined by three parameters.  The usual radiation kill parameters OER_alpha and OER_beta are multiplied by the sensitisation enhancement ratio SER: \n\
+         SER = (C_O2 + SER_KO2*(Cdrug*SER_max + SER_Km)/(Cdrug + SER_Km))/(C_O2 + SER_KO2)"},
+        {"PARENT_CT1_11", "Sensitisation of the cells to radiation is determined by three parameters.  The usual radiation kill parameters OER_alpha and OER_beta are multiplied by the sensitisation enhancement ratio SER: \n\
+         SER = (C_O2 + SER_KO2*(Cdrug*SER_max + SER_Km)/(Cdrug + SER_Km))/(C_O2 + SER_KO2)"},
+        {"PARENT_CT1_12", "Sensitisation of the cells to radiation is determined by three parameters.  The usual radiation kill parameters OER_alpha and OER_beta are multiplied by the sensitisation enhancement ratio SER: \n\
+         SER = (C_O2 + SER_KO2*(Cdrug*SER_max + SER_Km)/(Cdrug + SER_Km))/(C_O2 + SER_KO2)"},
+        {"PARENT_CT1_13", "This box is ticked if the drug is cytotoxic and kill parameters are provided."},
+         {"PARENT_CT1_14", "Using Kd derived from the kill experiment(different for each model), then dMdt = Cdrug*(1 - C2 + C2*KO2/(KO2 + C_O2))*Kmet0, the kill probability Pkill in time dt for each model is: \n\
+1. Kd*dMdt*dt  2. Kd*Cdrug*dMdt*dt  3. Kd*dMdt^2*dt  4. Kd*Cdrug*dt  5. Kd*Cdrug^2*dt"},
+        {"PARENT_CT1_15", "This box is ticked if the drug sensitises the cells to radiation."},
     };
 
-//    static infoStruct checkbox_info[] = {
-//    };
-
     PARAM_SET params[] = {
-
-/*
-{"BC_AVIDITY_MEDIAN", 1.0, 0.1, 10.0,
-"BCR avidity median parameter",
-"BCR avidity has a lognormal distribution, described by the median and shape parameters.\n\
-(BCR stimulation rate is proportional to the product of BC avidity and antigen load.)"},
-
-{"BC_AVIDITY_SHAPE", 1.1, 1.01, 3.0,
-"BCR avidity shape parameter",
-"BCR avidity has a lognormal distribution, described by the median and shape parameters.\n\
-The shape value must be greater than 1, and values close to 1 give distributions that are close to normal."},
-*/
 
 {"GUI_VERSION_NAME", 0, 0, 0,
  "GUI0.00",
@@ -54,8 +51,9 @@ The shape value must be greater than 1, and values close to 1 give distributions
  "DLL version number."},
 
 {"NX", 120, 0, 0,
-"Fine grid size",
-"Dimension of the fine grid (number of grid pts in X,Y and Z directions).  Must = 1 + multiple of 8."},
+"Grid size",
+"On-lattice model: Dimension of the lattice (number of lattice sites in X,Y and Z directions).  Must be large enough to hold the largest spheroid. \n\
+Off-lattice model: Dimension of the fine grid (number of grid pts in X,Y and Z directions).  Must = 1 + multiple of 8."},
 
 {"INITIAL_COUNT", 1000, 0, 0,
 "Initial number of tumour cells",
@@ -98,12 +96,18 @@ The shape value must be greater than 1, and values close to 1 give distributions
 [mins]"},
 
 {"NXB", 35, 0, 0,
-"Coarse grid size",
-"Dimension of the coarse grid (number of grid pts in X,Y and Z directions).  Grid spacing is 4 times fine grid spacing.  Must be odd"},
+"Coarse grid NXB, NYB",
+"X and Y dimension of the coarse grid (number of grid pts in X and Y directions).  Grid spacing is 4 times fine grid spacing DXF.  Must be odd \n\
+The medium volume is NXB*NXB*NZB*(4*DXF)^3 um^3"},
 
-{"DELTA_X", 30, 0, 0,
-"Fine grid spacing (um)",
-"Grid-cell size in um.  Constituent transport and consumption/production is computed on this grid."},
+{"NZB", 35, 0, 0,
+"Coarse grid NZB",
+"Z dimension of the coarse grid (number of grid pts in Z direction).  Grid spacing is 4 times fine grid spacing DXF. \n\
+The medium volume is NXB*NXB*NZB*(4*DXF)^3 um^3"},
+
+{"DXF", 38, 0, 0,
+"Fine grid spacing DXF",
+"Off-lattice model only. Fine grid-cell size in um.  Constituent transport and consumption/production is computed on this grid."},
 
 {"A_SEPARATION", 1.0, 0, 0,
 "Separation force factor",
@@ -222,17 +226,9 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 "Percentage of cell type 1",
 "Percentage of cell type 1"},
 
-//{"CELLDISPLAY_1", 1, 0, 1,
-//"Display cell type 1",
-//"Display cell type 1"},
-
 {"CELLPERCENT_2", 0, 0, 100,
 "Percentage of cell type 2",
 "Percentage of cell type 2"},
-
-//{"CELLDISPLAY_2", 1, 0, 1,
-//"Display cell type 2",
-//"Display cell type 2"},
 
 {"NT_ANIMATION", 1, 0, 0,
  "Animation interval (timesteps)",
@@ -250,7 +246,7 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
  "Spheroid diffusion coeff",
  "Constituent diffusion coefficient in the spheroid"},
 
-{"OXYGEN_MEDIUM_DIFF", 2.5e-5, 0, 0,
+{"OXYGEN_MEDIUM_DIFF", 5.0e-5, 0, 0,
  "Medium diffusion coeff",
  "Constituent diffusion coefficient in the medium"},
 
@@ -442,7 +438,7 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 "Use parallel O2 relaxation solver",
 "Use over- and under-relaxation to solve reaction-diffusion for oxygen, with parallelized over-relaxation"},
 
-{"FD_SOLVER_1", 0, 0, 1,
+{"FD_SOLVER_1", 1, 0, 1,
 "Use FD solver?",
 "Use the FD solver in the far field"},
 
@@ -506,11 +502,15 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
     {"growthfraction",            1, 0,1,"","Percentage of cells that are growing at a rate less than the specified fraction of the mean growth rate with no nutrient limits"},
     {"necroticfraction",          1, 0,1,"","Percentage of the spheroid that is necrotic = (number of vacant sites)/(number of sites taken up by the spheroid)"},
     {"platingefficiency",         0, 0,1,"","Percentage of live cells that are viable"},
+    {"cellspermm3",               0, 0,1,"","Number of cells per mm3 in the blob"},
     {"mediumoxygen",              0, 0,1,"","Average concentration of oxygen in the medium (far-field)"},
     {"mediumglucose",             0, 0,1,"","Average concentration of glucose in the medium (far-field)"},
     {"mediumdrugA",               0, 0,1,"","Average concentration of drug A in the medium (far-field)"},
     {"mediumdrugB",               0, 0,1,"","Average concentration of drug B in the medium (far-field)"},
-    {"cellspermm3",               0, 0,1,"","Number of cells per mm3 in the blob"},
+    {"bdryoxygen",                0, 0,1,"","Average concentration of oxygen at the blob boundary"},
+    {"bdryglucose",               0, 0,1,"","Average concentration of glucose at the blob boundary"},
+    {"bdrydrugA",                 0, 0,1,"","Average concentration of drug A at the blob boundary"},
+    {"bdrydrugB",                 0, 0,1,"","Average concentration of drug B at the blob boundary"},
 
 // Profile plots
     {"MULTI",                     1, 0,1,"","Selected constituent on a line through the blob centre"},

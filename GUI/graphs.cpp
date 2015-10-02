@@ -90,7 +90,7 @@ GRAPH_SET tsGraphSet[] = {
     "Necrotic Fraction",
     "%",
      "Percentage of the spheroid that is necrotic = 100*(number of vacant sites)/(number of sites taken up by the spheroid)",
-    14, false, 0, 0.1, 0, TS_TYPE},
+    14, true, 0, 0.1, 0, TS_TYPE},
 
     {"platingefficiency",
     "Plating Efficiency",
@@ -98,35 +98,59 @@ GRAPH_SET tsGraphSet[] = {
      "Plating efficiency = 100*(number of viable cells)/(number of live cells)",
     15, true, 0, 0.1, 0, TS_TYPE},
 
-    {"mediumoxygen",
-    "Medium Oxygen",
-    "Concentration",
-     "Average concentration of oxygen in the medium (far-field)",
-    16, true, 0, 0.001, 0, TS_TYPE},
-
-    {"mediumglucose",
-    "Medium Glucose",
-    "Concentration",
-     "Average concentration of glucose in the medium (far-field)",
-    17, true, 0, 0.001, 0, TS_TYPE},
-
-    {"mediumdrugA",
-    "Medium Drug A",
-    "Concentration",
-     "Average concentration of drug A in the medium (far-field)",
-    18, true, 0, 0.001, 0, TS_TYPE},
-
-    {"mediumdrugB",
-    "Medium Drug B",
-    "Concentration",
-     "Average concentration of drug B in the medium (far-field)",
-    19, true, 0, 0.001, 0, TS_TYPE},
-
     {"cellspermm3",
      "Cells/mm3",
      "Density",
      "Number of live cells per mm3 in the blob",
-     20, true, 0, 1, 0, TS_TYPE},
+     16, true, 0, 1, 0, TS_TYPE},
+
+    {"mediumoxygen",
+    "Ave Medium Oxygen",
+    "Concentration",
+     "Average concentration of oxygen in the medium (far-field)",
+    17, true, 0, 0.001, 0, TS_TYPE},
+
+    {"mediumglucose",
+    "Ave Medium Glucose",
+    "Concentration",
+     "Average concentration of glucose in the medium (far-field)",
+    18, true, 0, 0.001, 0, TS_TYPE},
+
+    {"mediumdrugA",
+    "Ave Medium Drug A",
+    "Concentration",
+     "Average concentration of drug A in the medium (far-field)",
+    19, true, 0, 0.001, 0, TS_TYPE},
+
+    {"mediumdrugB",
+    "Ave Medium Drug B",
+    "Concentration",
+     "Average concentration of drug B in the medium (far-field)",
+    20, true, 0, 0.001, 0, TS_TYPE},
+
+    {"bdryoxygen",
+    "Blob Boundary Oxygen",
+    "Concentration",
+     "Average concentration of oxygen at the blob boundary",
+    21, true, 0, 0.001, 0, TS_TYPE},
+
+    {"bdryglucose",
+    "Blob Boundary Glucose",
+    "Concentration",
+     "Average concentration of glucose at the blob boundary",
+    22, true, 0, 0.001, 0, TS_TYPE},
+
+    {"bdrydrugA",
+    "Blob Boundary Drug A",
+    "Concentration",
+     "Average concentration of drug A at the blob boundary",
+    23, true, 0, 0.001, 0, TS_TYPE},
+
+    {"bdrydrugB",
+    "Blob Boundary Drug B",
+    "Concentration",
+     "Average concentration of drug B at the blob boundary",
+    24, true, 0, 0.001, 0, TS_TYPE},
 
 // Profiles
     {"MULTI",

@@ -91,7 +91,8 @@ read(nfcell,*) iV_depend
 read(nfcell,*) iV_random
 read(nfcell,*) days							! number of days to simulate
 read(nfcell,*) DELTA_T						! time step size (sec)
-read(nfcell,*) NXB							! size of coarse grid
+read(nfcell,*) NXB							! size of coarse grid = NYB
+read(nfcell,*) NZB							! size of coarse grid
 read(nfcell,*) DELTA_X						! grid size (um)
 read(nfcell,*) a_separation
 read(nfcell,*) a_force
@@ -349,12 +350,11 @@ DELTA_X = 1.0e-4*DELTA_X	! um -> cm
 dxf = DELTA_X
 dxb = NRF*dxf
 
-NX = 33		! fixed for now
+!NX = 33		! fixed for now
 
 NY = NX
 NZ = NX
 NYB = NXB
-NZB = NXB
 Kdrag = 1.0e5*Kdrag
 MM_THRESHOLD = MM_THRESHOLD/1000					! uM -> mM
 ANOXIA_THRESHOLD = ANOXIA_THRESHOLD/1000			! uM -> mM
@@ -409,7 +409,8 @@ Ntagged_anoxia(1) Ntagged_anoxia(2) Ntagged_drugA(1) Ntagged_drugA(2) &
 Ntagged_drugB(1) Ntagged_drugB(2) Ntagged_radiation(1) Ntagged_radiation(2) &
 f_hypox(1) f_hypox(2) f_hypox(3) f_growth(1) f_growth(2) f_growth(3) &
 f_necrot plating_efficiency(1) plating_efficiency(2) &
-medium_oxygen medium_glucose medium_drugA medium_drugB'
+medium_oxygen medium_glucose medium_drugA medium_drugB &
+bdry_oxygen bdry_glucose bdry_drugA bdry_drugB'
 
 write(logmsg,*) 'Opened nfout: ',outputfile
 call logger(logmsg)
@@ -753,7 +754,7 @@ k_detach = k_v*alpha_v/2
 
 call setup_nbrlists
 call logger('did setup_nbrlists')
-call setup_react_diff
+call setup_react_diff(ok)
 ! For simple testing...
 !cell_list(:)%Cin(OXYGEN) = chemo(OXYGEN)%bdry_conc
 !cell_list(:)%Cin(GLUCOSE) = chemo(GLUCOSE)%bdry_conc

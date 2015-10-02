@@ -301,8 +301,8 @@ void MainWindow::makeDrugPlot(QString drugTypeStr, QString cellTypeStr, double *
     QLineEdit *line;
     QString objName0, objName;
     int killmodel;
-    double C_O2, C2, Kmet0, KO2, Ckill_O2, f, T, Ckill, Kd, dt;
-    double Cdrug, kmet, dMdt, SF, kill_prob;
+    double C_O2, C2, Kmet0, KO2, Ckill_O2, f, T, Ckill, Kd, c, dt;
+    double Cdrug, kmet, dMdt, SF;   //, kill_prob;
 
     objName = "checkbox_" + drugTypeStr + "_" + cellTypeStr + "_13";
     QCheckBox *cbox = findChild<QCheckBox *>(objName);
@@ -359,33 +359,46 @@ void MainWindow::makeDrugPlot(QString drugTypeStr, QString cellTypeStr, double *
     line = findChild<QLineEdit *>("lineEdit_maxdrugconc");
     *maxdose = line->text().toDouble();
 
-    dt = 60;    // 60 sec = 1 min
+//    dt = 1;    // 1 sec
     for (int i=0; i<NPLOT; i++) {
         Cdrug = (i*(*maxdose)/(NPLOT-1));
         kmet = (1 - C2 + C2*KO2/(KO2 + C_O2))*Kmet0;
         dMdt = kmet*Cdrug;
-        SF = 1;
-        for (int k=0; k<60; k++) {      // calculate survival fraction after 60 kill intervals of 1 min = 1 hour
-            if (killmodel == 1) {
-                kill_prob = Kd*dMdt*dt;
-            } else if (killmodel == 2) {
-                kill_prob = Kd*dMdt*Cdrug*dt;
-            } else if (killmodel == 3) {
-                kill_prob = Kd*pow(dMdt,2)*dt;
-            } else if (killmodel == 4) {
-                kill_prob = Kd*Cdrug*dt;
-            } else if (killmodel == 5) {
-                kill_prob = Kd*pow(Cdrug,2)*dt;
-            }
-            kill_prob = min(kill_prob,1.0);
-            SF = SF*(1 - kill_prob);
+        if (killmodel == 1) {
+            c = Kd*dMdt;
+        } else if (killmodel == 2) {
+            c = Kd*dMdt*Cdrug;
+        } else if (killmodel == 3) {
+            c = Kd*pow(dMdt,2);
+        } else if (killmodel == 4) {
+            c = Kd*Cdrug;
+        } else if (killmodel == 5) {
+            c = Kd*pow(Cdrug,2);
         }
+        SF = exp(-c*3600);      // 3600 sec = 1 hour
+//        SF = 1;
+//        for (int k=0; k<3600; k++) {      // calculate survival fraction after 3600 kill intervals of 1 sec = 1 hour
+//            if (killmodel == 1) {
+//                kill_prob = Kd*dMdt*dt;
+//            } else if (killmodel == 2) {
+//                kill_prob = Kd*dMdt*Cdrug*dt;
+//            } else if (killmodel == 3) {
+//                kill_prob = Kd*pow(dMdt,2)*dt;
+//            } else if (killmodel == 4) {
+//                kill_prob = Kd*Cdrug*dt;
+//            } else if (killmodel == 5) {
+//                kill_prob = Kd*pow(Cdrug,2)*dt;
+//            }
+//            kill_prob = min(kill_prob,1.0);
+//            SF = SF*(1 - kill_prob);
+//        }
         (*x)[i] = Cdrug;
         if (plotStr == "KF")
             (*y)[i] = (1 - SF);
         else
             (*y)[i] = SF;
     }
+    qDebug("maxdose: %8.4f  SF: %12.6f",*maxdose,SF);
 /*
 killmodel = dp%kill_model(ityp,im)		// could use %drugclass to separate kill modes
 
