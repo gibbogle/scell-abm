@@ -85,7 +85,7 @@ Off-lattice model: Dimension of the fine grid (number of grid pts in X,Y and Z d
 "Randomise initial cell volumes",
 "The volumes of the initial cell population are randomised."},
 
-{"NDAYS", 10.0, 0.0, 30.0,
+{"NDAYS", 10.0, 0.0, 0.0,
 "Number of days",
 "Length of the simulation.\n\
 [days]"},
@@ -235,8 +235,8 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
  "Interval between animation screen updates (timesteps).  One timestep = 15 sec."},
 
 {"SHOW_PROGENY", 0, 0, 0,
- "Show descendents of cell #",
- "All the descendents of cell with the specified ID are highlighted.  (0 = no selection)"},
+ "Show descendants of cell #",
+ "All the descendants of cell with the specified ID are highlighted.  (0 = no selection)"},
 
 {"USE_OXYGEN", 1, 0, 1,
 "Use Oxygen?",

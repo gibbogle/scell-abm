@@ -863,7 +863,7 @@ end subroutine
 
 
 !-----------------------------------------------------------------------------------------
-! Cells are initially placed in a regular rectangular grid pattern, spacing between cell
+! Cells are initially placed in a regular rectangular grid pattern, spacing between cell 
 ! centres equal to 2*Raverage
 !-----------------------------------------------------------------------------------------
 subroutine PlaceCells(ok)
@@ -1252,6 +1252,7 @@ do kevent = 1,Nevents
 			chemo(ichemo)%present = .true.
 			chemo(ichemo)%bdry_conc = 0
 			nmetab = drug(idrug)%nmetabolites
+			call SetupChemomap
 			do im = 1,nmetab
 				if (chemo(ichemo + im)%used) then
 					chemo(ichemo + im)%present = .true.
@@ -1270,14 +1271,15 @@ end subroutine
 ! in the medium is (Vm - Vr)/Vm.  The calculation does not apply to oxygen.
 ! Usually Vr = Ve.
 ! With grid, need to exclude gridcells that contain cells and those interior gridcells.
-! The total mass in the external gridcells is determined, and a fraction of it may be retained
+! The total mass in the external gridcells is determined, and a fraction of it may be retained 
 !-----------------------------------------------------------------------------------------
 subroutine MediumChange(Ve,Ce)
 real(REAL_KIND) :: Ve, Ce(:)
 real(REAL_KIND) :: R, Vm_old, Vm_new, Vr, Vkeep, Vblob, fkeep
-integer :: kcell, site(3), siteb(3), ixb, iyb, izb, izb_1, izb_2, ichemo
+integer :: kcell, site(3), siteb(3), ixb, iyb, izb, izb_1, izb_2, ichemo, ic
 integer, allocatable :: zinrng(:,:,:)
 real(REAL_KIND), allocatable :: exmass(:), exconc(:)
+real(REAL_KIND), pointer :: Cave(:,:,:)
 
 write(nflog,*) 'MediumChange: ',Ve,Ce
 allocate(ngcells(NXB,NYB,NZB))
@@ -1286,6 +1288,7 @@ allocate(exmass(MAX_CHEMO))
 allocate(exconc(MAX_CHEMO))
 exmass = 0
 ngcells = 0
+Vblob = 0
 ! need to identify gridcells containing cells, to exclude from the calculation
 do kcell = 1,nlist
 	if (cell_list(kcell)%state == DEAD) cycle
@@ -1333,31 +1336,54 @@ total_volume = Vm_new + Vblob	! new total volume
 ! to the values of the mixture of old values and added medium.
 do ichemo = 1,MAX_CHEMO
 	if (.not.chemo(ichemo)%used) cycle
-	exconc(ichemo) = (Ve*Ce(ichemo) + fkeep*exmass(ichemo))/Vm_new
-!	write(*,'(a,i2,6f8.4)') 'MediumChange: exconc: ',ichemo,Ce(ichemo),Ve,fkeep,exmass(ichemo),Vm_new,exconc(ichemo)
+	if (Ce(ichemo) == 0) then
+		exconc(ichemo) = 0
+	else
+		exconc(ichemo) = (Ve*Ce(ichemo) + fkeep*exmass(ichemo))/Vm_new
+	endif
+	write(*,'(a,i2,6f8.4)') 'MediumChange: exconc: ',ichemo,Ce(ichemo),Ve,fkeep,exmass(ichemo),Vm_new,exconc(ichemo)
 enddo
-do ixb = 1,NXB
-	do iyb = 1,NYB
-		if (zinrng(1,ixb,iyb) == 0) then
-			do ichemo = 1,MAX_CHEMO
-				if (.not.chemo(ichemo)%used) cycle
-				chemo(ichemo)%Cave_b(ixb,iyb,1:NZB) = exconc(ichemo)
-				chemo(ichemo)%Cprev_b(ixb,iyb,1:NZB) = exconc(ichemo)
-			enddo
-		else
-			izb_1 = zinrng(1,ixb,iyb)
-			izb_2 = zinrng(2,ixb,iyb)
-			do izb = 1,NZB
-				if ((izb >= izb_1 .and. izb <= izb_2)) cycle	! blob gridcells
-				do ichemo = 1,MAX_CHEMO
-					if (.not.chemo(ichemo)%used) cycle
-					chemo(ichemo)%Cave_b(ixb,iyb,izb) = exconc(ichemo)
-					chemo(ichemo)%Cprev_b(ixb,iyb,izb) = exconc(ichemo)
-				enddo
-			enddo
-		endif
-	enddo
+! TESTING
+!do ixb = 1,NXB
+!	do iyb = 1,NYB
+!		if (zinrng(1,ixb,iyb) == 0) then
+!			do ichemo = 1,MAX_CHEMO
+!				if (.not.chemo(ichemo)%used) cycle
+!				chemo(ichemo)%Cave_b(ixb,iyb,1:NZB) = exconc(ichemo)
+!				chemo(ichemo)%Cprev_b(ixb,iyb,1:NZB) = exconc(ichemo)
+!			enddo
+!		else
+!			izb_1 = zinrng(1,ixb,iyb)
+!			izb_2 = zinrng(2,ixb,iyb)
+!			do izb = 1,NZB
+!				if ((izb >= izb_1 .and. izb <= izb_2)) cycle	! blob gridcells
+!				do ichemo = 1,MAX_CHEMO
+!					if (.not.chemo(ichemo)%used) cycle
+!					chemo(ichemo)%Cave_b(ixb,iyb,izb) = exconc(ichemo)
+!					chemo(ichemo)%Cprev_b(ixb,iyb,izb) = exconc(ichemo)
+!				enddo
+!			enddo
+!		endif
+!	enddo
+!enddo
+do ic = 1,nchemo
+	ichemo = chemomap(ic)
+	write(*,*) 'Setting Cave_b: ',ichemo,exconc(ichemo)
+	chemo(ichemo)%Cave_b(:,:,:) = exconc(ichemo)
+	chemo(ichemo)%Cprev_b(:,:,:) = exconc(ichemo)
+	Caverage(:,:,:,ichemo) = exconc(ichemo)		! This is approximately OK, because themedium volume is so much greater than the blob volume
+	! Try this
+	Cflux(:,:,:,ichemo) = 0
+	chemo(ichemo)%Fcurr_b = 0
+	call update_Cex(ichemo)
 enddo
+
+do ic = 1,nchemo
+	ichemo = chemomap(ic)
+	Cave => Caverage(:,:,:,ichemo)
+	call interpolate_Cave(ichemo, Cave, chemo(ichemo)%Cave_b)
+enddo
+
 !chemo(OXYGEN+1:)%medium_M = ((Vm - Vr)/Vm)*chemo(OXYGEN+1:)%medium_M + Vr*Ce(OXYGEN+1:)
 !chemo(OXYGEN+1:)%medium_Cext = chemo(OXYGEN+1:)%medium_M/(total_volume - Vblob)
 !chemo(OXYGEN)%medium_Cext = chemo(OXYGEN)%bdry_conc
@@ -1688,7 +1714,7 @@ elseif (res == -1) then
 else
 	call logger('  === Execution failed ===')
 endif
-!write(logmsg,'(a,f10.2)') 'Execution time (min): ',(wtime() - execute_t1)/60
+!write(logmsg,'(a,f10.2)') 'Execution time (min): ',(wtime() - execute_t1)/60 
 !call logger(logmsg)
 
 !close(nflog)

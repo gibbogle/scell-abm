@@ -131,7 +131,7 @@ subroutine makeF_b(F_b,F,dt,zero)
 integer, parameter :: dN = NRF/2
 real(REAL_KIND) :: F_b(:,:,:), F(:,:,:), dt
 logical :: zero
-real(REAL_KIND) :: Fsum_b, Fsum, Fmin
+real(REAL_KIND) :: Fsum_b, Fsum, Fmin, dF
 real(REAL_KIND) :: wt(-dN:dN,-dN:dN,-dN:dN)
 real(REAL_KIND) :: xfac, yfac, zfac
 integer :: idx, idy, idz, xb0, yb0, idxb, idyb, zb1
@@ -187,8 +187,14 @@ do ixb = xb0-idxb,xb0+idxb
 					do idz = -dN,dN
 						iz = iz0 + idz
 						if (iz < 1 .or. iz > NZ) cycle
-						F_b(ixb,iyb,izb) = F_b(ixb,iyb,izb) + wt(idx,idy,idz)*F(ix,iy,iz)
-						Fsum_b = Fsum_b + wt(idx,idy,idz)*F(ix,iy,iz)
+						dF = wt(idx,idy,idz)*F(ix,iy,iz)
+						F_b(ixb,iyb,izb) = F_b(ixb,iyb,izb) + dF
+!						if (ichemo_curr == DRUG_A .and. istep > 24 .and. dF > 0) then
+!							write(nflog,'(a,4i6,4e12.3)') 'makeF_b: F_b > 0: ',istep,ixb,iyb,izb,F(ix,iy,iz),wt(idx,idy,idz),F_b(ixb,iyb,izb),dF
+!!							write(*,'(a,4i6,4e12.3)') 'makeF_b: F_b > 0: ',istep,ixb,iyb,izb,F(ix,iy,iz),wt(idx,idy,idz),F_b(ixb,iyb,izb),dF
+!							stop
+!						endif
+						Fsum_b = Fsum_b + dF
 					enddo
 				enddo
 			enddo
@@ -196,10 +202,13 @@ do ixb = xb0-idxb,xb0+idxb
 	enddo
 enddo
 zero = (Fsum_b == 0)	
+!if (ichemo_curr == DRUG_A) write(*,'(a,2i6,e12.3)') 'makeF_b: ',ichemo_curr,istep,Fsum_b
 end subroutine
 
 !-------------------------------------------------------------------------------------------
-! This version is for the embedded grid
+! This version is for the embedded grid.
+! Given boundary concentrations and grid point fluxes, we need to solve for the 
+! steady-state concentration field.
 !-------------------------------------------------------------------------------------------
 subroutine make_csr_SS(a, ichemo, Cave, Fcurr, rhs)
 integer :: ichemo
@@ -249,7 +258,8 @@ do iy = 2,NY-1
 	do iz = 1,NZ-1
 		krow = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
 		Cbdry = Cave(1,iy,iz)
-		rhs(krow) = rhs(krow) + Cbdry		
+		rhs(krow) = rhs(krow) + Cbdry
+!		if (ichemo >= 5) write(*,'(a,e12.3)') 'Cbdry: ix=2: ',Cbdry
 	enddo
 enddo
 ix = NX-1
@@ -258,6 +268,7 @@ do iy = 2,NY-1
 		krow = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
 		Cbdry = Cave(NX,iy,iz)
 		rhs(krow) = rhs(krow) + Cbdry		
+!		if (ichemo >= 5) write(*,'(a,e12.3)') 'Cbdry: ix=NX-1: ',Cbdry
 	enddo
 enddo
 iy = 2
@@ -265,7 +276,8 @@ do ix = 2,NX-1
 	do iz = 1,NZ-1
 		krow = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
 		Cbdry = Cave(ix,1,iz)
-		rhs(krow) = rhs(krow) + Cbdry		
+		rhs(krow) = rhs(krow) + Cbdry
+!		if (ichemo >= 5) write(*,'(a,e12.3)') 'Cbdry: iy=2: ',Cbdry
 	enddo
 enddo
 iy = NY-1
@@ -273,7 +285,8 @@ do ix = 2,NX-1
 	do iz = 1,NZ-1
 		krow = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
 		Cbdry = Cave(ix,NY,iz)
-		rhs(krow) = rhs(krow) + Cbdry		
+		rhs(krow) = rhs(krow) + Cbdry
+!		if (ichemo >= 5) write(*,'(a,e12.3)') 'Cbdry: iy=NY-1: ',Cbdry
 	enddo
 enddo
 iz = NZ-1
@@ -281,7 +294,8 @@ do ix = 2,NX-1
 	do iy = 2,NY-1
 		krow = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
 		Cbdry = Cave(ix,iy,NZ)
-		rhs(krow) = rhs(krow) + Cbdry		
+		rhs(krow) = rhs(krow) + Cbdry
+!		if (ichemo >= 5) write(*,'(a,e12.3)') 'Cbdry: iz=NZ-1: ',Cbdry
 	enddo
 enddo
 first = .false.
@@ -421,11 +435,11 @@ enddo
 end subroutine
 
 !-------------------------------------------------------------------------------------------
-subroutine update_Cin_const_SS(ichemo, dt)
+!-------------------------------------------------------------------------------------------
+subroutine update_Cin_const_SS(ichemo)
 integer :: ichemo
-real(REAL_KIND) :: dt
 integer :: kcell, ix, iy, iz
-real(REAL_KIND) :: alfa(3), Kin, Kout
+real(REAL_KIND) :: alfa(3)
 type(cell_type), pointer :: cp
 real(REAL_KIND), pointer :: Cextra(:,:,:)
 !real(REAL_KIND), pointer :: Cprev(:,:,:)
@@ -434,8 +448,6 @@ real(REAL_KIND), pointer :: Cextra(:,:,:)
 
 Cextra => Caverage(:,:,:,ichemo)		! currently using the average concentration!
 !Cprev => chemo(ichemo)%Cprev
-Kin = chemo(ichemo)%membrane_diff_in
-Kout = chemo(ichemo)%membrane_diff_out
 !$omp parallel do private(cp, ix, iy, iz, alfa)
 do kcell = 1,nlist
 	cp => cell_list(kcell)
@@ -456,6 +468,131 @@ do kcell = 1,nlist
 enddo
 !$omp end parallel do
 end subroutine
+
+!-------------------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------------------
+subroutine update_Cex(ichemo)
+integer :: ichemo
+real(REAL_KIND) :: dt
+integer :: kcell, ix, iy, iz
+real(REAL_KIND) :: alfa(3)
+type(cell_type), pointer :: cp
+real(REAL_KIND), pointer :: Cextra(:,:,:)
+!real(REAL_KIND), pointer :: Cprev(:,:,:)
+
+write(*,*) 'update_Cex: ',ichemo
+
+Cextra => Caverage(:,:,:,ichemo)		! currently using the average concentration!
+!Cprev => chemo(ichemo)%Cprev
+!$omp parallel do private(cp, ix, iy, iz, alfa)
+do kcell = 1,nlist
+	cp => cell_list(kcell)
+	if (cp%state == DEAD) cycle
+	call grid_interp(kcell, alfa)
+	ix = cp%site(1)
+	iy = cp%site(2)
+	iz = cp%site(3)
+	cp%Cex(ichemo) = (1-alfa(1))*(1-alfa(2))*(1-alfa(3))*Cextra(ix,iy,iz)  &
+        + (1-alfa(1))*alfa(2)*(1-alfa(3))*Cextra(ix,iy+1,iz)  &
+        + (1-alfa(1))*alfa(2)*alfa(3)*Cextra(ix,iy+1,iz+1)  &
+        + (1-alfa(1))*(1-alfa(2))*alfa(3)*Cextra(ix,iy,iz+1)  &
+        + alfa(1)*(1-alfa(2))*(1-alfa(3))*Cextra(ix+1,iy,iz)  &
+        + alfa(1)*alfa(2)*(1-alfa(3))*Cextra(ix+1,iy+1,iz)  &
+        + alfa(1)*alfa(2)*alfa(3)*Cextra(ix+1,iy+1,iz+1)  &
+        + alfa(1)*(1-alfa(2))*alfa(3)*Cextra(ix+1,iy,iz+1)
+    if (ichemo < DRUG_A) then
+		cp%Cin(ichemo) = getCin_SS(kcell,ichemo,cp%V,cp%Cex(ichemo))
+	endif
+enddo
+!$omp end parallel do
+end subroutine
+
+!-------------------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------------------
+subroutine integrate_Cin(dt)
+real(REAL_KIND) :: dt
+integer :: kcell
+
+do kcell = 1,nlist
+	if (cell_list(kcell)%state == DEAD) cycle
+	if (chemo(DRUG_A)%present) then
+		call integrate_cell_Cin(DRUG_A,kcell,dt)
+	endif
+	if (chemo(DRUG_B)%present) then
+		call integrate_cell_Cin(DRUG_B,kcell,dt)
+	endif
+enddo
+end subroutine
+
+!-------------------------------------------------------------------------------------------
+! The system quickly equilibrates.
+! It would be best to find the steady-state solution analytically.
+! 3 simultaneous quadratics...
+!-------------------------------------------------------------------------------------------
+subroutine integrate_cell_Cin(ichemo_parent, kcell, dt)
+integer :: ichemo_parent, kcell
+real(REAL_KIND) :: dt
+type(cell_type), pointer :: cp
+integer :: ichemo, ictyp, idrug, im, it
+real(REAL_KIND) :: Vin, Cex(0:2), Cin(0:2), dCdt(0:2), dMdt(0:2), dtt
+real(REAL_KIND) :: CO2
+real(REAL_KIND) :: Kin(0:2), Kout(0:2), Kd(0:2)
+real(REAL_KIND) :: C2(0:2), KO2(0:2), Kmet0(0:2), Vmax(0:2), Km(0:2)
+real(REAL_KIND) :: K1(0:2), K2(0:2)
+type(drug_type), pointer :: dp
+integer :: nt = 100
+real(REAL_KIND) :: tol = 1.0e-12
+
+dtt = dt/nt
+cp => cell_list(kcell)
+ictyp = cp%celltype
+Vin = cp%V
+CO2 = cp%Cin(OXYGEN)
+idrug = (ichemo_parent - TRACER - 1)/3 + 1
+dp => drug(idrug)
+do im = 0,2
+	ichemo = ichemo_parent + im
+	Cin(im) = cp%Cin(ichemo)
+	Cex(im) = cp%Cex(ichemo)
+	Kin(im) = chemo(ichemo)%membrane_diff_in
+	Kout(im) = chemo(ichemo)%membrane_diff_out
+	Kd(im) = chemo(ichemo)%decay_rate
+	Kmet0(im) = dp%Kmet0(ictyp,im)
+	C2(im) = dp%C2(ictyp,im)
+	KO2(im) = dp%KO2(ictyp,im)
+	Kmet0(im) = dp%Kmet0(ictyp,im)
+	Km(im) = dp%Km(ictyp,im)
+	Vmax(im) = dp%Vmax(ictyp,im)
+	K1(im) = (1 - C2(im) + C2(im)*KO2(im)/(KO2(im) + CO2))
+enddo
+if (kcell == 1) then
+	write(*,*) 'integrate_cell_Cin: ichemo_parent,kcell,idrug: ',ichemo_parent,kcell,idrug
+	write(*,'(a,6e11.3)') 'Cex,in: ',Cex, Cin
+	write(*,'(a,6e11.3)') 'Kin,out: ',Kin, Kout
+endif
+dMdt = 0
+do it = 1,nt
+	K2(0) = Kmet0(0) + Vmax(0)/(Km(0) + Cin(0))
+	K2(1) = Kmet0(1) + Vmax(1)/(Km(1) + Cin(1))
+	K2(2) = Kmet0(2) + Vmax(2)/(Km(2) + Cin(2))
+	dCdt(0) = Kin(0)*Cex(0)/Vin - Kout(0)*Cin(0)/Vin - Kd(0)*Cin(0) - K1(0)*K2(0)*Cin(0)
+	dCdt(1) = Kin(1)*Cex(1)/Vin - Kout(1)*Cin(1)/Vin - Kd(1)*Cin(1) - K1(1)*K2(1)*Cin(1) + K1(0)*K2(0)*Cin(0)
+	dCdt(2) = Kin(2)*Cex(2)/Vin - Kout(2)*Cin(2)/Vin - Kd(2)*Cin(2) - K1(2)*K2(2)*Cin(2) + K1(1)*K2(1)*Cin(1)
+!	write(*,'(i4,6e12.3)') it,Cin,dCdt
+	do im = 0,2
+		Cin(im) = max(0.0, Cin(im) + dCdt(im)*dtt)
+!		dMdt(im) = dMdt(im) + Kin(im)*Cex(im)/Vin - Kout(im)*Cin(im)/Vin
+	enddo
+	if (abs(dCdt(0))<tol .and. abs(dCdt(1))<tol .and. abs(dCdt(2))<tol) exit
+enddo
+do im = 0,2
+	cp%Cin(ichemo_parent+im) = Cin(im)
+	cp%dMdt(ichemo_parent+im) = Kin(im)*Cex(im) - Kout(im)*Cin(im)	!dMdt(im)/nt
+enddo
+
+if (kcell == 1) write(*,'(a,i6,6e11.3)') 'Cin: ',kcell,cp%Cin(ichemo_parent:ichemo_parent+2),cp%dMdt(ichemo_parent:ichemo_parent+2)
+end subroutine
+
 !-------------------------------------------------------------------------------------------
 ! Estimate total flux values associated with each fine grid pt, consistent with the current
 ! average concentrations Cave in the neighbourhood of the grid pt.  The grid pt flux is
@@ -491,6 +628,9 @@ do kcell = 1,nlist
 	cp => cell_list(kcell)
 	if (cp%state == DEAD) cycle
 	cp%dMdt(ichemo) = Kin*cp%Cex(ichemo) - Kout*cp%Cin(ichemo)
+!	if (ichemo >= DRUG_A .and. istep > 24 .and. cp%dMdt(ichemo) < 0) then
+!		write(*,'(a,3i6,3e12.3)') 'getF_const: ',istep,ichemo,kcell,cp%Cex(ichemo),cp%Cin(ichemo),cp%dMdt(ichemo)
+!	endif
 	total_flux = total_flux + cp%dMdt(ichemo)
 !	if (kcell == 1) then
 !		write(nflog,'(a,i4,5e12.5)') 'getF_const: Cin, Cex, dMdt: ',ichemo, cp%Cin(ichemo), cp%Cex(ichemo),cp%dMdt(ichemo),Kin,Kout
@@ -505,14 +645,14 @@ call make_grid_flux(ichemo,Cflux_const)
 end subroutine
 
 !-------------------------------------------------------------------------------------------
-! alfa is the amount of the previous flux
+! 1-alfa is the amount of the previous flux
 !-------------------------------------------------------------------------------------------
 subroutine make_grid_flux(ichemo,Cflux_const)
 integer :: ichemo
 real(REAL_KIND) :: Cflux_const(:,:,:)
 integer :: kcell, k, cnr(3,8)
 type(cell_type), pointer :: cp
-real(REAL_KIND) :: alfa = 0.7
+real(REAL_KIND) :: alfa = 1.0	! 0.3
 
 Cflux_const = 0
 do kcell = 1,nlist
@@ -523,7 +663,7 @@ do kcell = 1,nlist
 		Cflux_const(cnr(1,k),cnr(2,k),cnr(3,k)) = Cflux_const(cnr(1,k),cnr(2,k),cnr(3,k)) + cp%dMdt(ichemo)*cp%wt(k)
 	enddo
 enddo
-Cflux_const(:,:,:) = (1-alfa)*Cflux_const(:,:,:) + alfa*Cflux_prev(:,:,:,ichemo)
+Cflux_const(:,:,:) = alfa*Cflux_const(:,:,:) + (1-alfa)*Cflux_prev(:,:,:,ichemo)
 end subroutine
 
 !-------------------------------------------------------------------------------------------
@@ -571,7 +711,8 @@ type(drug_type), pointer :: dp
 !	call logger(logmsg)
 !	stop
 !endif
-if (Cex <= 0) then
+if (Cex < 0) then
+!	write(*,*) 'Cex < 0: ',kcell,ichemo,Cex
 	Cex = 0
 	Cin = 0
 	return
@@ -617,6 +758,7 @@ else	! parent drug or drug metabolite
 	idrug = (ichemo - TRACER - 1)/3 + 1
 	dp => drug(idrug)
 	im = ichemo - TRACER - 1 - 3*(idrug-1)
+!	write(*,*) 'ichemo,idrug,im: ',ichemo,idrug,im
 	if (im == 0) then		! parent
 		Kmet0_0 = dp%Kmet0(ictyp,0)
 		C2_0 = dp%C2(ictyp,0)
@@ -638,6 +780,9 @@ else	! parent drug or drug metabolite
 			b = -Kin*Cex/Vin
 			Cin = -b/a
 		endif
+		if (kcell == 1) then
+			write(*,'(a,2e12.3)') 'parent: ',Cin
+		endif
 	elseif (im == 1) then	! metab1
 		CO2 = cell_list(kcell)%Cin(OXYGEN)
 		C_parent = cell_list(kcell)%Cin(ichemo-1)
@@ -649,6 +794,9 @@ else	! parent drug or drug metabolite
 		Kmet0_1 = drug(idrug)%Kmet0(ictyp,1)
 		Cin = ((1 - C2_0 + C2_0*KO2_0/(KO2_0 + CO2))*Kmet0_0*C_parent + Kin*Cex/Vin) &
 		     /((1 - C2_1 + C2_1*KO2_1/(KO2_1 + CO2))*Kmet0_1 + Kd + Kout/Vin)
+		if (kcell == 1) then
+			write(*,'(a,i6,2e12.3)') 'metab1: ',kcell,C_parent,Cin
+		endif
 	elseif (im == 2) then	! metab2
 		CO2 = cell_list(kcell)%Cin(OXYGEN)
 		C_metab1 = cell_list(kcell)%Cin(ichemo-1)
@@ -862,7 +1010,7 @@ real(REAL_KIND) :: Cave(:,:,:), Cave_b(:,:,:)
 integer :: idx, idy, idz, xb0, yb0, idxb, idyb, xb1, xb2, yb1, yb2, zb1, zb2
 integer :: ixb, iyb, izb, ix0, iy0, iz0, ix, iy, iz, nsum, ncsum
 real(REAL_KIND) :: ax, ay, az, asum(2), Cnew, csum
-real(REAL_KIND) :: alfa = 0.3
+real(REAL_KIND) :: alfa = 1.0	!0.3
 
 xb0 = (NXB+1)/2			
 idxb = (NX-1)/(2*NRF)
@@ -896,10 +1044,11 @@ do iyb = yb1,yb2-1
 				ixb = xb1
 				ix = (ixb - xb0)*NRF + (NX+1)/2
 				nsum = nsum + 1
-				Cave(ix,iy,iz) =     ay*az*Cave_b(ixb, iyb,   izb) + &
+				Cnew =     ay*az*Cave_b(ixb, iyb,   izb) + &
 								(1-ay)*az*Cave_b(ixb, iyb+1, izb) + &
 								ay*(1-az)*Cave_b(ixb, iyb,   izb+1) + &
 							(1-ay)*(1-az)*Cave_b(ixb, iyb+1, izb+1)
+				Cave(ix,iy,iz) = alfa*Cnew + (1-alfa)*Cave(ix,iy,iz)
 				asum(1) = asum(1) + Cave(ix,iy,iz)
 				ixb = xb2
 				ix = (ixb - xb0)*NRF + (NX+1)/2
@@ -908,6 +1057,7 @@ do iyb = yb1,yb2-1
 								ay*(1-az)*Cave_b(ixb,iyb,  izb+1) + &
 							(1-ay)*(1-az)*Cave_b(ixb,iyb+1,izb+1)
 				Cave(ix,iy,iz) = alfa*Cnew + (1-alfa)*Cave(ix,iy,iz)
+!				if (ichemo==DRUG_A) write(*,*) 'Right side'
 				asum(2) = asum(2) + Cave(ix,iy,iz)
 				csum = csum + Cave(ix,iy,iz)
 				ncsum = ncsum + 1
@@ -935,10 +1085,11 @@ do ixb = xb1,xb2-1
 				iyb = yb1
 				iy = (iyb - yb0)*NRF + (NY+1)/2
 				nsum = nsum + 1
-				Cave(ix,iy,iz) =     ax*az*Cave_b(ixb,   iyb, izb) + &
+				Cnew =     ax*az*Cave_b(ixb,   iyb, izb) + &
 								(1-ax)*az*Cave_b(ixb+1, iyb, izb) + &
 								ax*(1-az)*Cave_b(ixb,   iyb, izb+1) + &
 							(1-ax)*(1-az)*Cave_b(ixb+1, iyb, izb+1)
+				Cave(ix,iy,iz) = alfa*Cnew + (1-alfa)*Cave(ix,iy,iz)
 				asum(1) = asum(1) + Cave(ix,iy,iz)
 				iyb = yb2
 				iy = (iyb - yb0)*NRF + (NY+1)/2
@@ -988,6 +1139,40 @@ do ixb = xb1,xb2-1
 	enddo
 enddo
 chemo(ichemo)%medium_cbnd = csum/ncsum		! average concentration on the boundary of the fine grid
+!if (ichemo >= DRUG_A) then
+	write(nflog,'(a,i4,e12.3)') 'interpolate_Cave: medium_cbnd: ',ichemo,chemo(ichemo)%medium_cbnd
+	write(*,'(a,i4,e12.3)') 'interpolate_Cave: medium_cbnd: ',ichemo,chemo(ichemo)%medium_cbnd
+!endif
+end subroutine
+
+!--------------------------------------------------------------------------------------
+! Estimate the total mass of a constituent.
+! Add the extracellular contributions from Cave_b and the intracellular contributions
+! from cell_list.
+! Note that there is double counting here because of the micky-mouse way that Cex is
+! treated inside the blob.  Not important right now for our purposes.
+! Since V is cm3 and C is muM, mass is mumols
+!--------------------------------------------------------------------------------------
+subroutine getMass(ichemo,mass)
+integer :: ichemo
+real(REAL_KIND) :: mass
+integer :: ixb, iyb, izb, kcell
+type(cell_type),pointer :: cp
+
+mass = 0
+do ixb = 1,NXB
+	do iyb = 1,NYB
+		do izb = 1,NZB
+			mass = mass + dxb3*chemo(ichemo)%Cave_b(ixb,iyb,izb)
+		enddo
+	enddo
+enddo
+do kcell = 1,nlist
+	cp => cell_list(kcell)
+	if (cp%state == DEAD) cycle
+	mass = mass + cp%V*cp%Cin(ichemo)
+enddo
+
 end subroutine
 
 !--------------------------------------------------------------------------------------
@@ -1009,13 +1194,14 @@ real(REAL_KIND) :: dt
 integer :: i, k, k1, ix, iy, iz, irow, icol, kc, ic, icc, it
 integer :: ixb, iyb, izb
 integer :: ichemo, ierr, nfill, iters, maxits, im_krylov
-real(REAL_KIND) :: R, tol, tol_b, asum, t, Vex_curr, Vex_next, Vin_curr, Vin_next, fdecay, Csum, dCsum, msum
+real(REAL_KIND) :: R, tol, tol_b, asum, t, Vex_curr, Vex_next, Vin_curr, Vin_next, fdecay, Csum, dCsum, msum, mass(MAX_CHEMO)
 real(REAL_KIND), allocatable :: x(:), rhs(:)
 real(REAL_KIND), pointer :: Cave(:,:,:), Cprev(:,:,:), Fprev(:,:,:), Fcurr(:,:,:)
 real(REAL_KIND), pointer :: Cave_b(:,:,:), Cprev_b(:,:,:), Fprev_b(:,:,:), Fcurr_b(:,:,:)
 real(REAL_KIND), allocatable :: a(:), a_b(:)
-real(REAL_KIND) :: alfa = 0.7
+real(REAL_KIND) :: alfa = 1.0	!0.3
 real(REAL_KIND) :: dCtol = 1.0e-4
+real(REAL_KIND) :: massmin = 1.0e-8
 integer :: ILUtype = 1
 integer :: nfinemap, finemap(MAX_CHEMO)
 integer :: im, im1, im2, ichemof
@@ -1023,6 +1209,26 @@ logical :: zeroF(MAX_CHEMO), zeroC(MAX_CHEMO)
 logical :: done
 logical :: do_fine = .true.
 logical :: use_const = .true.
+
+!do ic = 1,nchemo
+!	ichemo = chemomap(ic)
+!	call getMass(ichemo,mass(ichemo))
+!	write(*,'(a,i4,e12.3)') 'mass: ',ichemo,mass(ichemo)
+!enddo
+do ichemo = 1,MAX_CHEMO
+	if (.not.chemo(ichemo)%used) cycle
+	call getMass(ichemo,mass(ichemo))
+	if (chemo(ichemo)%present) then
+		if (mass(ichemo) < 1.0e-12) then
+			chemo(ichemo)%present = .false.
+		endif
+	else
+		if (mass(ichemo) > 1.0e-12) then
+			chemo(ichemo)%present = .true.
+		endif
+	endif
+enddo
+call SetupChemomap
 
 nfinemap = 0
 do ic = 1,nchemo
@@ -1040,7 +1246,7 @@ nfill = 1	! Level of fill for ILUK preconditioner
 tol = 1.0d-6
 tol_b = 1.0d-6
 im_krylov = 60	! dimension of Krylov subspace in (outer) FGMRES
-maxits = 100
+maxits = 30	!100
 
 ! Compute all steady-state grid point fluxes in advance from Cextra(:,:,:,:): Cflux(:,:,:,:)
 
@@ -1048,7 +1254,6 @@ maxits = 100
 do ic = 1,nchemo
 	ichemo = chemomap(ic)
 	if (chemo(ichemo)%constant) cycle
-!	write(*,'(a,i2)') 'coarse grid: ichemo: ',ichemo
 !	write(nflog,'(a,i2)') 'coarse grid: ichemo: ',ichemo
 	ichemo_curr = ichemo
 	icc = ichemo - 1
@@ -1063,6 +1268,13 @@ do ic = 1,nchemo
 	Cave => Caverage(:,:,:,ichemo)
 !	write(*,*) 'Cave_b:'
 !	write(*,'(5e15.6)') Cave_b(NXB/2,NYB/2,:)
+
+!			if (use_SS) then
+!				call update_Cin_const_SS(ichemo,dt)				! true steady-state
+!			else
+!				call update_Cex_Cin_dCdt_const(ichemo,dt)		! quasi steady-state
+!			endif
+!			call getF_const(ichemo, Fcurr)
 		
 	Fprev_b = Fcurr_b
 	call makeF_b(Fcurr_b, Fcurr, dt,zeroF(ichemo))
@@ -1114,11 +1326,12 @@ do ic = 1,nchemo
 		do iyb = 1,NYB
 			do ixb = 1,NXB
 				k = (ixb-1)*NYB*NZB + (iyb-1)*NZB + izb
-				Cave_b(ixb,iyb,izb) = fdecay*x(k)
 				msum = msum + x(k)*dxb3		! this sums the mass of constituent in mumols
 				if (x(k) < 0) then
-					write(nflog,*) 'Cave_b < 0: ',ixb,iyb,izb,x(k)
+!					write(nflog,*) 'Cave_b < 0: ',ixb,iyb,izb,x(k)
+					x(k) = 0
 				endif 
+				Cave_b(ixb,iyb,izb) = fdecay*x(k)
 			enddo
 		enddo
 	enddo
@@ -1141,29 +1354,31 @@ do ic = 1,nfinemap
 	else
 		im2 = 2
 	endif
-	do im = im1, im2
+	do im = im1, im2	! this is to ensure that the sequence is parent -> metab1 -> metab2
 		ichemo = ichemof + im
 		if (.not.chemo(ichemo)%present) cycle
-!		write(*,'(a,i2)') 'fine grid: ichemo: ',ichemo
+		write(*,'(a,i2)') 'fine grid: ichemo: ',ichemo
 		ichemo_curr = ichemo
 		icc = ichemo - 1
-!		write(*,'(a,i2)') 'ichemo: ',ichemo
 		Cave => Caverage(:,:,:,ichemo)
 		Cprev => chemo(ichemo)%Cprev
-		Fprev => chemo(ichemo)%Fprev
+!		Fprev => chemo(ichemo)%Fprev
 		Fcurr => Cflux(:,:,:,ichemo)
 		
 		it = 0
 		do
 			it = it + 1
 !			write(*,*) 'fine grid: ichemo,it: ',ichemo,it
-			if (it == 50) stop
+!			if (it == 50) stop
+
+			if (mass(ichemo) > massmin) then
+
 			call make_csr_SS(a, ichemo, Cave, Fcurr, rhs)	! fine grid - note: using the same flux values as the Cave_b solution!
 			
 			! Solve Cave(t+dt) steady-state on fine grid
 			!-------------------------------------------
 			call itsol_create_matrix(icc,nrow,nnz,a,ja,ia,ierr)
-!			write(nflog,*) 'itsol_create_matrix: ierr: ',ierr
+			!write(*,*) 'itsol_create_matrix: ierr: ',ierr
 			if (ILUtype == 1) then
 				call itsol_create_precond_ILUK(icc,nfill,ierr)
 			!	write(*,*) 'itsol_create_precond_ILUK: ierr: ',ierr 
@@ -1190,11 +1405,18 @@ do ic = 1,nfinemap
 			endif
 			
 			if (.not.zeroC(ichemo)) then
-			!	write(nflog,*) 'call itsol_solve_fgmr_ILU'
+!				write(*,*) 'call itsol_solve_fgmr_ILU'
 				call itsol_solve_fgmr_ILU(icc,rhs, x, im_krylov, maxits, tol, iters, ierr)
-			!	write(nflog,*) 'itsol_solve_fgmr_ILU: Cave: ierr, iters: ',ierr,iters
+!				write(*,*) 'itsol_solve_fgmr_ILU: Cave: ierr, iters: ',ierr,iters
+				if (ierr /= 0) then
+					write(nflog,*) 'x:'
+					write(nflog,'(10e12.3)') x
+					write(nflog,*) 'rhs:'
+					write(nflog,'(10e12.3)') rhs
+					stop
+				endif
 			else
-				write(nflog,*) 'no solve, zeroC: ',ichemo
+				write(*,*) 'no solve, zeroC: ',ichemo
 			endif
 			call itsol_free_precond_ILU(icc,ierr)
 			call itsol_free_matrix(icc,ierr)
@@ -1206,7 +1428,7 @@ do ic = 1,nfinemap
 				do iy = 2,NY-1
 					do ix = 2,NX-1
 						k = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
-						Cave(ix,iy,iz) = (1-alfa)*x(k) + alfa*Cave(ix,iy,iz)
+						Cave(ix,iy,iz) = alfa*x(k) + (1-alfa)*Cave(ix,iy,iz)
 						Csum = Csum + Cave(ix,iy,iz)
 !						dCsum = dCsum + abs((Cave(ix,iy,iz) - Cprev(ix,iy,iz))/Cave(ix,iy,iz))
 					enddo
@@ -1215,18 +1437,26 @@ do ic = 1,nfinemap
 !			dCsum = dCsum/(NX*NY*NZ)
 !			done = (abs(dCsum) < dCtol)
 !			write(*,'(a,i2,3e12.3)') 'Csum,Cave,Cflux(17,17,17): ',ichemo,Csum,Cave(17,17,17),Cflux(17,17,17,ichemo)
-			if (Csum > 0 .and. Csum < 1.0e-10) then
-				write(nflog,*) 'Stop solving for: ',ichemo
-				chemo(ichemo)%present = .false.
-				! Probably should set all concentrations to 0
+
+!			if (Csum > 0 .and. Csum < 1.0e-10) then
+!				write(nflog,*) 'Stop solving for: ',ichemo
+!				chemo(ichemo)%present = .false.
+!				! Probably should set all concentrations to 0
+!			endif
+			
 			endif
+			
 			Cflux_prev(:,:,:,ichemo) = Fcurr
+			
 			if (use_SS) then
-				call update_Cin_const_SS(ichemo,dt)				! true steady-state
+				call update_Cin_const_SS(ichemo)				! true steady-state
+				call getF_const(ichemo, Fcurr)
+			elseif (use_integration) then
+				call update_Cex(ichemo)
 			else
 				call update_Cex_Cin_dCdt_const(ichemo,dt)		! quasi steady-state
+				call getF_const(ichemo, Fcurr)
 			endif
-			call getF_const(ichemo, Fcurr)
 			Cprev = Cave
 				
 			done = .true.	! try just a single iteration
@@ -1239,6 +1469,21 @@ do ic = 1,nfinemap
 	
 enddo
 !$omp end parallel do
+
+if (use_integration) then
+	! solve for Cin for drug + metabolites by integrating them together
+	call integrate_Cin(dt)
+	do ic = 1,nchemo
+		ichemo = chemomap(ic)
+		Fcurr => Cflux(:,:,:,ichemo)
+		if (ichemo < DRUG_A) then
+			call getF_const(ichemo, Fcurr)
+		else
+			! use the previously computed cell fluxes
+			call make_grid_flux(ichemo,Fcurr)
+		endif
+	enddo
+endif
 
 end subroutine
 

@@ -234,8 +234,9 @@ do kcell = 1,nlist
 			call getDrugKillProb(killmodel,Kd,dMdt,Cdrug,dt,dkill_prob)
 			kill_prob = kill_prob + dkill_prob
 		enddo
+!		if (kcell == 1) write(nflog,'(a,i6,2e12.3)') 'istep,Cdrug,kill_prob: ',istep,cell_list(kcell)%Cin(ichemo),kill_prob
 	    if (.not.cell_list(kcell)%drug_tag(idrug) .and. par_uni(kpar) < kill_prob) then	! don't tag more than once
-!            cell_list(kcell)%drugB_tag = .true.			! actually either drugA_tag or drugB_tag
+!            cell_list(kcell)%drugB_tag = .true.			! actually either drugA_tag or drugB_tag 
 !            NdrugB_tag(ityp) = NdrugB_tag(ityp) + 1
 			cell_list(kcell)%drug_tag(idrug) = .true.
             Ndrug_tag(idrug,ityp) = Ndrug_tag(idrug,ityp) + 1

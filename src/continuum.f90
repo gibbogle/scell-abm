@@ -127,6 +127,7 @@ integer :: i, ix, iy, iz
 real(REAL_KIND) :: centre(3)
 type(cell_type), pointer :: cp
 
+!write(*,*) 'grid_interp: ',kcell
 cp => cell_list(kcell)
 if (cp%state == DEAD) then
 	write(*,*) 'Error: extra_concs_const: dead cell: ',kcell

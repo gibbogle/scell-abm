@@ -216,7 +216,7 @@ void MainWindow::populateDrugTable(int idrug)
                 if (i == KILL_kills || i == KILL_sensitises) {
                    flag = (drug[idrug].param[kset].kill[ictyp].iparam[ii] == 1);
                    numstr = QString::number(i);
-                   objname = "checkbox_" + basestr + ctypstr + numstr;
+                   objname = "cbox_" + basestr + ctypstr + numstr;
                    QCheckBox* qbox = this->findChild<QCheckBox*>(objname);
                    qbox->setChecked(flag);
                 } else if (i == KILL_expt_kill_model) {
@@ -303,7 +303,8 @@ void MainWindow::changeDrugParam(QObject *w)
             drug[idrug].param[kset].kill[ictyp].iparam[ii] = lineEdit->text().toInt();
         else
             drug[idrug].param[kset].kill[ictyp].dparam[i] = lineEdit->text().toDouble();
-    } else if (name.contains("checkbox_")) {
+    } else if (name.contains("cbox_")) {
+//        qDebug()<<"drug checkbox changed: " + w->objectName() + "\n";
         QCheckBox *cbox = (QCheckBox *)w;
         int val;
         if (cbox->isChecked())
@@ -332,25 +333,7 @@ void MainWindow::makeDrugFileLists()
     for (int i=0; i<Drug_FilesList.size(); i++) {
         LOG_QMSG(Drug_FilesList[i]);
     }
-    /*
-    filters << "TPZ_*.data";
-    myDir.setNameFilters(filters);
-    QStringList TPZ_FilesList = myDir.entryList(filters);
-    LOG_MSG("TPZ files");
-    for (int i=0; i<TPZ_FilesList.size(); i++) {
-        LOG_QMSG(TPZ_FilesList[i]);
-    }
-    filters.clear();
-    filters << "DNB_*.data";
-    myDir.setNameFilters(filters);
-    QStringList DNB_FilesList = myDir.entryList(filters);
-    LOG_MSG("DNB files");
-    for (int i=0; i<DNB_FilesList.size(); i++) {
-        LOG_QMSG(DNB_FilesList[i]);
-    }
-    */
 }
-
 
 //--------------------------------------------------------------------------------------------------------
 // This may be superceded by a widget for selecting a file ("TPZ_..." or "DNB_..." or ...) then deducing

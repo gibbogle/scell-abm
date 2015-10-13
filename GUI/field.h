@@ -66,6 +66,7 @@ public:
     double fraction;
     int hour;
     int ifield;
+    QString const_name[16];     // not used
     int cell_constituent;
     int field_constituent;
     bool slice_changed;
