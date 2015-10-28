@@ -464,7 +464,7 @@ void Field::displayField(int hr, int *res)
 
     cmin = 1.0e10;
     cmax = 0;
-    rmax = 0;
+    rmax = 1;
 
     NX = fdata.NX;
     NY = fdata.NY;
@@ -500,7 +500,7 @@ void Field::displayField(int hr, int *res)
     Wc = CANVAS_WIDTH;
     a = Wc/(beta*Wx);
     b = Wc/2 - a*Wx/2;
-    sprintf(msg,"Nc: %d Wc: %f w: %d a: %f b: %f",Nc,Wc,w,a,b);
+    sprintf(msg,"Wx: %f Wc: %f a: %f b: %f",Wx,Wc,a,b);
     LOG_MSG(msg);
     brush.setStyle(Qt::SolidPattern);
     brush.setColor(QColor(0,0,0));

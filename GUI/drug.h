@@ -21,34 +21,21 @@
 #define KILL_SER_max0 10
 #define KILL_SER_Km 11
 #define KILL_SER_KO2 12
-#define KILL_kills 13
-#define KILL_expt_kill_model 14
-#define KILL_sensitises 15
+#define KILL_NO2 13
+#define KILL_PROB 14
+
+#define KILL_kills 15
+#define KILL_expt_kill_model 16
+#define KILL_sensitises 17
 
 #define NDPARAMS 5
-#define NDKILLPARAMS 13
+#define NDKILLPARAMS 15
 #define NIKILLPARAMS 3
 
 //extern char *DRUG_param_name[];
 //extern char *KILL_param_name[];
 
 struct kill_params {
-//    double Kmet0;
-//    double C2;
-//    double KO2;
-//    double Vmax;
-//    double Km;
-//    double Klesion;
-//    bool kills;
-//    double expt_O2_conc;
-//    double expt_drug_conc;
-//    double expt_duration;
-//    double expt_kill_fraction;
-//    int expt_kill_model;
-//    bool sensitises;
-//    double SER_max0;
-//    double SER_Km;
-//    double SER_KO2;
     QString info[NDKILLPARAMS+NIKILLPARAMS];
     double dparam[NDKILLPARAMS];
     int iparam[NIKILLPARAMS];
@@ -57,11 +44,6 @@ typedef kill_params KILL_PARAMS;
 
 struct drug_param_set {
     QString name;
-//    double diff_coef;
-//    double medium_diff;
-//    double cell_diff_in;
-//    double cell_diff_out;
-//    double halflife;
     QString info[NDPARAMS];
     double dparam[NDPARAMS];
     KILL_PARAMS kill[NCELLTYPES];

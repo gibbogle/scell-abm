@@ -8,8 +8,8 @@ void MainWindow::SetupProtocol()
     QStringList tableHeader;
 
     tableWidget->setRowCount(64);
-    tableWidget->setColumnCount(7);
-    tableHeader<<"Hour"<<"Drug"<<"Duration"<<"Volume"<<"Conc"<<"Radiation"<<"Medium vol";
+    tableWidget->setColumnCount(10);
+    tableHeader<<"Hour"<<"Drug"<<"Duration"<<"Volume"<<"O2 conc"<<"O2 flush"<<"Conc"<<"Radiation"<<"Medium vol"<<"Medium O2";
     tableWidget->setHorizontalHeaderLabels(tableHeader);
 
     connect(tableWidget, SIGNAL(cellChanged(int, int)  ),this, SLOT(ProtocolChanged(int, int)) );
@@ -63,23 +63,32 @@ void MainWindow::LoadProtocol(QString fileName)
             QString volume = in.readLine();
 //            qDebug() << volume;
             setField(table, row, 3, volume);
+            QString O2conc = in.readLine();
+//            qDebug() << O2conc;
+            setField(table, row, 4, O2conc);
+            QString O2flush = in.readLine();
+//            qDebug() << O2flush;
+            setField(table, row, 5, O2flush);
             QString conc = in.readLine();
 //            qDebug() << conc;
-            setField(table, row, 4, conc);
+            setField(table, row, 6, conc);
         } else if (mode.compare("RADIATION") == 0) {
             QString hour = in.readLine();
 //            qDebug() << hour;
             setField(table, row, 0, hour);
             QString dose = in.readLine();
 //            qDebug() << dose;
-            setField(table, row, 5, dose);
+            setField(table, row, 7, dose);
         } else if (mode.compare("MEDIUM") == 0) {
             QString hour = in.readLine();
 //            qDebug() << hour;
             setField(table, row, 0, hour);
             QString volume = in.readLine();
 //            qDebug() << volume;
-            setField(table, row, 6, volume);
+            setField(table, row, 8, volume);
+            QString O2level = in.readLine();
+//            qDebug() << volume;
+            setField(table, row, 9, O2level);
         }
     }
     paramSaved = false;
@@ -115,14 +124,14 @@ void MainWindow::SaveProtocol(QTextStream *out, int ndrugs)
     nTimes = 0;
     if (ndrugs == 0) {
         for (int row=0; row<tableWidget->rowCount(); row++) {
-            item = tableWidget->item(row,5);
+            item = tableWidget->item(row,7);
             if (item != 0) {
                 entry = item->text();
                 if (entry.compare("")) {    // true if <>
                     nTimes++;
                 }
             }
-            item = tableWidget->item(row,6);
+            item = tableWidget->item(row,8);
             if (item != 0) {
                 entry = item->text();
                 if (entry.compare("")) {    // true if <>
@@ -158,12 +167,12 @@ void MainWindow::SaveProtocol(QTextStream *out, int ndrugs)
                     eventType = idrug;
                     kevents++;
                 }
-                err = getField(table,row,5,&radiationEntry);
+                err = getField(table,row,7,&radiationEntry);
                 if (radiationEntry.compare("")) {   // Entry in RADIATION column
                     eventType = iradiation;
                     kevents++;
                 }
-                err = getField(table,row,6,&mediumEntry);
+                err = getField(table,row,8,&mediumEntry);
                 if (mediumEntry.compare("")) {   // Entry in MEDIUM column
                     eventType = imedium;
                     kevents++;
@@ -172,14 +181,12 @@ void MainWindow::SaveProtocol(QTextStream *out, int ndrugs)
                     QString msg = "No DRUG, RADIATION or MEDIUM data for event at hour: " + hour;
                     msgBox.setText(msg);
                     msgBox.exec();
-//                    file.close();
                     return;
                 }
                 if (kevents > 1) {
                     QString msg = "More than one event at hour: " + hour;
                     msgBox.setText(msg);
                     msgBox.exec();
-//                    file.close();
                     return;
                 }
                 if (eventType == idrug) {
@@ -193,7 +200,6 @@ void MainWindow::SaveProtocol(QTextStream *out, int ndrugs)
                         msgBox.setText("Missing entry in Duration column");
                         msgBox.exec();
                         qDebug() << "Missing entry in Duration column";
-//                        file.close();
                         return;
                     }
                     err = getField(table,row,3,&entry);
@@ -203,35 +209,56 @@ void MainWindow::SaveProtocol(QTextStream *out, int ndrugs)
                         msgBox.setText("Missing entry in Volume column");
                         msgBox.exec();
                         qDebug() << "Missing entry in Volume column";
-//                        file.close();
                         return;
                     }
                     err = getField(table,row,4,&entry);
+                    if (entry.compare("")) {   // Entry in O2conc column
+                        *out << entry << "\n";
+                    } else {
+                        msgBox.setText("Missing entry in O2conc column");
+                        msgBox.exec();
+                        qDebug() << "Missing entry in O2conc column";
+                        return;
+                    }
+                    err = getField(table,row,5,&entry);
+                    if (entry.compare("")) {   // Entry in O2flush column
+                        *out << entry << "\n";
+                    } else {
+                        msgBox.setText("Missing entry in O2flush column");
+                        msgBox.exec();
+                        qDebug() << "Missing entry in O2flush column";
+                        return;
+                    }
+                    err = getField(table,row,6,&entry);
                     if (entry.compare("")) {   // Entry in Conc column
                         *out << entry << "\n";
                     } else {
                         msgBox.setText("Missing entry in Conc column");
                         msgBox.exec();
                         qDebug() << "Missing entry in Conc column";
-//                        file.close();
                         return;
                     }
                     continue;
                 }
-//                err = getField(table,row,5,&entry);
-//                if (entry.compare("")) {   // Entry in RADIATION column
                 else if (eventType == iradiation) {
                     *out << "RADIATION" << "\n";
                     *out << hour << "\n";
-                    *out << radiationEntry << "\n";
+                    *out << radiationEntry << "\n"; // dose
                     continue;
                 }
-//                err = getField(table,row,6,&entry);
-//                if (entry.compare("")) {   // Entry in MEDIUM column
                 else if (eventType == imedium) {
                     *out << "MEDIUM" << "\n";
                     *out << hour << "\n";
-                    *out << mediumEntry << "\n";
+                    *out << mediumEntry << "\n";    // volume
+                    err = getField(table,row,9,&entry);
+                    if (entry.compare("")) {   // Entry in Medium O2conc column
+                        *out << entry << "\n";
+                    } else {
+                        msgBox.setText("Missing entry in Medium O2conc column");
+                        msgBox.exec();
+                        qDebug() << "Missing entry in Medium O2conc column";
+                        return;
+                    }
                     continue;
                 }
 //                qDebug() << "No DRUG, RADIATION or MEDIUM data for event at hour: " << hour;

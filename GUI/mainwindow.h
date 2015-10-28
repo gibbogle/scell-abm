@@ -262,9 +262,10 @@ private:
     void populateDrugTable(int idrug);
     void makeDrugFileLists();
     void changeDrugParam(QObject *);
-    void extractDrugname(QString *);
+    void extractDrugname(QString *, QString *);
     void readDrugData(QTextStream *in);
     void setupPopup();
+    void makeHeaderText(QString *header, bool interact);
 
     QPlainTextEdit *textEdit;
     QString curFile;

@@ -537,7 +537,7 @@ integer :: ichemo, ictyp, idrug, im, it
 real(REAL_KIND) :: Vin, Cex(0:2), Cin(0:2), dCdt(0:2), dMdt(0:2), dtt
 real(REAL_KIND) :: CO2
 real(REAL_KIND) :: Kin(0:2), Kout(0:2), Kd(0:2)
-real(REAL_KIND) :: C2(0:2), KO2(0:2), Kmet0(0:2), Vmax(0:2), Km(0:2)
+real(REAL_KIND) :: C2(0:2), KO2(0:2), Kmet0(0:2), Vmax(0:2), Km(0:2), n_O2(0:2)
 real(REAL_KIND) :: K1(0:2), K2(0:2)
 type(drug_type), pointer :: dp
 integer :: nt = 100
@@ -560,10 +560,12 @@ do im = 0,2
 	Kmet0(im) = dp%Kmet0(ictyp,im)
 	C2(im) = dp%C2(ictyp,im)
 	KO2(im) = dp%KO2(ictyp,im)
+	n_O2(im) = dp%n_O2(ictyp,im)
 	Kmet0(im) = dp%Kmet0(ictyp,im)
 	Km(im) = dp%Km(ictyp,im)
 	Vmax(im) = dp%Vmax(ictyp,im)
-	K1(im) = (1 - C2(im) + C2(im)*KO2(im)/(KO2(im) + CO2))
+!	K1(im) = (1 - C2(im) + C2(im)*KO2(im)/(KO2(im) + CO2))
+	K1(im) = (1 - C2(im) + C2(im)*KO2(im)**n_O2(im)/(KO2(im)**n_O2(im) + CO2**n_O2(im)))
 enddo
 if (kcell == 1) then
 	write(*,*) 'integrate_cell_Cin: ichemo_parent,kcell,idrug: ',ichemo_parent,kcell,idrug
@@ -652,7 +654,7 @@ integer :: ichemo
 real(REAL_KIND) :: Cflux_const(:,:,:)
 integer :: kcell, k, cnr(3,8)
 type(cell_type), pointer :: cp
-real(REAL_KIND) :: alfa = 1.0	! 0.3
+real(REAL_KIND) :: alpha_flux = 0.3
 
 Cflux_const = 0
 do kcell = 1,nlist
@@ -663,7 +665,7 @@ do kcell = 1,nlist
 		Cflux_const(cnr(1,k),cnr(2,k),cnr(3,k)) = Cflux_const(cnr(1,k),cnr(2,k),cnr(3,k)) + cp%dMdt(ichemo)*cp%wt(k)
 	enddo
 enddo
-Cflux_const(:,:,:) = alfa*Cflux_const(:,:,:) + (1-alfa)*Cflux_prev(:,:,:,ichemo)
+Cflux_const(:,:,:) = alpha_flux*Cflux_const(:,:,:) + (1-alpha_flux)*Cflux_prev(:,:,:,ichemo)
 end subroutine
 
 !-------------------------------------------------------------------------------------------
@@ -1010,7 +1012,7 @@ real(REAL_KIND) :: Cave(:,:,:), Cave_b(:,:,:)
 integer :: idx, idy, idz, xb0, yb0, idxb, idyb, xb1, xb2, yb1, yb2, zb1, zb2
 integer :: ixb, iyb, izb, ix0, iy0, iz0, ix, iy, iz, nsum, ncsum
 real(REAL_KIND) :: ax, ay, az, asum(2), Cnew, csum
-real(REAL_KIND) :: alfa = 1.0	!0.3
+real(REAL_KIND) :: alpha_conc = 1.0	!0.3
 
 xb0 = (NXB+1)/2			
 idxb = (NX-1)/(2*NRF)
@@ -1048,7 +1050,7 @@ do iyb = yb1,yb2-1
 								(1-ay)*az*Cave_b(ixb, iyb+1, izb) + &
 								ay*(1-az)*Cave_b(ixb, iyb,   izb+1) + &
 							(1-ay)*(1-az)*Cave_b(ixb, iyb+1, izb+1)
-				Cave(ix,iy,iz) = alfa*Cnew + (1-alfa)*Cave(ix,iy,iz)
+				Cave(ix,iy,iz) = alpha_conc*Cnew + (1-alpha_conc)*Cave(ix,iy,iz)
 				asum(1) = asum(1) + Cave(ix,iy,iz)
 				ixb = xb2
 				ix = (ixb - xb0)*NRF + (NX+1)/2
@@ -1056,7 +1058,7 @@ do iyb = yb1,yb2-1
 								(1-ay)*az*Cave_b(ixb,iyb+1,izb) + &
 								ay*(1-az)*Cave_b(ixb,iyb,  izb+1) + &
 							(1-ay)*(1-az)*Cave_b(ixb,iyb+1,izb+1)
-				Cave(ix,iy,iz) = alfa*Cnew + (1-alfa)*Cave(ix,iy,iz)
+				Cave(ix,iy,iz) = alpha_conc*Cnew + (1-alpha_conc)*Cave(ix,iy,iz)
 !				if (ichemo==DRUG_A) write(*,*) 'Right side'
 				asum(2) = asum(2) + Cave(ix,iy,iz)
 				csum = csum + Cave(ix,iy,iz)
@@ -1089,7 +1091,7 @@ do ixb = xb1,xb2-1
 								(1-ax)*az*Cave_b(ixb+1, iyb, izb) + &
 								ax*(1-az)*Cave_b(ixb,   iyb, izb+1) + &
 							(1-ax)*(1-az)*Cave_b(ixb+1, iyb, izb+1)
-				Cave(ix,iy,iz) = alfa*Cnew + (1-alfa)*Cave(ix,iy,iz)
+				Cave(ix,iy,iz) = alpha_conc*Cnew + (1-alpha_conc)*Cave(ix,iy,iz)
 				asum(1) = asum(1) + Cave(ix,iy,iz)
 				iyb = yb2
 				iy = (iyb - yb0)*NRF + (NY+1)/2
@@ -1097,7 +1099,7 @@ do ixb = xb1,xb2-1
 								(1-ax)*az*Cave_b(ixb+1, iyb, izb) + &
 								ax*(1-az)*Cave_b(ixb,   iyb, izb+1) + &
 							(1-ax)*(1-az)*Cave_b(ixb+1, iyb, izb+1)
-				Cave(ix,iy,iz) = alfa*Cnew + (1-alfa)*Cave(ix,iy,iz)
+				Cave(ix,iy,iz) = alpha_conc*Cnew + (1-alpha_conc)*Cave(ix,iy,iz)
 				asum(2) = asum(2) + Cave(ix,iy,iz)
 				csum = csum + Cave(ix,iy,iz)
 				ncsum = ncsum + 1
@@ -1131,7 +1133,7 @@ do ixb = xb1,xb2-1
 								(1-ax)*ay*Cave_b(ixb+1, iyb,   izb) + &
 								ax*(1-ay)*Cave_b(ixb,   iyb+1, izb) + &
 							(1-ax)*(1-ay)*Cave_b(ixb+1, iyb+1, izb)
-				Cave(ix,iy,iz) = alfa*Cnew + (1-alfa)*Cave(ix,iy,iz)
+				Cave(ix,iy,iz) = alpha_conc*Cnew + (1-alpha_conc)*Cave(ix,iy,iz)
 				csum = csum + Cave(ix,iy,iz)
 				ncsum = ncsum + 1
 			enddo
@@ -1140,8 +1142,8 @@ do ixb = xb1,xb2-1
 enddo
 chemo(ichemo)%medium_cbnd = csum/ncsum		! average concentration on the boundary of the fine grid
 !if (ichemo >= DRUG_A) then
-	write(nflog,'(a,i4,e12.3)') 'interpolate_Cave: medium_cbnd: ',ichemo,chemo(ichemo)%medium_cbnd
-	write(*,'(a,i4,e12.3)') 'interpolate_Cave: medium_cbnd: ',ichemo,chemo(ichemo)%medium_cbnd
+!	write(nflog,'(a,i4,e12.3)') 'interpolate_Cave: medium_cbnd: ',ichemo,chemo(ichemo)%medium_cbnd
+!	write(*,'(a,i4,e12.3)') 'interpolate_Cave: medium_cbnd: ',ichemo,chemo(ichemo)%medium_cbnd
 !endif
 end subroutine
 
@@ -1194,12 +1196,13 @@ real(REAL_KIND) :: dt
 integer :: i, k, k1, ix, iy, iz, irow, icol, kc, ic, icc, it
 integer :: ixb, iyb, izb
 integer :: ichemo, ierr, nfill, iters, maxits, im_krylov
-real(REAL_KIND) :: R, tol, tol_b, asum, t, Vex_curr, Vex_next, Vin_curr, Vin_next, fdecay, Csum, dCsum, msum, mass(MAX_CHEMO)
+real(REAL_KIND) :: R, tol, tol_b, asum, t, Vex_curr, Vex_next, Vin_curr, Vin_next, fdecay
+real(REAL_KIND) :: Csum, dCsum, msum, mass(MAX_CHEMO), Cmin
 real(REAL_KIND), allocatable :: x(:), rhs(:)
 real(REAL_KIND), pointer :: Cave(:,:,:), Cprev(:,:,:), Fprev(:,:,:), Fcurr(:,:,:)
 real(REAL_KIND), pointer :: Cave_b(:,:,:), Cprev_b(:,:,:), Fprev_b(:,:,:), Fcurr_b(:,:,:)
 real(REAL_KIND), allocatable :: a(:), a_b(:)
-real(REAL_KIND) :: alfa = 1.0	!0.3
+real(REAL_KIND) :: alpha_cave = 0.3
 real(REAL_KIND) :: dCtol = 1.0e-4
 real(REAL_KIND) :: massmin = 1.0e-8
 integer :: ILUtype = 1
@@ -1210,11 +1213,6 @@ logical :: done
 logical :: do_fine = .true.
 logical :: use_const = .true.
 
-!do ic = 1,nchemo
-!	ichemo = chemomap(ic)
-!	call getMass(ichemo,mass(ichemo))
-!	write(*,'(a,i4,e12.3)') 'mass: ',ichemo,mass(ichemo)
-!enddo
 do ichemo = 1,MAX_CHEMO
 	if (.not.chemo(ichemo)%used) cycle
 	call getMass(ichemo,mass(ichemo))
@@ -1357,7 +1355,6 @@ do ic = 1,nfinemap
 	do im = im1, im2	! this is to ensure that the sequence is parent -> metab1 -> metab2
 		ichemo = ichemof + im
 		if (.not.chemo(ichemo)%present) cycle
-		write(*,'(a,i2)') 'fine grid: ichemo: ',ichemo
 		ichemo_curr = ichemo
 		icc = ichemo - 1
 		Cave => Caverage(:,:,:,ichemo)
@@ -1423,17 +1420,20 @@ do ic = 1,nfinemap
 			
 			done = .false.
 !			dCsum = 0
+			Cmin = 100
 			Csum = 0
 			do iz = 1,NZ-1
 				do iy = 2,NY-1
 					do ix = 2,NX-1
 						k = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
-						Cave(ix,iy,iz) = alfa*x(k) + (1-alfa)*Cave(ix,iy,iz)
+						Cave(ix,iy,iz) = max(0.0,alpha_cave*x(k) + (1-alpha_cave)*Cave(ix,iy,iz))
 						Csum = Csum + Cave(ix,iy,iz)
+						Cmin = min(Cave(ix,iy,iz),Cmin)
 !						dCsum = dCsum + abs((Cave(ix,iy,iz) - Cprev(ix,iy,iz))/Cave(ix,iy,iz))
 					enddo
 				enddo
 			enddo
+!			if (ichemo == OXYGEN) write(nflog,'(a,e12.3)') 'Min O2 conc: ',Cmin
 !			dCsum = dCsum/(NX*NY*NZ)
 !			done = (abs(dCsum) < dCtol)
 !			write(*,'(a,i2,3e12.3)') 'Csum,Cave,Cflux(17,17,17): ',ichemo,Csum,Cave(17,17,17),Cflux(17,17,17,ichemo)

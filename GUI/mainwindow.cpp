@@ -67,7 +67,6 @@ MainWindow::MainWindow(QWidget *parent)
 	nTicks = 1000;
 	tickVTK = 100;	// timer tick for VTK in milliseconds
     ndistplots = 2;
-    paramSaved = false;
 	paused = false;
 	posdata = false;
     DCmotion = false;
@@ -132,6 +131,7 @@ MainWindow::MainWindow(QWidget *parent)
     LOG_QMSG("did initHistoPlot");
     loadParams();
     LOG_QMSG("Did loadparams");
+    paramSaved = true;
 
     SetupProtocol();
 
@@ -1074,16 +1074,16 @@ void MainWindow::loadParams()
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::setFields()
 {
-    tab_force->setEnabled(false);
-    groupBox_force->setEnabled(false);
+    tab_force->setEnabled(true);
+    groupBox_force->setEnabled(true);
     line_NT_CONC->setEnabled(true);
     line_NMM3->setEnabled(true);
-    spin_NX->setValue(120);
+    spin_NX->setValue(33);
     line_NXB->setEnabled(false);
     line_NZB->setEnabled(false);
     groupBox_drop->setEnabled(true);
     line_FLUID_FRACTION->setEnabled(true);
-    if (rbut_FD_SOLVER_1->isChecked()) {
+//    if (rbut_FD_SOLVER_1->isChecked()) {
         int nxb = line_NXB->text().toInt();
         int nzb = line_NZB->text().toInt();
         double dx = line_DXF->text().toDouble();
@@ -1094,13 +1094,13 @@ void MainWindow::setFields()
         line_UNSTIRRED_LAYER->setEnabled(false);
         cbox_USE_RELAX->setEnabled(false);
         cbox_USE_PAR_RELAX->setEnabled(false);
-    } else {
-        line_MEDIUM_VOLUME->setEnabled(true);
-        line_UNSTIRRED_LAYER->setEnabled(true);
-        line_FLUID_FRACTION->setEnabled(true);
-        cbox_USE_RELAX->setEnabled(true);
-        cbox_USE_PAR_RELAX->setEnabled(true);
-    }
+//    } else {
+//        line_MEDIUM_VOLUME->setEnabled(true);
+//        line_UNSTIRRED_LAYER->setEnabled(true);
+//        line_FLUID_FRACTION->setEnabled(true);
+//        cbox_USE_RELAX->setEnabled(true);
+//        cbox_USE_PAR_RELAX->setEnabled(true);
+//    }
 }
 
 //--------------------------------------------------------------------------------------------------------
@@ -1302,7 +1302,7 @@ void MainWindow::showMore(QString moreText)
 void MainWindow::writeout()
 {
     int ndrugs;
-	QString line;
+    QString line, header;
     QFile file(inputFile);
     if (!file.open(QFile::WriteOnly | QFile::Text)) {
         QMessageBox::warning(this, tr("Application"),
@@ -1313,7 +1313,9 @@ void MainWindow::writeout()
         return;
     }
     QTextStream out(&file);
-	for (int k=0; k<parm->nParams; k++) {
+    makeHeaderText(&header,!paramSaved);
+    out << header + "\n";
+    for (int k=0; k<parm->nParams; k++) {
         PARAM_SET p = parm->get_param(k);
 		double val = p.value;
         bool is_text = false;
@@ -1383,12 +1385,15 @@ void MainWindow::readInputFile()
                              .arg(file.errorString()));
         return;
     }
+    paramSaved = true;
 
     QTextStream in(&file);
 	QString line;
 	for (int k=0; k<parm->nParams; k++) {
 		line = in.readLine();
-		QStringList data = line.split(" ",QString::SkipEmptyParts);
+        if (k == 0 && !line.contains("GUI"))    // This is the header line
+            line = in.readLine();
+        QStringList data = line.split(" ",QString::SkipEmptyParts);
 		PARAM_SET p = parm->get_param(k);
 		QString ptag = p.tag;
         if (ptag.contains("GUI_VERSION")) {
@@ -1428,7 +1433,6 @@ void MainWindow::readInputFile()
     LoadProtocol(fileName);
 
     reloadParams();
-    paramSaved = true;
 	inputFile = fileName;
     alabel_casename->setText(inputFile);
 }

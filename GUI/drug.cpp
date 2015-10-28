@@ -10,7 +10,7 @@ DRUG_STR drug[NDRUGS];
 
 char *DRUG_param_name[] = {"diff_coef","medium_diff","cell_diff_in","cell_diff_out","halflife"};
 char *KILL_param_name[] = {"Kmet0","C2","KO2","Vmax","Km","Klesion","expt_O2_conc","expt_drug_conc","expt_duration",
-                           "expt_kill_fraction","SER_max","SER_Km","SER_KO2","kills","expt_kill_model","sensitises"};
+                           "expt_kill_fraction","SER_max","SER_Km","SER_KO2","n_O2","death_prob","kills","expt_kill_model","sensitises"};
 
 
 //--------------------------------------------------------------------------------------------------------
@@ -20,14 +20,6 @@ char *KILL_param_name[] = {"Kmet0","C2","KO2","Vmax","Km","Klesion","expt_O2_con
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::readDrugParams(int idrug, QString fileName)
 {
-//    QString fileName;
-//    if (idrug == TPZ_DRUG) {
-//        fileName = "TPZ_" + drugname + ".data";
-//    } else if (idrug == DNB_DRUG) {
-//        fileName = "DNB_" + drugname + ".data";
-//    }
-
-//    return;
     QFile file(fileName);
     if (!file.open(QFile::ReadOnly | QFile::Text)) {
         QMessageBox::warning(this, tr("Application"),
@@ -60,7 +52,7 @@ void MainWindow::readDrugParams(int idrug, QString fileName)
 
         }
         for (int ictyp=0; ictyp<NCELLTYPES; ictyp++) {
-            for (int i=0; i<16; i++) {
+            for (int i=0; i<NDKILLPARAMS+NIKILLPARAMS; i++) {
                 line = in.readLine();
                 QStringList data = line.split(" ",QString::SkipEmptyParts);
                 if (i < NDKILLPARAMS) {
@@ -229,6 +221,7 @@ void MainWindow::populateDrugTable(int idrug)
             }
         }
     }
+    paramSaved = false;
 }
 
 //--------------------------------------------------------------------------------------------------------
@@ -299,7 +292,7 @@ void MainWindow::changeDrugParam(QObject *w)
     ictyp = ict-1;
     if (name.contains("line_")) {
         QLineEdit *lineEdit = (QLineEdit *)w;
-        if (i == 14)      // kill model
+        if (i == KILL_expt_kill_model)
             drug[idrug].param[kset].kill[ictyp].iparam[ii] = lineEdit->text().toInt();
         else
             drug[idrug].param[kset].kill[ictyp].dparam[i] = lineEdit->text().toDouble();
@@ -317,7 +310,7 @@ void MainWindow::changeDrugParam(QObject *w)
 
 
 //--------------------------------------------------------------------------------------------------------
-// Make QLists of file names prefixed by "TPZ_", "DNB_", ...
+// Make QLists of file names postfixed by ".drugdata"
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::makeDrugFileLists()
 {
@@ -325,7 +318,6 @@ void MainWindow::makeDrugFileLists()
     QStringList filters;
 
     Drug_FilesList.clear();
-//    filters << "TPZ_*.data" << "DNB_*.data";
     filters << "*.drugdata";
     myDir.setNameFilters(filters);
     Drug_FilesList = myDir.entryList(filters);
@@ -348,6 +340,9 @@ void MainWindow::initDrugComboBoxes()
 
 }
 
+//--------------------------------------------------------------------------------------------------------
+// Read the drug section in the input file
+//--------------------------------------------------------------------------------------------------------
 void MainWindow::readDrugData(QTextStream *in)
 {
     QString line;
@@ -355,25 +350,92 @@ void MainWindow::readDrugData(QTextStream *in)
     line = in->readLine();
     QStringList data = line.split(" ",QString::SkipEmptyParts);
     int ndrugs = data[0].toInt();
+    if (ndrugs == 0) return;
+    makeDrugFileLists();
     for (int idrug=0; idrug<ndrugs; idrug++) {
-        line = in->readLine();
-//        QStringList data = line.split(" ",QString::SkipEmptyParts);     // CLASS_NAME
-        line = in->readLine();
-//        qDebug() << "line: " + line;
-        QStringList data = line.split(" ",QString::SkipEmptyParts);     // DRUG_NAME
+        line = in->readLine();  // CLASS_NAME
+        line = in->readLine();  // DRUG_NAME
+        QStringList data = line.split(" ",QString::SkipEmptyParts);
         QString drugname = data[0];
-        QString fileName = drugname + ".drugdata";
-//        qDebug() << "readDrugData from input file: drugname: " + drugname;
-        readDrugParams(idrug, fileName);
-        if (idrug == 0) {
-            text_DRUG_A_NAME->setText(drugname);
-            cbox_USE_DRUG_A->setChecked(true);
-        } else if (idrug == 1) {
-            text_DRUG_B_NAME->setText(drugname);
-            cbox_USE_DRUG_B->setChecked(true);
+        // choose a drugdata file
+        bool success;
+        QString fileName;
+        for (;;) {
+            bool ok;
+            QString item = QInputDialog::getItem(this, tr("QInputDialog::getItem()"),
+                                                     "Select a drug file for: "+drugname, Drug_FilesList, 0, false, &ok);
+            if (ok && !item.isEmpty()) {
+                fileName = item;
+                readDrugParams(idrug, fileName);
+                if (fileName.contains(drugname)) {
+                    success = true;
+                    break;
+                } else {
+                    QMessageBox::StandardButton reply;
+                    reply = QMessageBox::critical(this, tr("QMessageBox::critical()"),
+                                                  "This is not a file for drug: "+drugname,
+                                                    QMessageBox::Abort | QMessageBox::Retry);
+                    if (reply == QMessageBox::Abort) {
+                        success = false;
+                        break;
+                    }
+                }
+            }
         }
-        for (int k=0; k<113; k++) {
+        if (success) {
+            if (idrug == 0) {
+                // Make fileName selected in comb_DRUG_A
+                int k = Drug_FilesList.indexOf(fileName);
+                comb_DRUG_A->setCurrentIndex(k);
+//                text_DRUG_A_NAME->setText(drugname);
+                cbox_USE_DRUG_A->setChecked(true);
+            } else if (idrug == 1) {
+                // Make fileName selected in comb_DRUG_B
+                int k = Drug_FilesList.indexOf(fileName);
+                comb_DRUG_B->setCurrentIndex(k);
+//                text_DRUG_B_NAME->setText(drugname);
+                cbox_USE_DRUG_B->setChecked(true);
+            }
+        }
+        int nskip = 3*(6 + 2*(NDKILLPARAMS + NIKILLPARAMS)) - 1;
+        for (int k=0; k<nskip; k++) {
             line = in->readLine();
         }
     }
 }
+
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
+void MainWindow::makeHeaderText(QString *header, bool interact)
+{
+    QString name = qgetenv("USER");
+    if (name.isEmpty())
+        name = qgetenv("USERNAME");
+    QString datestr, text;
+    datestr = QDate::currentDate().toString("dd/MM/yy");
+    text = "User: " + name;
+    if (cbox_USE_DRUG_A->isChecked()) {
+        QString drugname = comb_DRUG_A->currentText();
+        int i = drugname.indexOf('.');
+        drugname = drugname.left(i);
+        text += " DrugA: " + drugname;
+    }
+    if (cbox_USE_DRUG_B->isChecked()) {
+        QString drugname = comb_DRUG_B->currentText();
+        int i = drugname.indexOf('.');
+        drugname = drugname.left(i);
+        text += " DrugB: " + drugname;
+    }
+    if (!interact) {
+        text.replace(" ","_");
+        *header = datestr + " " + text;
+        return;
+    }
+    bool ok;
+    text = QInputDialog::getText(this, tr("QInputDialog::getText()"),
+                                         "Header:", QLineEdit::Normal,
+                                         text, &ok);
+    text.replace(" ","_");
+    *header = datestr + " " + text;
+}
+

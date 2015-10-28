@@ -292,7 +292,11 @@ void MainWindow::makeSFPlot(QString cellTypeStr, double C_O2, double maxdose, QV
 //      kill_drug       7
 //      kill_duration   8
 //      kill_fraction   9
-//      Killmodel       14
+//      kills           13 --> 15
+//      Killmodel       14 --> 16
+// +
+//      n_O2            13
+//      death_prob      14
 //
 // Note that Kmet0, KO2, kill_duration need to be scaled to time units of sec
 //--------------------------------------------------------------------------------------------------------
@@ -301,10 +305,10 @@ void MainWindow::makeDrugPlot(QString drugTypeStr, QString cellTypeStr, double *
     QLineEdit *line;
     QString objName0, objName;
     int killmodel;
-    double C_O2, C2, Kmet0, KO2, Ckill_O2, f, T, Ckill, Kd, c, dt;
+    double C_O2, C2, Kmet0, KO2, n_O2, Ckill_O2, f, T, Ckill, Kd, c, dt;
     double Cdrug, kmet, dMdt, SF;   //, kill_prob;
 
-    objName = "checkbox_" + drugTypeStr + "_" + cellTypeStr + "_13";
+    objName = "cbox_" + drugTypeStr + "_" + cellTypeStr + "_15";
     QCheckBox *cbox = findChild<QCheckBox *>(objName);
     if (!cbox->isChecked()) {
         LOG_MSG("Does not kill");
@@ -312,8 +316,7 @@ void MainWindow::makeDrugPlot(QString drugTypeStr, QString cellTypeStr, double *
     }
 
     objName0 = "line_" + drugTypeStr + "_" + cellTypeStr + "_";
-    objName = objName0 + "14";
-    LOG_QMSG("objName:"+objName);
+    objName = objName0 + "16";
     line = findChild<QLineEdit *>(objName);
     killmodel = line->text().toInt();
     objName = objName0 + "0";
@@ -327,6 +330,9 @@ void MainWindow::makeDrugPlot(QString drugTypeStr, QString cellTypeStr, double *
     line = findChild<QLineEdit *>(objName);
     KO2 = line->text().toDouble();
     KO2 = 1.0e-3*KO2;                       // um -> mM
+    objName = objName0 + "13";
+    line = findChild<QLineEdit *>(objName);
+    n_O2 = line->text().toDouble();
     objName = objName0 + "6";
     line = findChild<QLineEdit *>(objName);
     Ckill_O2 = line->text().toDouble();     // kill_O2
@@ -337,11 +343,14 @@ void MainWindow::makeDrugPlot(QString drugTypeStr, QString cellTypeStr, double *
     line = findChild<QLineEdit *>(objName);
     T = line->text().toDouble();            // kill_duration
     T = 60*T;                               // min -> sec
+//    printf("Kmet0: %f C2: %f KO2: %f Ckill_O2: %f Ckill: %f T: %f\n",Kmet0,C2,KO2,Ckill_O2,Ckill,T);
+
     objName = objName0 + "9";
     line = findChild<QLineEdit *>(objName);
     f = line->text().toDouble();            // kill_fraction
 
-    kmet = (1 - C2 + C2*KO2/(KO2 + Ckill_O2))*Kmet0;
+//    kmet = (1 - C2 + C2*KO2/(KO2 + Ckill_O2))*Kmet0;
+    kmet = (1 - C2 + C2*pow(KO2,n_O2)/(pow(KO2,n_O2) + pow(Ckill_O2,n_O2)))*Kmet0;
     if (killmodel == 1) {
         Kd = -log(1-f)/(T*kmet*Ckill);
     } else if (killmodel == 2) {
@@ -362,7 +371,8 @@ void MainWindow::makeDrugPlot(QString drugTypeStr, QString cellTypeStr, double *
 //    dt = 1;    // 1 sec
     for (int i=0; i<NPLOT; i++) {
         Cdrug = (i*(*maxdose)/(NPLOT-1));
-        kmet = (1 - C2 + C2*KO2/(KO2 + C_O2))*Kmet0;
+//        kmet = (1 - C2 + C2*KO2/(KO2 + C_O2))*Kmet0;
+        kmet = (1 - C2 + C2*pow(KO2,n_O2)/(pow(KO2,n_O2) + pow(C_O2,n_O2)))*Kmet0;
         dMdt = kmet*Cdrug;
         if (killmodel == 1) {
             c = Kd*dMdt;
@@ -398,7 +408,7 @@ void MainWindow::makeDrugPlot(QString drugTypeStr, QString cellTypeStr, double *
         else
             (*y)[i] = SF;
     }
-    qDebug("maxdose: %8.4f  SF: %12.6f",*maxdose,SF);
+//    qDebug("maxdose: %8.4f  SF: %12.6f",*maxdose,SF);
 /*
 killmodel = dp%kill_model(ityp,im)		// could use %drugclass to separate kill modes
 

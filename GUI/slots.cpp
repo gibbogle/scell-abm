@@ -21,9 +21,10 @@ void MainWindow::on_comb_DRUG_A_currentIndexChanged(int index)
 {
     QString filename = comb_DRUG_A->currentText();
     QString drugname = filename;
+    QString cell_line;
 
     if (!cbox_USE_DRUG_A->isChecked()) return;
-    extractDrugname(&drugname);
+    extractDrugname(&drugname, &cell_line);
     text_DRUG_A_NAME->setText(drugname);
     radioButton_drugA->setText(drugname);
     if (radioButton_drugA->isChecked()) {
@@ -43,9 +44,10 @@ void MainWindow::on_comb_DRUG_B_currentIndexChanged(int index)
 {
     QString filename = comb_DRUG_B->currentText();
     QString drugname = filename;
+    QString cell_line;
 
     if (!cbox_USE_DRUG_B->isChecked()) return;
-    extractDrugname(&drugname);
+    extractDrugname(&drugname, &cell_line);
     text_DRUG_B_NAME->setText(drugname);
     radioButton_drugB->setText(drugname);
     if (radioButton_drugB->isChecked()) {
@@ -61,28 +63,34 @@ void MainWindow::on_comb_DRUG_B_currentIndexChanged(int index)
 
 //--------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------
-void MainWindow::extractDrugname(QString *drugname)
+void MainWindow::extractDrugname(QString *drugname, QString *cell_line)
 {
-    int i = drugname->indexOf('.');
-    *drugname = drugname->remove(i,9);
+    int i;
+    i = drugname->indexOf('.');
+    *drugname = drugname->left(i);
+    i = drugname->indexOf('_');
+    *cell_line = drugname->mid(i+1,99);
+    *drugname = drugname->left(i);
 }
 
 //--------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::on_cbox_USE_DRUG_A_toggled(bool checked)
 {
+    QString cell_line;
     LOG_MSG("cbox_use_DRUG_A toggled");
-    QLineEdit *leb = findChild<QLineEdit *>("line_DRUG_A_BDRY_CONC");
-    QCheckBox *cbm = findChild<QCheckBox *>("cbox_DRUG_A_SIMULATE_METABOLITE");
-    leb->setEnabled(checked);
-    cbm->setEnabled(checked);
+//    QLineEdit *leb = findChild<QLineEdit *>("line_DRUG_A_BDRY_CONC");
+//    QCheckBox *cbm = findChild<QCheckBox *>("cbox_DRUG_A_SIMULATE_METABOLITE");
+//    leb->setEnabled(checked);
+//    cbm->setEnabled(checked);
     comb_DRUG_A->setEnabled(checked);
     text_DRUG_A_NAME->setEnabled(checked);
     radioButton_drugA->setEnabled(checked);
     if (checked) {
         radioButton_drugA->setChecked(true);
         QString drugname = comb_DRUG_A->currentText();
-        extractDrugname(&drugname);
+        extractDrugname(&drugname,&cell_line);
+        LOG_QMSG("drugname, cell_line: " + drugname + " " + cell_line);
         text_DRUG_A_NAME->setText(drugname);
         radioButton_drugA->setText(drugname);
         on_comb_DRUG_A_currentIndexChanged(0);
@@ -101,6 +109,7 @@ void MainWindow::on_cbox_USE_DRUG_A_toggled(bool checked)
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::on_cbox_USE_DRUG_B_toggled(bool checked)
 {
+    QString cell_line;
     LOG_MSG("cbox_use_DRUG_B toggled");
     QLineEdit *leb = findChild<QLineEdit *>("line_DRUG_B_BDRY_CONC");
     QCheckBox *cbm = findChild<QCheckBox *>("cbox_DRUG_B_SIMULATE_METABOLITE");
@@ -112,7 +121,7 @@ void MainWindow::on_cbox_USE_DRUG_B_toggled(bool checked)
     if (checked) {
         radioButton_drugB->setChecked(true);
         QString drugname = comb_DRUG_B->currentText();
-        extractDrugname(&drugname);
+        extractDrugname(&drugname,&cell_line);
         text_DRUG_B_NAME->setText(drugname);
         radioButton_drugB->setText(drugname);
         on_comb_DRUG_B_currentIndexChanged(1);

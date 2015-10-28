@@ -98,7 +98,7 @@ do kcell = 1,nlist
 	if (R < kill_prob) then
 		cell_list(kcell)%radiation_tag = .true.
 		Nradiation_tag(ityp) = Nradiation_tag(ityp) + 1
-		cell_list(kcell)%p_death = p_death
+		cell_list(kcell)%p_rad_death = p_death
 	endif
 enddo
 end subroutine
@@ -173,7 +173,7 @@ subroutine CellDeath(dt,changed,ok)
 real(REAL_KIND) :: dt
 logical :: changed, ok
 integer :: kcell, nlist0, site(3), i, ichemo, idrug, im, ityp, killmodel, kpar=0 
-real(REAL_KIND) :: C_O2, kmet, Kd, dMdt, Cdrug, kill_prob, dkill_prob, tnow
+real(REAL_KIND) :: C_O2, kmet, Kd, dMdt, Cdrug, n_O2, kill_prob, dkill_prob, death_prob, tnow
 !logical :: use_TPZ_DRUG, use_DNB_DRUG
 type(drug_type), pointer :: dp
 
@@ -223,21 +223,21 @@ do kcell = 1,nlist
 		dp => drug(idrug)
 		ichemo = TRACER + 1 + 3*(idrug-1)	
 		kill_prob = 0
+		death_prob = 0
 		do im = 0,2
 			if (.not.dp%kills(ityp,im)) cycle
 			killmodel = dp%kill_model(ityp,im)		! could use %drugclass to separate kill modes
 			Cdrug = cell_list(kcell)%Cin(ichemo + im)
 			Kd = dp%Kd(ityp,im)
-			kmet = (1 - dp%C2(ityp,im) + dp%C2(ityp,im)*dp%KO2(ityp,im)/(dp%KO2(ityp,im) + C_O2))*dp%Kmet0(ityp,im)
-!			dMdt = kmet*cell_list(kcell)%conc(ichemo + im)
-			dMdt = kmet*cell_list(kcell)%Cin(ichemo + im)
+			n_O2 = dp%n_O2(ityp,im)
+			kmet = (1 - dp%C2(ityp,im) + dp%C2(ityp,im)*dp%KO2(ityp,im)**n_O2/(dp%KO2(ityp,im)**n_O2 + C_O2**n_O2))*dp%Kmet0(ityp,im)
+			dMdt = kmet*Cdrug
 			call getDrugKillProb(killmodel,Kd,dMdt,Cdrug,dt,dkill_prob)
 			kill_prob = kill_prob + dkill_prob
+			death_prob = max(death_prob,dp%death_prob(ityp,im))
 		enddo
-!		if (kcell == 1) write(nflog,'(a,i6,2e12.3)') 'istep,Cdrug,kill_prob: ',istep,cell_list(kcell)%Cin(ichemo),kill_prob
 	    if (.not.cell_list(kcell)%drug_tag(idrug) .and. par_uni(kpar) < kill_prob) then	! don't tag more than once
-!            cell_list(kcell)%drugB_tag = .true.			! actually either drugA_tag or drugB_tag 
-!            NdrugB_tag(ityp) = NdrugB_tag(ityp) + 1
+			cell_list(kcell)%p_drug_death(idrug) = death_prob
 			cell_list(kcell)%drug_tag(idrug) = .true.
             Ndrug_tag(idrug,ityp) = Ndrug_tag(idrug,ityp) + 1
 		endif
@@ -394,7 +394,7 @@ do k = 1,ncells
 	endif
 	if (divide) then
 		if (cp%radiation_tag) then
-			if (par_uni(kpar) < cp%p_death) then
+			if (par_uni(kpar) < cp%p_rad_death) then
 				call CellDies(kcell)
 				changed = .true.
 				Nradiation_dead(ityp) = Nradiation_dead(ityp) + 1
@@ -466,11 +466,19 @@ subroutine growcell(cp, dt, c_rate, r_mean)
 type(cell_type), pointer :: cp
 real(REAL_KIND) :: dt, c_rate, r_mean
 real(REAL_KIND) :: Cin_0(NCONST), Cex_0(NCONST)		! at some point NCONST -> MAX_CHEMO
-real(REAL_KIND) :: dVdt,  Vin_0, dV, metab
+real(REAL_KIND) :: dVdt,  Vin_0, dV, metab_O2, metab_glucose, metab
+logical :: glucose_growth
 integer :: C_option = 1	! we must use this
 
+glucose_growth = chemo(GLUCOSE)%controls_growth
 Cin_0 = cp%Cin
-metab = O2_metab(Cin_0(OXYGEN))	! Note that currently growth depends only on O2
+metab_O2 = O2_metab(Cin_0(OXYGEN))	! Note that currently growth depends only on O2
+metab_glucose = glucose_metab(Cin_0(GLUCOSE))
+if (glucose_growth) then
+	metab = metab_O2*metab_glucose
+else
+	metab = metab_O2
+endif
 if (use_V_dependence) then
 	dVdt = c_rate*metab*cp%V/(Vdivide0/2)
 else
@@ -556,7 +564,7 @@ cp2%mitosis = 0
 cp2%CFSE = cfse1
 
 cp2%ID = cp1%ID
-cp2%p_death = cp1%p_death
+cp2%p_rad_death = cp1%p_rad_death
 cp2%radiation_tag = cp1%radiation_tag
 if (cp2%radiation_tag) then
 	Nradiation_tag(ityp) = Nradiation_tag(ityp) + 1

@@ -11,18 +11,18 @@ Params::Params()
         {"PARENT_3", "Cell efflux parameter Kout.  The rate of mass transport into the cell is Kin.Cex - Kout.Cin (currently no dependence on cell surface area)."},
         {"PARENT_4", "Half-life of the compound, used to calculate the decay rate.  This is the same in the cell and in the medium."},
         {"PARENT_CT1_0", "Kmet0 is the maximum rate of metabolism.  The actual rate is the product of drug concentration Cdrug, Kmet0 and a sigmoid function of O2 concentration C_O2, with parameters C2 and KO2:\n\
-metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2/(KO2 + C_O2)).Kmet0   If Vmax > 0, Kmet0 is replaced by (Kmet0 + Vmax/(Km + Cdrug)) \n\
+metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2^n_O2/(KO2^n_O2 + C_O2^n_O2)).Kmet0   If Vmax > 0, Kmet0 is replaced by (Kmet0 + Vmax/(Km + Cdrug)) \n\
 This the rate of transformation of parent drug to metabolite 1, or of metabolite 1 to metabolite 2, or removal of metabolite 2"},
-        {"PARENT_CT1_1", "C2 is one of the two parameters of the basic sigmoid function of C_O2 that determines metabolism rate.  When C_O2 = 0, the function = 1, when C_O2 >> KO2, the function = 1 - C2: \n\
-metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2/(KO2 + C_O2)).Kmet0   If Vmax > 0, Kmet0 is replaced by (Kmet0 + Vmax/(Km + Cdrug)) \n\
+        {"PARENT_CT1_1", "C2 is one of the three parameters of the basic sigmoid function of C_O2 that determines metabolism rate.  When C_O2 = 0, the function = 1, when C_O2 >> KO2, the function = 1 - C2: \n\
+metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2^n_O2/(KO2^n_O2 + C_O2^n_O2)).Kmet0   If Vmax > 0, Kmet0 is replaced by (Kmet0 + Vmax/(Km + Cdrug)) \n\
 This the rate of transformation of parent drug to metabolite 1, or of metabolite 1 to metabolite 2, or removal of metabolite 2"},
-        {"PARENT_CT1_2",  "KO2 is one of the two parameters of the basic sigmoid function of C_O2 that determines metabolism rate: \n\
-metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2/(KO2 + C_O2)).Kmet0   If Vmax > 0, Kmet0 is replaced by (Kmet0 + Vmax/(Km + Cdrug)) \n\
+        {"PARENT_CT1_2",  "KO2 is one of the three parameters of the basic sigmoid function of C_O2 that determines metabolism rate: \n\
+metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2^n_O2/(KO2^n_O2 + C_O2^n_O2)).Kmet0   If Vmax > 0, Kmet0 is replaced by (Kmet0 + Vmax/(Km + Cdrug)) \n\
 This the rate of transformation of parent drug to metabolite 1, or of metabolite 1 to metabolite 2, or removal of metabolite 2"},
         {"PARENT_CT1_3", "Vmax and Km are parameters that determine the dependence of the maximum rate of metabolism on drug concentration: \n\
-metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2/(KO2 + C_O2)).Kmet0   If Vmax > 0, Kmet0 is replaced by (Kmet0 + Vmax/(Km + Cdrug)) "},
+metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2^n_O2/(KO2^n_O2 + C_O2^n_O2)).Kmet0   If Vmax > 0, Kmet0 is replaced by (Kmet0 + Vmax/(Km + Cdrug))"},
          {"PARENT_CT1_4", "Vmax and Km are parameters that determine the dependence of the maximum rate of metabolism on drug concentration: \n\
-metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2/(KO2 + C_O2)).Kmet0   If Vmax > 0, Kmet0 is replaced by (Kmet0 + Vmax/(Km + Cdrug)) "},
+metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2^n_O2/(KO2^n_O2 + C_O2^n_O2)).Kmet0   If Vmax > 0, Kmet0 is replaced by (Kmet0 + Vmax/(Km + Cdrug))"},
         {"PARENT_CT1_5", "Klesion is currently unused."},
         {"PARENT_CT1_6", "The O2 concentration in the kill experiment."},
         {"PARENT_CT1_7", "The drug concentration in the kill experiment."},
@@ -34,10 +34,14 @@ metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2/(KO2 + C_O2)).Kmet0   If Vmax > 
          SER = (C_O2 + SER_KO2*(Cdrug*SER_max + SER_Km)/(Cdrug + SER_Km))/(C_O2 + SER_KO2)"},
         {"PARENT_CT1_12", "Sensitisation of the cells to radiation is determined by three parameters.  The usual radiation kill parameters OER_alpha and OER_beta are multiplied by the sensitisation enhancement ratio SER: \n\
          SER = (C_O2 + SER_KO2*(Cdrug*SER_max + SER_Km)/(Cdrug + SER_Km))/(C_O2 + SER_KO2)"},
-        {"PARENT_CT1_13", "This box is ticked if the drug is cytotoxic and kill parameters are provided."},
-         {"PARENT_CT1_14", "Using Kd derived from the kill experiment(different for each model), then dMdt = Cdrug*(1 - C2 + C2*KO2/(KO2 + C_O2))*Kmet0, the kill probability Pkill in time dt for each model is: \n\
+        {"PARENT_CT1_13",  "n_O2 is one of the three parameters of the basic sigmoid function of C_O2 that determines metabolism rate: \n\
+ metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2^n_O2/(KO2^n_O2 + C_O2^n_O2)).Kmet0   If Vmax > 0, Kmet0 is replaced by (Kmet0 + Vmax/(Km + Cdrug)) \n\
+ This the rate of transformation of parent drug to metabolite 1, or of metabolite 1 to metabolite 2, or removal of metabolite 2"},
+        {"PARENT_CT1_14", "The death probability of a drug-tagged cell at time of division."},
+        {"PARENT_CT1_15", "This box is ticked if the drug is cytotoxic and kill parameters are provided."},
+        {"PARENT_CT1_16", "Using Kd derived from the kill experiment(different for each model), then dMdt = Cdrug*(1 - C2 + C2*KO2/(KO2 + C_O2))*Kmet0, the kill probability Pkill in time dt for each model is: \n\
 1. Kd*dMdt*dt  2. Kd*Cdrug*dMdt*dt  3. Kd*dMdt^2*dt  4. Kd*Cdrug*dt  5. Kd*Cdrug^2*dt"},
-        {"PARENT_CT1_15", "This box is ticked if the drug sensitises the cells to radiation."},
+        {"PARENT_CT1_17", "This box is ticked if the drug sensitises the cells to radiation."},
     };
 
     PARAM_SET params[] = {
@@ -55,7 +59,7 @@ metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2/(KO2 + C_O2)).Kmet0   If Vmax > 
 "On-lattice model: Dimension of the lattice (number of lattice sites in X,Y and Z directions).  Must be large enough to hold the largest spheroid. \n\
 Off-lattice model: Dimension of the fine grid (number of grid pts in X,Y and Z directions).  Must = 1 + multiple of 8."},
 
-{"INITIAL_COUNT", 1000, 0, 0,
+{"INITIAL_COUNT", 10000, 0, 0,
 "Initial number of tumour cells",
 "Initial number of tumour cells"},
 
@@ -85,7 +89,7 @@ Off-lattice model: Dimension of the fine grid (number of grid pts in X,Y and Z d
 "Randomise initial cell volumes",
 "The volumes of the initial cell population are randomised."},
 
-{"NDAYS", 10.0, 0.0, 0.0,
+{"NDAYS", 10.0, 0.0, 30.0,
 "Number of days",
 "Length of the simulation.\n\
 [days]"},
@@ -310,6 +314,10 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
  "Hill function N",
  "Glucose uptake rate Hill function N"},
 
+{"GLUCOSE_GROWTH", 1, 0, 1,
+ "Glucose controls growth",
+ "The rate of growth of a cell is the maximum rate multiplied by the fractional rates of metabolism of both O2 and glucose"},
+
 {"USE_TRACER", 0, 0, 1,
 "Use Tracer?",
 "Tracer is simulated"},
@@ -350,11 +358,11 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 // Radiotherapy parameters
 //==========================
 
-{"RADIATION_ALPHA_H_1", 0.0473, 0, 0,
+{"RADIATION_ALPHA_H_1", 0.0738, 0, 0,
 "Alpha (hypoxia)",
 "alpha for irradiation of cells under anoxia (zero oxygen)"},
 
-{"RADIATION_BETA_H_1", 0.0017, 0, 0,
+{"RADIATION_BETA_H_1", 0.00725, 0, 0,
 "Beta (hypoxia)",
 "beta for irradiation of cells under anoxia (zero oxygen)"},
 
@@ -362,7 +370,7 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 "OER alpha",
 "Maximum oxygen enhancement ratio for alpha component of radiosensitivity "},
 
-{"RADIATION_OER_BETA_1", 3.0, 0, 0,
+{"RADIATION_OER_BETA_1", 2.5, 0, 0,
 "OER beta",
 "Maximum oxygen enhancement ratio for beta component of radiosensitivity"},
 
@@ -489,9 +497,9 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 // Time-series plots
     {"nlive",                     1, 0,1,"","Number of live cells"},
     {"nanoxiadead",               1, 0,1,"","Total number of cells that have been killed by anoxia"},
-    {"ndrugAdead",                1, 0,1,"","Total number of cells that have been killed by drugA"},
+    {"ndrugAdead",                0, 0,1,"","Total number of cells that have been killed by drugA"},
     {"ndrugBdead",                0, 0,1,"","Total number of cells that have been killed by drugB"},
-    {"nradiationdead",            1, 0,1,"","Total number of cells that have been killed by radiation"},
+    {"nradiationdead",            0, 0,1,"","Total number of cells that have been killed by radiation"},
     {"nanoxiatagged",             1, 0,1,"","Current number of cells tagged to die by anoxia"},
     {"ndrugAtagged",              0, 0,1,"","Current number of cells tagged to die by drugA"},
     {"ndrugBtagged",              0, 0,1,"","Current number of cells tagged to die by drugB"},
@@ -503,11 +511,11 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
     {"necroticfraction",          1, 0,1,"","Percentage of the spheroid that is necrotic = (number of vacant sites)/(number of sites taken up by the spheroid)"},
     {"platingefficiency",         0, 0,1,"","Percentage of live cells that are viable"},
     {"cellspermm3",               0, 0,1,"","Number of cells per mm3 in the blob"},
-    {"mediumoxygen",              0, 0,1,"","Average concentration of oxygen in the medium (far-field)"},
+    {"mediumoxygen",              1, 0,1,"","Average concentration of oxygen in the medium (far-field)"},
     {"mediumglucose",             0, 0,1,"","Average concentration of glucose in the medium (far-field)"},
     {"mediumdrugA",               0, 0,1,"","Average concentration of drug A in the medium (far-field)"},
     {"mediumdrugB",               0, 0,1,"","Average concentration of drug B in the medium (far-field)"},
-    {"bdryoxygen",                0, 0,1,"","Average concentration of oxygen at the blob boundary"},
+    {"bdryoxygen",                1, 0,1,"","Average concentration of oxygen at the blob boundary"},
     {"bdryglucose",               0, 0,1,"","Average concentration of glucose at the blob boundary"},
     {"bdrydrugA",                 0, 0,1,"","Average concentration of drug A at the blob boundary"},
     {"bdrydrugB",                 0, 0,1,"","Average concentration of drug B at the blob boundary"},

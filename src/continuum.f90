@@ -40,6 +40,10 @@ do kcell = 1,nlist
 !	write(nflog,'(i5,4e12.3,3i4)'),kcell,c(:),DELTA_X,ix,iy,iz
 	grid(ix,iy,iz)%nc = grid(ix,iy,iz)%nc + 1
 	grid(ix,iy,iz)%cell(grid(ix,iy,iz)%nc) = kcell
+	if (grid(ix,iy,iz)%nc > 200) then
+		write(nflog,*) 'setup_grid_cells: gridcell has > 100 cells: ',ix,iy,iz,grid(ix,iy,iz)%nc
+		stop
+	endif 
 	cp%site = [ix,iy,iz]
 enddo
 end subroutine

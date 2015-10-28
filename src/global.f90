@@ -76,7 +76,7 @@ end type
 
 type :: grid_type
 	integer :: nc
-	integer :: cell(100)
+	integer :: cell(200)
 end type
 
 type dist_type
@@ -139,7 +139,8 @@ type cell_type
 	real(REAL_KIND) :: CFSE
 	logical :: radiation_tag, anoxia_tag	!, drugA_tag, drugB_tag
 	logical :: drug_tag(MAX_DRUGTYPES)
-	real(REAL_KIND) :: p_death
+	real(REAL_KIND) :: p_rad_death
+	real(REAL_KIND) :: p_drug_death(MAX_DRUGTYPES)
 end type
 
 type XYZ_type
@@ -165,7 +166,10 @@ type event_type
 	integer :: ichemo			! DRUG CHEMO INDEX
 	real(REAL_KIND) :: volume	! DRUG MEDIUM
 	real(REAL_KIND) :: conc		! DRUG
+	real(REAL_KIND) :: O2conc		! DRUG
+	real(REAL_KIND) :: O2flush		! DRUG
 	real(REAL_KIND) :: dose		! RADIATION
+	real(REAL_KIND) :: O2medium	! MEDIUM
 	logical :: done
 end type	
 
@@ -184,10 +188,12 @@ type drug_type
 	real(REAL_KIND) :: Kmet0(MAX_CELLTYPES,0:2)
 	real(REAL_KIND) :: C2(MAX_CELLTYPES,0:2)
 	real(REAL_KIND) :: KO2(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: n_O2(MAX_CELLTYPES,0:2)
 	real(REAL_KIND) :: Vmax(MAX_CELLTYPES,0:2)
 	real(REAL_KIND) :: Km(MAX_CELLTYPES,0:2)
 	real(REAL_KIND) :: Klesion(MAX_CELLTYPES,0:2)
 	integer         :: kill_model(MAX_CELLTYPES,0:2)
+	real(REAL_KIND) :: death_prob(MAX_CELLTYPES,0:2)
 	real(REAL_KIND) :: Kd(MAX_CELLTYPES,0:2)
 	real(REAL_KIND) :: kill_O2(MAX_CELLTYPES,0:2)
 	real(REAL_KIND) :: kill_drug(MAX_CELLTYPES,0:2)
@@ -197,73 +203,6 @@ type drug_type
 	real(REAL_KIND) :: SER_max(MAX_CELLTYPES,0:2)
 	real(REAL_KIND) :: SER_Km(MAX_CELLTYPES,0:2)
 	real(REAL_KIND) :: SER_KO2(MAX_CELLTYPES,0:2)
-end type
-type SN30K_type
-	integer :: nmetabolites
-	real(REAL_KIND) :: diff_coef
-	real(REAL_KIND) :: medium_diff_coef
-	real(REAL_KIND) :: membrane_diff
-	real(REAL_KIND) :: halflife
-	real(REAL_KIND) :: metabolite_halflife
-	real(REAL_KIND) :: Kmet0(MAX_CELLTYPES)
-!	real(REAL_KIND) :: C1(MAX_CELLTYPES)
-	real(REAL_KIND) :: C2(MAX_CELLTYPES)
-	real(REAL_KIND) :: KO2(MAX_CELLTYPES)
-!	real(REAL_KIND) :: gamma(MAX_CELLTYPES)
-	real(REAL_KIND) :: Klesion(MAX_CELLTYPES)
-	integer         :: kill_model(MAX_CELLTYPES)
-	real(REAL_KIND) :: kill_O2(MAX_CELLTYPES)
-	real(REAL_KIND) :: kill_drug(MAX_CELLTYPES)
-	real(REAL_KIND) :: kill_duration(MAX_CELLTYPES)
-	real(REAL_KIND) :: kill_fraction(MAX_CELLTYPES)
-	real(REAL_KIND) :: Kd(MAX_CELLTYPES)
-end type
-
-type TPZ_type
-	character*(16) :: name
-	integer :: nmetabolites
-	logical :: use_metabolites
-	real(REAL_KIND) :: diff_coef(0:2)
-	real(REAL_KIND) :: medium_diff_coef(0:2)
-	real(REAL_KIND) :: membrane_diff_in(0:2)
-	real(REAL_KIND) :: membrane_diff_out(0:2)
-	real(REAL_KIND) :: halflife(0:2)
-	real(REAL_KIND) :: Kmet0(MAX_CELLTYPES,0:2)
-	real(REAL_KIND) :: C2(MAX_CELLTYPES,0:2)
-	real(REAL_KIND) :: KO2(MAX_CELLTYPES,0:2)
-	real(REAL_KIND) :: Vmax(MAX_CELLTYPES,0:2)
-	real(REAL_KIND) :: Km(MAX_CELLTYPES,0:2)
-	real(REAL_KIND) :: Klesion(MAX_CELLTYPES,0:2)
-	integer         :: kill_model(MAX_CELLTYPES)
-	real(REAL_KIND) :: kill_O2(MAX_CELLTYPES)
-	real(REAL_KIND) :: kill_drug(MAX_CELLTYPES)
-	real(REAL_KIND) :: kill_duration(MAX_CELLTYPES)
-	real(REAL_KIND) :: kill_fraction(MAX_CELLTYPES)
-	real(REAL_KIND) :: Kd(MAX_CELLTYPES)
-end type
-
-
-type DNB_type
-	character*(16) :: name
-	integer :: nmetabolites
-	logical :: use_metabolites
-	real(REAL_KIND) :: diff_coef(0:2)
-	real(REAL_KIND) :: medium_diff_coef(0:2)
-	real(REAL_KIND) :: membrane_diff_in(0:2)
-	real(REAL_KIND) :: membrane_diff_out(0:2)
-	real(REAL_KIND) :: halflife(0:2)
-	real(REAL_KIND) :: Kmet0(MAX_CELLTYPES,0:2)
-	real(REAL_KIND) :: C2(MAX_CELLTYPES,0:2)
-	real(REAL_KIND) :: KO2(MAX_CELLTYPES,0:2)
-	real(REAL_KIND) :: Vmax(MAX_CELLTYPES,0:2)
-	real(REAL_KIND) :: Km(MAX_CELLTYPES,0:2)
-	real(REAL_KIND) :: Klesion(MAX_CELLTYPES,0:2)
-	integer         :: kill_model(MAX_CELLTYPES,0:2)
-	real(REAL_KIND) :: kill_O2(MAX_CELLTYPES,0:2)
-	real(REAL_KIND) :: kill_drug(MAX_CELLTYPES,0:2)
-	real(REAL_KIND) :: kill_duration(MAX_CELLTYPES,0:2)
-	real(REAL_KIND) :: kill_fraction(MAX_CELLTYPES,0:2)
-	real(REAL_KIND) :: Kd(MAX_CELLTYPES,0:2)
 end type
 
 type LQ_type
@@ -283,6 +222,7 @@ character*(128) :: inputfile
 character*(128) :: outputfile
 character*(12) :: dll_version, dll_run_version
 character*(12) :: gui_version, gui_run_version
+character*(1024) :: header
 
 integer :: Mnodes, ncpu_input, ncells, ncells_mphase, nlist, nsteps, nevents
 integer :: Ndrugs_used
@@ -362,8 +302,6 @@ type(treatment_type), allocatable :: protocol(:)
 type(event_type), allocatable :: event(:)
 
 
-type(TPZ_type) :: TPZ
-type(DNB_type) :: DNB
 type(drug_type), allocatable, target :: drug(:)
 type(LQ_type) :: LQ(MAX_CELLTYPES)
 
@@ -376,7 +314,7 @@ logical :: use_migration = .false.
 logical :: suppress_growth = .false.
 logical :: use_hysteresis = .false.
 logical :: use_permute = .false.
-logical :: use_SS = .false.
+logical :: use_SS = .true.
 logical :: use_integration = .true.
 logical :: use_packer = .true.
 logical :: dbug = .false.

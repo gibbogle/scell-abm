@@ -11,6 +11,7 @@ type chemokine_type
 	logical :: used
 	logical :: present
 	logical :: constant
+	logical :: controls_growth
 	real(REAL_KIND) :: bdry_rate
 	real(REAL_KIND) :: bdry_conc
 	real(REAL_KIND) :: diff_coef
@@ -182,6 +183,23 @@ if (ichemo == OXYGEN) then
 	endif
 endif
 O2_metab = metab
+end function
+
+!----------------------------------------------------------------------------------
+! Computes metabolism rate as a fraction of the maximum cell rate
+!----------------------------------------------------------------------------------
+real(REAL_KIND) function glucose_metab(C)
+real(REAL_KIND) :: C
+integer :: N
+real(REAL_KIND) :: MM_C0
+
+N = chemo(GLUCOSE)%Hill_N
+MM_C0 = chemo(GLUCOSE)%MM_C0
+if (C > 0) then
+	glucose_metab = C**N/(MM_C0**N + C**N)
+else
+	glucose_metab = 0
+endif
 end function
 
 !----------------------------------------------------------------------------------------
