@@ -36,9 +36,11 @@ extern "C" {
 #include <qwt_plot.h>
 #include <qwt_painter.h>
 #include <qwt_plot_canvas.h>
+#include <myqgraphicsview.h>
 
 #define VTK_SOURCE 0
-#define QWT_SOURCE 1
+#define QWT_FACS_SOURCE 1
+#define QWT_FIELD_SOURCE 2
 
 ////////////////////////////////////////////////////////////////////////////////
 //! @class : QVideoOutput
@@ -50,7 +52,7 @@ extern "C" {
 class QVideoOutput : public QObject
 {
 public:
-   QVideoOutput(QObject * parent=0, int source=0, vtkRenderWindow *VTKrenWin=0, QwtPlot *qwtplot=0);
+   QVideoOutput(QObject * parent=0, int source=0, vtkRenderWindow *VTKrenWin=0, QwtPlot *qwtplot=0, MyQGraphicsView *myview=0);
    virtual ~QVideoOutput();
    bool openMediaFile(int width,
                       int height,
@@ -102,6 +104,7 @@ protected:
    vtkRenderWindow *renWin;
    vtkSmartPointer<vtkWindowToImageFilter> w2i;
    QwtPlot *qp;
+   MyQGraphicsView* view;
 
    QTemporaryFile *tempFile;
    int record_nframes, record_it, framenum;

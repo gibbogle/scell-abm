@@ -159,6 +159,8 @@ public slots:
     void stopRecorderVTK();
     void startRecorderFACS();
     void stopRecorderFACS();
+    void startRecorderField();
+    void stopRecorderField();
     bool getVideoFileInfo(int *nframes, QString *itemFormat, QString *itemCodec, QString *videoFileName);
 
 //    void buttonClick_constituent(QAbstractButton* button);
@@ -379,6 +381,7 @@ private:
 
     QVideoOutput   *videoVTK;
     QVideoOutput   *videoFACS;
+    QVideoOutput   *videoField;
 
     QStringList Drug_FilesList;
 

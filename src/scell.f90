@@ -45,8 +45,10 @@ if (allocated(Caverage)) deallocate(Caverage)
 if (allocated(Cflux)) deallocate(Cflux)
 if (allocated(Cflux_prev)) deallocate(Cflux_prev)
 if (allocated(stencil)) deallocate(stencil)
+if (allocated(gaplist)) deallocate(gaplist)
 call logger('did deallocation')
 allocate(cell_list(MAX_NLIST))
+allocate(gaplist(max_ngaps))
 allocate(grid(NX,NY,NZ))
 allocate(perm_index(MAX_NLIST))
 allocate(Cextra_all(NX,NY,NZ,NCONST))
@@ -57,6 +59,7 @@ allocate(stencil(NX,NY,NZ))
 
 ncells = 0
 nlist = 0
+ngaps = 0
 ok = .true.
 
 end subroutine
@@ -1061,6 +1064,12 @@ call make_grid_flux_weights
 !else
 !	nt_diff = 7
 !endif
+
+if (ngaps > 1000) then
+	call squeezer
+	call setup_nbrlists
+endif
+
 nt_diff = 1
 dt = DELTA_T/nt_diff
 do it_diff = 1,nt_diff
@@ -1083,6 +1092,20 @@ if (mod(istep,nt_hour) == 0) then
 !	call write_bdryconcs
 endif
 res = 0
+end subroutine
+
+!----------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------
+subroutine squeezer
+integer :: igap, kcell
+
+if (ngaps == 0) return
+do igap = 1,ngaps
+	kcell = gaplist(igap)
+	cell_list(kcell) = cell_list(nlist)
+	nlist = nlist - 1
+enddo
+ngaps = 0
 end subroutine
 
 !----------------------------------------------------------------------------------

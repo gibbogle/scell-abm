@@ -80,6 +80,9 @@ MainWindow::MainWindow(QWidget *parent)
     Global::showingVTK = false;
     Global::recordingFACS = false;
     Global::showingFACS = false;
+    Global::recordingField = false;
+    Global::showingField = false;
+
     nGraphCases = 0;
 	for (int i=0; i<Plot::ncmax; i++) {
 		graphResultSet[i] = 0;
@@ -154,8 +157,9 @@ MainWindow::MainWindow(QWidget *parent)
 #endif
     mdiArea_VTK->setGeometry(rect);
 
-    videoVTK = new QVideoOutput(this, VTK_SOURCE, vtk->renWin, NULL);
-    videoFACS = new QVideoOutput(this, QWT_SOURCE, NULL, qpFACS);
+    videoVTK = new QVideoOutput(this, VTK_SOURCE, vtk->renWin, NULL, NULL);
+    videoFACS = new QVideoOutput(this, QWT_FACS_SOURCE, NULL, qpFACS, NULL);
+    videoField = new QVideoOutput(this, QWT_FIELD_SOURCE, NULL, NULL, field->view);
 
     tabs->setCurrentIndex(9);
     setupPopup();
@@ -240,6 +244,8 @@ void MainWindow::createActions()
     connect(actionStop_recording_VTK, SIGNAL(triggered()), this, SLOT(stopRecorderVTK()));
     connect(actionStart_recording_FACS, SIGNAL(triggered()), this, SLOT(startRecorderFACS()));
     connect(actionStop_recording_FACS, SIGNAL(triggered()), this, SLOT(stopRecorderFACS()));
+    connect(actionStart_recording_Field, SIGNAL(triggered()), this, SLOT(startRecorderField()));
+    connect(actionStop_recording_Field, SIGNAL(triggered()), this, SLOT(stopRecorderField()));
 
 //    connect(action_show_gradient3D, SIGNAL(triggered()), this, SLOT(showGradient3D()));
 //    connect(action_show_gradient2D, SIGNAL(triggered()), this, SLOT(showGradient2D()));
@@ -426,6 +432,36 @@ void MainWindow:: stopRecorderFACS()
     actionStop_recording_FACS->setEnabled(false);
     Global::recordingFACS = false;
     LOG_QMSG("stopRecorderFACS");
+}
+
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
+void MainWindow:: startRecorderField()
+{
+    bool ok;
+    int nframes=0;
+    QString itemFormat, itemCodec, videoFileName;
+
+    ok = getVideoFileInfo(&nframes, &itemFormat, &itemCodec, &videoFileName);
+    if (!ok) return;
+    videoField->startRecorder(videoFileName,itemFormat,itemCodec,nframes);
+    actionStart_recording_Field->setEnabled(false);
+    actionStop_recording_Field->setEnabled(true);
+    Global::recordingField = true;
+    LOG_QMSG("startRecorderField");
+    LOG_QMSG(videoFileName);
+    goToField();
+}
+
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
+void MainWindow:: stopRecorderField()
+{
+    videoField->stopRecorder();
+    actionStart_recording_Field->setEnabled(true);
+    actionStop_recording_Field->setEnabled(false);
+    Global::recordingField = false;
+    LOG_QMSG("stopRecorderField");
 }
 
 //--------------------------------------------------------------------------------------------------------
@@ -1587,6 +1623,7 @@ void MainWindow::goToInputs()
     stackedWidget->setCurrentIndex(0);
     Global::showingVTK = false;
     Global::showingFACS = false;
+    Global::showingField = false;
     action_inputs->setEnabled(false);
     action_outputs->setEnabled(true);
     action_VTK->setEnabled(true);
@@ -1602,6 +1639,7 @@ void MainWindow::goToOutputs()
     stackedWidget->setCurrentIndex(1);    
     Global::showingVTK = false;
     Global::showingFACS = false;
+    Global::showingField = false;
     action_outputs->setEnabled(false);
     action_inputs->setEnabled(true);
     action_VTK->setEnabled(true);
@@ -1622,6 +1660,7 @@ void MainWindow::goToVTK()
     action_FACS->setEnabled(true);
     Global::showingVTK = true;
     Global::showingFACS = false;
+    Global::showingField = false;
 }
 
 //-------------------------------------------------------------
@@ -1637,6 +1676,7 @@ void MainWindow::goToFACS()
     action_FACS->setEnabled(false);
     Global::showingVTK = false;
     Global::showingFACS = true;
+    Global::showingField = false;
 }
 
 //-------------------------------------------------------------
@@ -1652,6 +1692,7 @@ void MainWindow::goToField()
     action_FACS->setEnabled(true);
     Global::showingVTK = false;
     Global::showingFACS = false;
+    Global::showingField = true;
     LOG_MSG("goToField");
     field->setSliceChanged();
     if (step > 0 && !action_field->isEnabled()) {
@@ -1907,6 +1948,8 @@ void MainWindow::runServer()
         goToVTK();
     } else if(Global::showingFACS) {
         goToFACS();
+    } else if(Global::showingField) {
+        goToField();
     } else {
         goToOutputs();
     }
@@ -1921,7 +1964,8 @@ void MainWindow::runServer()
     action_save_profile_data->setEnabled(false);
     action_show_gradient3D->setEnabled(false);
     action_show_gradient2D->setEnabled(false);
-    action_field->setEnabled(true);
+    if (!Global::showingField)
+        action_field->setEnabled(true);
     tab_tumour->setEnabled(false);
 //    tab_DC->setEnabled(false);
     tab_chemo->setEnabled(false);
@@ -2213,13 +2257,15 @@ void MainWindow::showSummary(int hr)
     updateProfilePlots();
 
     field->setSliceChanged();
-    if (step > 0 && !action_field->isEnabled()) {
+//    if (step > 0 && !action_field->isEnabled()) {
+    if (step > 0) {
         field->displayField(hour,&res);
-//        if (res != 0) {
-//            sprintf(msg,"displayField returned res: %d",res);
-//            LOG_MSG(msg);
-//            stopServer();
-//        }
+        if (videoField->record) {
+            videoField->recorder();
+        } else if (actionStop_recording_Field->isEnabled()) {
+            actionStart_recording_Field->setEnabled(true);
+            actionStop_recording_Field->setEnabled(false);
+        }
     }
     exthread->mutex1.unlock();
     exthread->summary_done.wakeOne();
@@ -2385,6 +2431,9 @@ void MainWindow::postConnection()
     }
     if (actionStop_recording_FACS->isEnabled()) {
         stopRecorderFACS();
+    }
+    if (actionStop_recording_Field->isEnabled()) {
+        stopRecorderField();
     }
     posdata = false;
 	LOG_MSG("completed postConnection");

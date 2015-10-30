@@ -59,7 +59,7 @@ metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2^n_O2/(KO2^n_O2 + C_O2^n_O2)).Kme
 "On-lattice model: Dimension of the lattice (number of lattice sites in X,Y and Z directions).  Must be large enough to hold the largest spheroid. \n\
 Off-lattice model: Dimension of the fine grid (number of grid pts in X,Y and Z directions).  Must = 1 + multiple of 8."},
 
-{"INITIAL_COUNT", 10000, 0, 0,
+{"INITIAL_COUNT", 1000, 0, 0,
 "Initial number of tumour cells",
 "Initial number of tumour cells"},
 

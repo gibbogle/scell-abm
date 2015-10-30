@@ -301,6 +301,9 @@ real(REAL_KIND), allocatable, target :: Cflux_prev(:,:,:,:)
 type(treatment_type), allocatable :: protocol(:)
 type(event_type), allocatable :: event(:)
 
+integer, allocatable :: gaplist(:)
+integer :: ngaps
+integer, parameter :: max_ngaps = 10000
 
 type(drug_type), allocatable, target :: drug(:)
 type(LQ_type) :: LQ(MAX_CELLTYPES)
@@ -314,6 +317,7 @@ logical :: use_migration = .false.
 logical :: suppress_growth = .false.
 logical :: use_hysteresis = .false.
 logical :: use_permute = .false.
+logical :: use_gaplist = .true.
 logical :: use_SS = .true.
 logical :: use_integration = .true.
 logical :: use_packer = .true.

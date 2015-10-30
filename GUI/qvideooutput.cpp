@@ -31,7 +31,7 @@ LOG_USE();
 //! @param[in] parent : A parent object.
 //!
 ////////////////////////////////////////////////////////////////////////////////
-QVideoOutput::QVideoOutput(QObject *parent, int imageSource, vtkRenderWindow *VTKrenWin, QwtPlot *qwtplot)
+QVideoOutput::QVideoOutput(QObject *parent, int imageSource, vtkRenderWindow *VTKrenWin, QwtPlot *qwtplot, MyQGraphicsView *myview)
 : QObject(parent)
 , swsContext(0x0)
 , formatContext(0x0)
@@ -52,9 +52,12 @@ QVideoOutput::QVideoOutput(QObject *parent, int imageSource, vtkRenderWindow *VT
        // Set renWin
        renWin = VTKrenWin;
        LOG_MSG("created videoVTK");
-   } else if (source == QWT_SOURCE) {
+   } else if (source == QWT_FACS_SOURCE) {
        qp = qwtplot;
        LOG_MSG("created videoFACS");
+   } else if (source == QWT_FIELD_SOURCE) {
+       view = myview;
+       LOG_MSG("created videoField");
    }
    record_it = 0;
    record = false;
@@ -446,7 +449,7 @@ virtual void YourPlot::drawCanvas( QPainter *painter )
 ////////////////////////////////////////////////////////////////////////////////
 bool QVideoOutput::newFrame(const QImage & image)
 {
-//    LOG_QMSG("newFrame");
+    LOG_QMSG("newFrame");
    const int width  = image.width();
    const int height = image.height();
    // write video frame
@@ -642,9 +645,10 @@ void QVideoOutput::recorder()
             LOG_QMSG("ERROR: recorder: vtkImageData dimension = 0");
             exit(1);
         }
-    } else if (source == QWT_SOURCE) {
+    } else if (source == QWT_FACS_SOURCE) {
         // Create an image
 //        QImage image( qp->canvas()->size(), QImage::Format_RGB32 );
+        LOG_QMSG("QWT_FACS_SOURCE");
         QImage image( qp->size(), QImage::Format_RGB32 );
         image.fill( QColor( Qt::white ).rgb() ); // guess you don't need this line
 //        QPainter p( &image );
@@ -654,11 +658,19 @@ void QVideoOutput::recorder()
         im = image;
         imwidth = im.width();
         imheight = im.height();
+    } else if (source == QWT_FIELD_SOURCE) {
+        // Create an image from view (need to tell qvideooutput about view)
+        LOG_QMSG("QWT_FIELD_SOURCE");
+        QPixmap pixMap = QPixmap::grabWidget(view);
+        im = pixMap.toImage();
+        imwidth = im.width();
+        imheight = im.height();
     }
     record_it++;
     if (!isOpen()) {
         // Generate temporary filename
         tempFile = new QTemporaryFile("qt_temp.XXXXXX.avi");
+        LOG_QMSG("tempFile: qt_temp.XXXXXX.avi");
         if (tempFile->open())
         {
            // Open media file and prepare for recording
@@ -679,10 +691,17 @@ void QVideoOutput::recorder()
             record = false;
             exit(1);
         }
-    } else if (source == QWT_SOURCE) {
+    } else if (source == QWT_FACS_SOURCE) {
         success = newFrame(im);
         if (!success) {
-            LOG_QMSG("ERROR: newFrame failed for QWT_SOURCE");
+            LOG_QMSG("ERROR: newFrame failed for QWT_FACS_SOURCE");
+            record = false;
+            exit(1);
+        }
+    } else if (source == QWT_FIELD_SOURCE) {
+        success = newFrame(im);
+        if (!success) {
+            LOG_QMSG("ERROR: newFrame failed for QWT_FIELD_SOURCE");
             record = false;
             exit(1);
         }

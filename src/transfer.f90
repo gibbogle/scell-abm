@@ -674,16 +674,13 @@ Nviable = 0
 Nlive = 0
 do kcell = 1,nlist
 	if (cell_list(kcell)%state == DEAD) cycle
-	if (cell_list(kcell)%anoxia_tag .or. &
-!	    cell_list(kcell)%drugA_tag .or. &
-!	    cell_list(kcell)%drugB_tag .or. &
-	    cell_list(kcell)%radiation_tag) cycle
+    ityp = cell_list(kcell)%celltype
+    Nlive(ityp) = Nlive(ityp) + 1
+	if (cell_list(kcell)%anoxia_tag .or. cell_list(kcell)%radiation_tag) cycle
     tag = .false.
     do idrug = 1,ndrugs_used
 		if (cell_list(kcell)%drug_tag(idrug)) tag = .true.
 	enddo
-    ityp = cell_list(kcell)%celltype
-    Nlive(ityp) = Nlive(ityp) + 1
 	if (tag) cycle
 	Nviable(ityp) = Nviable(ityp) + 1
 enddo	

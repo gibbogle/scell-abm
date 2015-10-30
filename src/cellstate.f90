@@ -294,6 +294,13 @@ enddo
 if (cell_list(kcell)%radiation_tag) then
 	Nradiation_tag(ityp) = Nradiation_tag(ityp) - 1
 endif
+ngaps = ngaps + 1
+if (ngaps > max_ngaps) then
+    write(logmsg,'(a,i6,i6)') 'CellDies: ngaps > max_ngaps: ',ngaps,max_ngaps
+    call logger(logmsg)
+    stop
+endif
+gaplist(ngaps) = kcell
 
 end subroutine
 
@@ -456,7 +463,8 @@ enddo
 do k = 1,ndivide
 	changed = .true.
 	kcell = divide_list(k)
-	call divider(kcell)
+	call divider(kcell, ok)
+	if (.not.ok) return
 enddo
 end subroutine
 
@@ -507,8 +515,9 @@ end subroutine
 !-----------------------------------------------------------------------------------------
 ! A single cell is replaced by two.
 !-----------------------------------------------------------------------------------------
-subroutine divider(kcell1)
+subroutine divider(kcell1, ok)
 integer :: kcell1
+logical :: ok
 integer :: kcell2, ityp, nbrs0
 real(REAL_KIND) :: r(3), c(3), cfse0, cfse1
 type(cell_type), pointer :: cp1, cp2
@@ -516,9 +525,15 @@ type(cell_type), pointer :: cp1, cp2
 !write(*,*) 'divider:'
 !write(logmsg,*) 'divider: ',kcell1 
 !call logger(logmsg)
+ok = .true.
 tnow = istep*DELTA_T
 cp1 => cell_list(kcell1)
 nlist = nlist + 1
+if (nlist > MAX_NLIST) then
+	ok = .false.
+	call logger('Error: Maximum number of cells MAX_NLIST has been exceeded.  Increase and rebuild.')
+	return
+endif
 ncells = ncells + 1
 ityp = cp1%celltype
 ncells_type(ityp) = ncells_type(ityp) + 1
@@ -537,8 +552,6 @@ cfse0 = cp1%CFSE
 cp1%CFSE = generate_CFSE(cfse0/2)
 cfse1 = cfse0 - cp1%CFSE
 
-!cp1%drugA_tag = .false.
-!cp1%drugB_tag = .false.
 cp1%drug_tag = .false.
 cp1%anoxia_tag = .false.
 cp1%t_hypoxic = 0
