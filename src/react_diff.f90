@@ -1244,7 +1244,7 @@ nfill = 1	! Level of fill for ILUK preconditioner
 tol = 1.0d-6
 tol_b = 1.0d-6
 im_krylov = 60	! dimension of Krylov subspace in (outer) FGMRES
-maxits = 30	!100
+maxits = 50	!100
 
 ! Compute all steady-state grid point fluxes in advance from Cextra(:,:,:,:): Cflux(:,:,:,:)
 
