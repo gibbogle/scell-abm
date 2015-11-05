@@ -1097,14 +1097,24 @@ end subroutine
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
 subroutine squeezer
-integer :: igap, kcell
+integer :: igap, kcell, nlist0
 
 if (ngaps == 0) return
-do igap = 1,ngaps
-	kcell = gaplist(igap)
-	cell_list(kcell) = cell_list(nlist)
-	nlist = nlist - 1
+write(nflog,*) '==squeezer== nlist: ',nlist0, nlist
+!do igap = 1,ngaps
+!	kcell = gaplist(igap)
+!	if (
+!	cell_list(kcell) = cell_list(nlist)
+!	nlist = nlist - 1
+!enddo
+nlist0 = nlist
+nlist = 0
+do kcell = 1,nlist0
+	if (cell_list(kcell)%state == DEAD) cycle
+	nlist = nlist + 1
+	cell_list(nlist) = cell_list(kcell)
 enddo
+write(nflog,*) '==squeezer== nlist0, nlist: ',nlist0, nlist
 ngaps = 0
 end subroutine
 
@@ -1324,11 +1334,12 @@ do kcell = 1,nlist
 	perm_index(np) = kcell
 enddo
 if (np /= ncells) then
-	write(logmsg,*) 'Error: make_perm_index: np /= Ncells: ',np,ncells
+	write(logmsg,*) 'Error: make_perm_index: np /= Ncells: ',np,ncells,nlist
 	call logger(logmsg)
 	ok = .false.
 	return
 endif
+write(nflog,'(a,2i6)') 'make_perm_index: np,ncells: ',np,ncells
 if (use_permute) then
 	call permute(perm_index,np,kpar)
 endif

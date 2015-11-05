@@ -319,7 +319,7 @@ logical :: use_hysteresis = .false.
 logical :: use_permute = .false.
 logical :: use_gaplist = .true.
 logical :: use_SS = .true.
-logical :: use_integration = .true.
+logical :: use_integration = .false.
 logical :: use_packer = .true.
 logical :: dbug = .false.
 

@@ -189,11 +189,6 @@ do ixb = xb0-idxb,xb0+idxb
 						if (iz < 1 .or. iz > NZ) cycle
 						dF = wt(idx,idy,idz)*F(ix,iy,iz)
 						F_b(ixb,iyb,izb) = F_b(ixb,iyb,izb) + dF
-!						if (ichemo_curr == DRUG_A .and. istep > 24 .and. dF > 0) then
-!							write(nflog,'(a,4i6,4e12.3)') 'makeF_b: F_b > 0: ',istep,ixb,iyb,izb,F(ix,iy,iz),wt(idx,idy,idz),F_b(ixb,iyb,izb),dF
-!!							write(*,'(a,4i6,4e12.3)') 'makeF_b: F_b > 0: ',istep,ixb,iyb,izb,F(ix,iy,iz),wt(idx,idy,idz),F_b(ixb,iyb,izb),dF
-!							stop
-!						endif
 						Fsum_b = Fsum_b + dF
 					enddo
 				enddo
@@ -223,13 +218,6 @@ do k = 1,nnz
 	if (k == ia(krow+1)) krow = krow+1
 	kcol = ja(k)
 	a(k) = amap(k,0)
-!	if (amap(k,2) == NY .and. kcol == krow-NY) then
-!		if (a(k) /= -2) then
-!			write(*,*) 'Error in OXYGEN bdry adjustment'
-!			stop
-!		endif
-!		a(k) = -1
-!	endif
 enddo
 
 Kdiff_sum = 0
@@ -268,7 +256,6 @@ do iy = 2,NY-1
 		krow = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
 		Cbdry = Cave(NX,iy,iz)
 		rhs(krow) = rhs(krow) + Cbdry		
-!		if (ichemo >= 5) write(*,'(a,e12.3)') 'Cbdry: ix=NX-1: ',Cbdry
 	enddo
 enddo
 iy = 2
@@ -277,7 +264,6 @@ do ix = 2,NX-1
 		krow = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
 		Cbdry = Cave(ix,1,iz)
 		rhs(krow) = rhs(krow) + Cbdry
-!		if (ichemo >= 5) write(*,'(a,e12.3)') 'Cbdry: iy=2: ',Cbdry
 	enddo
 enddo
 iy = NY-1
@@ -286,7 +272,6 @@ do ix = 2,NX-1
 		krow = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
 		Cbdry = Cave(ix,NY,iz)
 		rhs(krow) = rhs(krow) + Cbdry
-!		if (ichemo >= 5) write(*,'(a,e12.3)') 'Cbdry: iy=NY-1: ',Cbdry
 	enddo
 enddo
 iz = NZ-1
@@ -295,7 +280,6 @@ do ix = 2,NX-1
 		krow = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
 		Cbdry = Cave(ix,iy,NZ)
 		rhs(krow) = rhs(krow) + Cbdry
-!		if (ichemo >= 5) write(*,'(a,e12.3)') 'Cbdry: iz=NZ-1: ',Cbdry
 	enddo
 enddo
 first = .false.
@@ -325,12 +309,12 @@ do k = 1,nnz_b
 	kcol = ja_b(k)
 	if (amap_b(k,0) == 2*m) then
 		Kr = dxb*dxb/Kdiff
-		a_b(k) = 3*Kr/(2*dt) + 2*m	! ... note that Kdiff should depend on (ixb,iyb,izb), ultimately on # of cells
+		a_b(k) = 3*Kr/(2*dt) + 2*m
 	else
 		a_b(k) = amap_b(k,0)
 	endif
 	if (ichemo == OXYGEN) then
-		if (amap_b(k,3) == NZB .and. kcol == krow-1) then		! check this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		if (amap_b(k,3) == NZB .and. kcol == krow-1) then
 			if (a_b(k) /= -2) then
 				write(*,*) 'Error in OXYGEN bdry adjustment'
 				stop
@@ -442,12 +426,10 @@ integer :: kcell, ix, iy, iz
 real(REAL_KIND) :: alfa(3)
 type(cell_type), pointer :: cp
 real(REAL_KIND), pointer :: Cextra(:,:,:)
-!real(REAL_KIND), pointer :: Cprev(:,:,:)
 
 !write(*,*) 'update_Cex_Cin_dCdt_const: ',ichemo
 
 Cextra => Caverage(:,:,:,ichemo)		! currently using the average concentration!
-!Cprev => chemo(ichemo)%Cprev
 !$omp parallel do private(cp, ix, iy, iz, alfa)
 do kcell = 1,nlist
 	cp => cell_list(kcell)
@@ -478,12 +460,10 @@ integer :: kcell, ix, iy, iz
 real(REAL_KIND) :: alfa(3)
 type(cell_type), pointer :: cp
 real(REAL_KIND), pointer :: Cextra(:,:,:)
-!real(REAL_KIND), pointer :: Cprev(:,:,:)
 
 write(*,*) 'update_Cex: ',ichemo
 
 Cextra => Caverage(:,:,:,ichemo)		! currently using the average concentration!
-!Cprev => chemo(ichemo)%Cprev
 !$omp parallel do private(cp, ix, iy, iz, alfa)
 do kcell = 1,nlist
 	cp => cell_list(kcell)
@@ -630,18 +610,10 @@ do kcell = 1,nlist
 	cp => cell_list(kcell)
 	if (cp%state == DEAD) cycle
 	cp%dMdt(ichemo) = Kin*cp%Cex(ichemo) - Kout*cp%Cin(ichemo)
-!	if (ichemo >= DRUG_A .and. istep > 24 .and. cp%dMdt(ichemo) < 0) then
-!		write(*,'(a,3i6,3e12.3)') 'getF_const: ',istep,ichemo,kcell,cp%Cex(ichemo),cp%Cin(ichemo),cp%dMdt(ichemo)
-!	endif
 	total_flux = total_flux + cp%dMdt(ichemo)
-!	if (kcell == 1) then
-!		write(nflog,'(a,i4,5e12.5)') 'getF_const: Cin, Cex, dMdt: ',ichemo, cp%Cin(ichemo), cp%Cex(ichemo),cp%dMdt(ichemo),Kin,Kout
-!	endif
 enddo
 !!$omp end parallel do
-!write(nflog,'(a,2i4,e12.3)') 'total_flux: ',istep,ichemo,total_flux
 
-!if (ichemo == OXYGEN) write(*,'(a,2e12.3)') 'Cex(O2), O2 flux: ',cell_list(1)%Cex(ichemo),cell_list(1)%dMdt(ichemo)
 ! Estimate grid pt flux values F
 call make_grid_flux(ichemo,Cflux_const)
 end subroutine
@@ -703,18 +675,12 @@ real(REAL_KIND) :: Vin, Cex, Cin, Cex_t, Cin_t
 real(REAL_KIND) :: Kin, Kout, Kd, Kmax, VKdecay, C0, a, b, c, D, r(3)
 integer :: i, n, ictyp, idrug, im
 real(REAL_KIND) :: CO2, C_parent, C_metab1
-real(REAL_KIND) :: C2_0, C2_1, C2_2, KO2_0, KO2_1, KO2_2, Kmet0_0, Kmet0_1, Kmet0_2
-real(REAL_KIND) :: K1, K2, Km, Vmax
+real(REAL_KIND) :: C2(0:2), KO2(0:2), n_O2(0:2), Kmet0(0:2), K1(0:2)
+real(REAL_KIND) :: K2, Km, Vmax	!,K1
 type(drug_type), pointer :: dp
 
 !write(*,*) 'getCin_SS: istep,ichemo,Vin,Cex: ',istep,ichemo,Vin,Cex
-!if (Cex < 0) then
-!	write(logmsg,*) 'getCin_SS: istep,ichemo,Vin,Cex: ',istep,ichemo,Vin,Cex
-!	call logger(logmsg)
-!	stop
-!endif
 if (Cex < 0) then
-!	write(*,*) 'Cex < 0: ',kcell,ichemo,Cex
 	Cex = 0
 	Cin = 0
 	return
@@ -760,17 +726,17 @@ else	! parent drug or drug metabolite
 	idrug = (ichemo - TRACER - 1)/3 + 1
 	dp => drug(idrug)
 	im = ichemo - TRACER - 1 - 3*(idrug-1)
-!	write(*,*) 'ichemo,idrug,im: ',ichemo,idrug,im
+	Kmet0(im) = dp%Kmet0(ictyp,im)
+	C2(im) = dp%C2(ictyp,im)
+	KO2(im) = dp%KO2(ictyp,im)
+	n_O2(im) = dp%n_O2(ictyp,im)
+	K1(im) = (1 - C2(im) + C2(im)*KO2(im)**n_O2(im)/(KO2(im)**n_O2(im) + CO2**n_O2(im)))*Kmet0(im)
 	if (im == 0) then		! parent
-		Kmet0_0 = dp%Kmet0(ictyp,0)
-		C2_0 = dp%C2(ictyp,0)
-		KO2_0 = dp%KO2(ictyp,0)
 		Km = dp%Km(ictyp,0)
 		Vmax = dp%Vmax(ictyp,0)
-		K1 = (1 - C2_0 + C2_0*KO2_0/(KO2_0 + CO2))*Kmet0_0
-		K2 = K1*Vmax/Kmet0_0
+		K2 = K1(0)*Vmax/Kmet0(0)
 		if (K2 /= 0) then	!quadratic: a.x^2 + b.x + c = 0
-			a = K1 + Kd + Kout/Vin
+			a = K1(0) + Kd + Kout/Vin
 			b = a*Km + K2 - Kin*Cex/Vin
 			c = -Kin*Cex*Km/Vin
 			b = b/a
@@ -778,7 +744,7 @@ else	! parent drug or drug metabolite
 			D = sqrt(b*b - 4*c)
 			Cin = (D - b)/2
 		else				! linear: a.x + b = 0
-			a = K1 + Kd + Kout/Vin
+			a = K1(0) + Kd + Kout/Vin
 			b = -Kin*Cex/Vin
 			Cin = -b/a
 		endif
@@ -788,28 +754,14 @@ else	! parent drug or drug metabolite
 	elseif (im == 1) then	! metab1
 		CO2 = cell_list(kcell)%Cin(OXYGEN)
 		C_parent = cell_list(kcell)%Cin(ichemo-1)
-		C2_0 = dp%C2(ictyp,0)
-		KO2_0 = dp%KO2(ictyp,0)
-		Kmet0_0 = dp%Kmet0(ictyp,0)
-		C2_1 = dp%C2(ictyp,1)
-		KO2_1 = dp%KO2(ictyp,1)
-		Kmet0_1 = drug(idrug)%Kmet0(ictyp,1)
-		Cin = ((1 - C2_0 + C2_0*KO2_0/(KO2_0 + CO2))*Kmet0_0*C_parent + Kin*Cex/Vin) &
-		     /((1 - C2_1 + C2_1*KO2_1/(KO2_1 + CO2))*Kmet0_1 + Kd + Kout/Vin)
+		Cin = (K1(0)*C_parent + Kin*Cex/Vin)/(K1(1) + Kd + Kout/Vin)
 		if (kcell == 1) then
 			write(*,'(a,i6,2e12.3)') 'metab1: ',kcell,C_parent,Cin
 		endif
 	elseif (im == 2) then	! metab2
 		CO2 = cell_list(kcell)%Cin(OXYGEN)
 		C_metab1 = cell_list(kcell)%Cin(ichemo-1)
-		C2_1 = dp%C2(ictyp,1)
-		KO2_1 = dp%KO2(ictyp,1)
-		Kmet0_1 = dp%Kmet0(ictyp,1)
-		C2_2 = dp%C2(ictyp,2)
-		KO2_2 = dp%KO2(ictyp,2)
-		Kmet0_2 = dp%Kmet0(ictyp,2)
-		Cin = ((1 - C2_1 + C2_1*KO2_1/(KO2_1 + CO2))*Kmet0_1*C_metab1 + Kin*Cex/Vin) &
-		     /((1 - C2_2 + C2_2*KO2_2/(KO2_2 + CO2))*Kmet0_2 + Kd + Kout/Vin)
+		Cin = (K1(1)*C_metab1 + Kin*Cex/Vin)/(K1(2) + Kd + Kout/Vin)
 	endif
 endif
 end function
@@ -823,11 +775,10 @@ real(REAL_KIND) :: Vin, Cex, dCexdt, Cin
 real(REAL_KIND) :: Kin, Kout, Kd, Kmax, VKdecay, dCdt, delta, C0, a, b, c, D, r(3)
 integer :: i, n, ictyp, idrug, im
 real(REAL_KIND) :: CO2, C_parent, C_metab1
-real(REAL_KIND) :: C2_0, C2_1, C2_2, KO2_0, KO2_1, KO2_2, Kmet0_0, Kmet0_1, Kmet0_2
-real(REAL_KIND) :: Km, Vmax, K1_0, K2_0, K1_1, K2_1, K1_2, K2_2
+real(REAL_KIND) :: C2(0:2), KO2(0:2), n_O2(0:2), Kmet0(0:2), K1(0:2)
+real(REAL_KIND) :: Km, Vmax, K2
 type(drug_type), pointer :: dp
 type(cell_type), pointer :: cp
-
 
 if (Cex < 0) then
 	Cex = 0
@@ -880,54 +831,39 @@ else	! parent drug or drug metabolite
 	idrug = (ichemo - TRACER - 1)/3 + 1
 	dp => drug(idrug)
 	im = ichemo - TRACER - 1 - 3*(idrug-1)
+	Kmet0(im) = dp%Kmet0(ictyp,im)
+	C2(im) = dp%C2(ictyp,im)
+	KO2(im) = dp%KO2(ictyp,im)
+	n_O2(im) = dp%n_O2(ictyp,im)
+	K1(im) = (1 - C2(im) + C2(im)*KO2(im)**n_O2(im)/(KO2(im)**n_O2(im) + CO2**n_O2(im)))*Kmet0(im)
 	if (im == 0) then		! parent
-		Kmet0_0 = dp%Kmet0(ictyp,0)
-		C2_0 = dp%C2(ictyp,0)
-		KO2_0 = dp%KO2(ictyp,0)
 		Km = dp%Km(ictyp,0)
 		Vmax = dp%Vmax(ictyp,0)
-		K1_0 = (1 - C2_0 + C2_0*KO2_0/(KO2_0 + CO2))*Kmet0_0
-		K2_0 = K1_0*Vmax/Kmet0_0
-		dCdt = (Kin*dCexdt/Vin)/(Kout/Vin + Kd + K1_0 + K2_0*Km/(Km + CO2)**2)
-		if (K2_0 /= 0) then	!quadratic: a.x^2 + b.x + c = 0
-			a = K1_0 + Kd + Kout/Vin
-			b = a*Km + K2_0 - (Kin*Cex/Vin - dCdt)
+		K2 = K1(0)*Vmax/Kmet0(0)
+		dCdt = (Kin*dCexdt/Vin)/(Kout/Vin + Kd + K1(0) + K2*Km/(Km + CO2)**2)
+		if (K2 /= 0) then	!quadratic: a.x^2 + b.x + c = 0
+			a = K1(0) + Kd + Kout/Vin
+			b = a*Km + K2 - (Kin*Cex/Vin - dCdt)
 			c = -Km*(Kin*Cex/Vin - dCdt)
 			b = b/a
 			c = c/a
 			D = sqrt(b*b - 4*c)
 			Cin = (D - b)/2
 		else				! linear: a.x + b = 0
-			a = K1_0 + Kd + Kout/Vin
+			a = K1(0) + Kd + Kout/Vin
 			b = -(Kin*Cex/Vin - dCdt)
 			Cin = -b/a
 		endif
 		Cin = max(Cin,0.0)
 	elseif (im == 1) then	! metab1
 		C_parent = cp%Cin(ichemo-1)
-		C2_0 = dp%C2(ictyp,0)
-		KO2_0 = dp%KO2(ictyp,0)
-		Kmet0_0 = dp%Kmet0(ictyp,0)
-		C2_1 = dp%C2(ictyp,1)
-		KO2_1 = dp%KO2(ictyp,1)
-		Kmet0_1 = drug(idrug)%Kmet0(ictyp,1)
-		K1_0 = (1 - C2_0 + C2_0*KO2_0/(KO2_0 + CO2))*Kmet0_0
-		K1_1 = (1 - C2_1 + C2_1*KO2_1/(KO2_1 + CO2))*Kmet0_1
-		dCdt = (Kin*dCexdt/Vin + K1_0*cp%dCdt(ichemo-1))/(Kout/Vin + Kd + K1_1)
-		Cin = (K1_0*C_parent + (Kin*Cex/Vin - dCdt))/(K1_1 + Kd + Kout/Vin)
+		dCdt = (Kin*dCexdt/Vin + K1(0)*cp%dCdt(ichemo-1))/(Kout/Vin + Kd + K1(1))
+		Cin = (K1(0)*C_parent + (Kin*Cex/Vin - dCdt))/(K1(1) + Kd + Kout/Vin)
 		Cin = max(Cin,0.0)
 	elseif (im == 2) then	! metab2
 		C_metab1 = cp%Cin(ichemo-1)
-		C2_1 = dp%C2(ictyp,1)
-		KO2_1 = dp%KO2(ictyp,1)
-		Kmet0_1 = dp%Kmet0(ictyp,1)
-		C2_2 = dp%C2(ictyp,2)
-		KO2_2 = dp%KO2(ictyp,2)
-		Kmet0_2 = dp%Kmet0(ictyp,2)
-		K1_1 = (1 - C2_1 + C2_1*KO2_1/(KO2_1 + CO2))*Kmet0_1
-		K1_2 = (1 - C2_2 + C2_2*KO2_2/(KO2_2 + CO2))*Kmet0_2
-		dCdt = (Kin*dCexdt/Vin + K1_1*cp%dCdt(ichemo-1))/(Kout/Vin + Kd + K1_2)
-		Cin = (K1_1*C_metab1 + (Kin*Cex/Vin - dCdt))/(K1_2 + Kd + Kout/Vin)
+		dCdt = (Kin*dCexdt/Vin + K1(1)*cp%dCdt(ichemo-1))/(Kout/Vin + Kd + K1(2))
+		Cin = (K1(1)*C_metab1 + (Kin*Cex/Vin - dCdt))/(K1(2) + Kd + Kout/Vin)
 		Cin = max(Cin,0.0)
 	endif
 endif
@@ -1088,17 +1024,17 @@ do ixb = xb1,xb2-1
 				iy = (iyb - yb0)*NRF + (NY+1)/2
 				nsum = nsum + 1
 				Cnew =     ax*az*Cave_b(ixb,   iyb, izb) + &
-								(1-ax)*az*Cave_b(ixb+1, iyb, izb) + &
-								ax*(1-az)*Cave_b(ixb,   iyb, izb+1) + &
-							(1-ax)*(1-az)*Cave_b(ixb+1, iyb, izb+1)
+					   (1-ax)*az*Cave_b(ixb+1, iyb, izb) + &
+					   ax*(1-az)*Cave_b(ixb,   iyb, izb+1) + &
+				   (1-ax)*(1-az)*Cave_b(ixb+1, iyb, izb+1)
 				Cave(ix,iy,iz) = alpha_conc*Cnew + (1-alpha_conc)*Cave(ix,iy,iz)
 				asum(1) = asum(1) + Cave(ix,iy,iz)
 				iyb = yb2
 				iy = (iyb - yb0)*NRF + (NY+1)/2
 				Cnew =     ax*az*Cave_b(ixb,   iyb, izb) + &
-								(1-ax)*az*Cave_b(ixb+1, iyb, izb) + &
-								ax*(1-az)*Cave_b(ixb,   iyb, izb+1) + &
-							(1-ax)*(1-az)*Cave_b(ixb+1, iyb, izb+1)
+					   (1-ax)*az*Cave_b(ixb+1, iyb, izb) + &
+					   ax*(1-az)*Cave_b(ixb,   iyb, izb+1) + &
+				   (1-ax)*(1-az)*Cave_b(ixb+1, iyb, izb+1)
 				Cave(ix,iy,iz) = alpha_conc*Cnew + (1-alpha_conc)*Cave(ix,iy,iz)
 				asum(2) = asum(2) + Cave(ix,iy,iz)
 				csum = csum + Cave(ix,iy,iz)
@@ -1129,10 +1065,10 @@ do ixb = xb1,xb2-1
 				izb = zb2
 				iz = (izb - 1)*NRF + 1
 				nsum = nsum + 1
-				Cnew =     ax*ay*Cave_b(ixb,   iyb,   izb) + &
-								(1-ax)*ay*Cave_b(ixb+1, iyb,   izb) + &
-								ax*(1-ay)*Cave_b(ixb,   iyb+1, izb) + &
-							(1-ax)*(1-ay)*Cave_b(ixb+1, iyb+1, izb)
+				Cnew =		ax*ay*Cave_b(ixb,   iyb,   izb) + &
+						(1-ax)*ay*Cave_b(ixb+1, iyb,   izb) + &
+						ax*(1-ay)*Cave_b(ixb,   iyb+1, izb) + &
+					(1-ax)*(1-ay)*Cave_b(ixb+1, iyb+1, izb)
 				Cave(ix,iy,iz) = alpha_conc*Cnew + (1-alpha_conc)*Cave(ix,iy,iz)
 				csum = csum + Cave(ix,iy,iz)
 				ncsum = ncsum + 1
@@ -1141,10 +1077,6 @@ do ixb = xb1,xb2-1
 	enddo
 enddo
 chemo(ichemo)%medium_cbnd = csum/ncsum		! average concentration on the boundary of the fine grid
-!if (ichemo >= DRUG_A) then
-!	write(nflog,'(a,i4,e12.3)') 'interpolate_Cave: medium_cbnd: ',ichemo,chemo(ichemo)%medium_cbnd
-!	write(*,'(a,i4,e12.3)') 'interpolate_Cave: medium_cbnd: ',ichemo,chemo(ichemo)%medium_cbnd
-!endif
 end subroutine
 
 !--------------------------------------------------------------------------------------
@@ -1244,7 +1176,7 @@ nfill = 1	! Level of fill for ILUK preconditioner
 tol = 1.0d-6
 tol_b = 1.0d-6
 im_krylov = 60	! dimension of Krylov subspace in (outer) FGMRES
-maxits = 50	!100
+maxits = 50
 
 ! Compute all steady-state grid point fluxes in advance from Cextra(:,:,:,:): Cflux(:,:,:,:)
 
@@ -1265,15 +1197,7 @@ do ic = 1,nchemo
 	Fcurr_b => chemo(ichemo)%Fcurr_b
 	Cave => Caverage(:,:,:,ichemo)
 !	write(*,*) 'Cave_b:'
-!	write(*,'(5e15.6)') Cave_b(NXB/2,NYB/2,:)
-
-!			if (use_SS) then
-!				call update_Cin_const_SS(ichemo,dt)				! true steady-state
-!			else
-!				call update_Cex_Cin_dCdt_const(ichemo,dt)		! quasi steady-state
-!			endif
-!			call getF_const(ichemo, Fcurr)
-		
+!	write(*,'(5e15.6)') Cave_b(NXB/2,NYB/2,:)		
 	Fprev_b = Fcurr_b
 	call makeF_b(Fcurr_b, Fcurr, dt,zeroF(ichemo))
 	call make_csr_b(a_b, ichemo, dt, Cave_b, Cprev_b, Fcurr_b, Fprev_b, rhs, zeroC(ichemo))		! coarse grid
@@ -1359,111 +1283,90 @@ do ic = 1,nfinemap
 		icc = ichemo - 1
 		Cave => Caverage(:,:,:,ichemo)
 		Cprev => chemo(ichemo)%Cprev
-!		Fprev => chemo(ichemo)%Fprev
 		Fcurr => Cflux(:,:,:,ichemo)
 		
-		it = 0
-		do
-			it = it + 1
-!			write(*,*) 'fine grid: ichemo,it: ',ichemo,it
-!			if (it == 50) stop
+!			write(*,*) 'fine grid: ichemo: ',ichemo
 
-			if (mass(ichemo) > massmin) then
+		if (mass(ichemo) > massmin) then
 
-			call make_csr_SS(a, ichemo, Cave, Fcurr, rhs)	! fine grid - note: using the same flux values as the Cave_b solution!
-			
-			! Solve Cave(t+dt) steady-state on fine grid
-			!-------------------------------------------
-			call itsol_create_matrix(icc,nrow,nnz,a,ja,ia,ierr)
-			!write(*,*) 'itsol_create_matrix: ierr: ',ierr
-			if (ILUtype == 1) then
-				call itsol_create_precond_ILUK(icc,nfill,ierr)
-			!	write(*,*) 'itsol_create_precond_ILUK: ierr: ',ierr 
-			elseif (ILUtype == 2) then
-				call itsol_create_precond_VBILUK(icc,nfill,ierr)
-			!	write(*,*) 'itsol_create_precond_VBILUK: ierr: ',ierr 
-			elseif (ILUtype == 3) then
-				call itsol_create_precond_ILUT(icc,nfill,tol,ierr)
-			!	write(*,*) 'itsol_create_precond_ILUT: ierr: ',ierr 
-			elseif (ILUtype == 4) then
-				call itsol_create_precond_ARMS(icc,nfill,tol,ierr)
-			!	write(*,*) 'itsol_create_precond_ARMS: ierr: ',ierr 
-			endif
+		call make_csr_SS(a, ichemo, Cave, Fcurr, rhs)	! fine grid - note: using the same flux values as the Cave_b solution!
+		
+		! Solve Cave(t+dt) steady-state on fine grid
+		!-------------------------------------------
+		call itsol_create_matrix(icc,nrow,nnz,a,ja,ia,ierr)
+		!write(*,*) 'itsol_create_matrix: ierr: ',ierr
+		if (ILUtype == 1) then
+			call itsol_create_precond_ILUK(icc,nfill,ierr)
+		!	write(*,*) 'itsol_create_precond_ILUK: ierr: ',ierr 
+		elseif (ILUtype == 2) then
+			call itsol_create_precond_VBILUK(icc,nfill,ierr)
+		!	write(*,*) 'itsol_create_precond_VBILUK: ierr: ',ierr 
+		elseif (ILUtype == 3) then
+			call itsol_create_precond_ILUT(icc,nfill,tol,ierr)
+		!	write(*,*) 'itsol_create_precond_ILUT: ierr: ',ierr 
+		elseif (ILUtype == 4) then
+			call itsol_create_precond_ARMS(icc,nfill,tol,ierr)
+		!	write(*,*) 'itsol_create_precond_ARMS: ierr: ',ierr 
+		endif
 
-			if (it == 1) then
-				do iz = 1,NZ-1
-					do iy = 2,NY-1
-						do ix = 2,NX-1
-							k = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
-							x(k) = Cave(ix,iy,iz)		! initial guess
-						enddo
-					enddo
-				enddo
-			endif
-			
-			if (.not.zeroC(ichemo)) then
-!				write(*,*) 'call itsol_solve_fgmr_ILU'
-				call itsol_solve_fgmr_ILU(icc,rhs, x, im_krylov, maxits, tol, iters, ierr)
-!				write(*,*) 'itsol_solve_fgmr_ILU: Cave: ierr, iters: ',ierr,iters
-				if (ierr /= 0) then
-					write(nflog,*) 'x:'
-					write(nflog,'(10e12.3)') x
-					write(nflog,*) 'rhs:'
-					write(nflog,'(10e12.3)') rhs
-					stop
-				endif
-			else
-				write(*,*) 'no solve, zeroC: ',ichemo
-			endif
-			call itsol_free_precond_ILU(icc,ierr)
-			call itsol_free_matrix(icc,ierr)
-			
-			done = .false.
-!			dCsum = 0
-			Cmin = 100
-			Csum = 0
+		if (it == 1) then
 			do iz = 1,NZ-1
 				do iy = 2,NY-1
 					do ix = 2,NX-1
 						k = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
-						Cave(ix,iy,iz) = max(0.0,alpha_cave*x(k) + (1-alpha_cave)*Cave(ix,iy,iz))
-						Csum = Csum + Cave(ix,iy,iz)
-						Cmin = min(Cave(ix,iy,iz),Cmin)
-!						dCsum = dCsum + abs((Cave(ix,iy,iz) - Cprev(ix,iy,iz))/Cave(ix,iy,iz))
+						x(k) = Cave(ix,iy,iz)		! initial guess
 					enddo
 				enddo
 			enddo
-!			if (ichemo == OXYGEN) write(nflog,'(a,e12.3)') 'Min O2 conc: ',Cmin
-!			dCsum = dCsum/(NX*NY*NZ)
-!			done = (abs(dCsum) < dCtol)
-!			write(*,'(a,i2,3e12.3)') 'Csum,Cave,Cflux(17,17,17): ',ichemo,Csum,Cave(17,17,17),Cflux(17,17,17,ichemo)
-
-!			if (Csum > 0 .and. Csum < 1.0e-10) then
-!				write(nflog,*) 'Stop solving for: ',ichemo
-!				chemo(ichemo)%present = .false.
-!				! Probably should set all concentrations to 0
-!			endif
-			
+		endif
+		
+		if (.not.zeroC(ichemo)) then
+!			write(*,*) 'call itsol_solve_fgmr_ILU'
+			call itsol_solve_fgmr_ILU(icc,rhs, x, im_krylov, maxits, tol, iters, ierr)
+!			write(*,*) 'itsol_solve_fgmr_ILU: Cave: ierr, iters: ',ierr,iters
+			if (ierr /= 0) then
+				write(nflog,*) 'x:'
+				write(nflog,'(10e12.3)') x
+				write(nflog,*) 'rhs:'
+				write(nflog,'(10e12.3)') rhs
+				stop
 			endif
-			
-			Cflux_prev(:,:,:,ichemo) = Fcurr
-			
-			if (use_SS) then
-				call update_Cin_const_SS(ichemo)				! true steady-state
-				call getF_const(ichemo, Fcurr)
-			elseif (use_integration) then
-				call update_Cex(ichemo)
-			else
-				call update_Cex_Cin_dCdt_const(ichemo,dt)		! quasi steady-state
-				call getF_const(ichemo, Fcurr)
-			endif
-			Cprev = Cave
-				
-			done = .true.	! try just a single iteration
-
-			if (done) exit
+		else
+			write(*,*) 'no solve, zeroC: ',ichemo
+		endif
+		call itsol_free_precond_ILU(icc,ierr)
+		call itsol_free_matrix(icc,ierr)
+		
+!		dCsum = 0
+		Cmin = 100
+		Csum = 0
+		do iz = 1,NZ-1
+			do iy = 2,NY-1
+				do ix = 2,NX-1
+					k = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
+					Cave(ix,iy,iz) = max(0.0,alpha_cave*x(k) + (1-alpha_cave)*Cave(ix,iy,iz))
+					Csum = Csum + Cave(ix,iy,iz)
+					Cmin = min(Cave(ix,iy,iz),Cmin)
+!						dCsum = dCsum + abs((Cave(ix,iy,iz) - Cprev(ix,iy,iz))/Cave(ix,iy,iz))
+				enddo
+			enddo
 		enddo
-			
+		
+		endif
+		
+		Cflux_prev(:,:,:,ichemo) = Fcurr
+		
+		if (use_SS) then
+			call update_Cin_const_SS(ichemo)				! true steady-state
+			call getF_const(ichemo, Fcurr)
+		elseif (use_integration) then
+			call update_Cex(ichemo)
+		else
+			call update_Cex_Cin_dCdt_const(ichemo,dt)		! quasi steady-state
+			call getF_const(ichemo, Fcurr)
+		endif
+		Cprev = Cave
+							
 	enddo
 	deallocate(a, x, rhs)
 	
