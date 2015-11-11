@@ -1339,7 +1339,6 @@ if (np /= ncells) then
 	ok = .false.
 	return
 endif
-write(nflog,'(a,2i6)') 'make_perm_index: np,ncells: ',np,ncells
 if (use_permute) then
 	call permute(perm_index,np,kpar)
 endif

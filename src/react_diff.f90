@@ -100,6 +100,7 @@ do ichemo = 1,MAX_CHEMO
 	endif
 	Cextra_all(:,:,:,ichemo) = chemo(ichemo)%bdry_conc
 	Caverage(:,:,:,ichemo) = chemo(ichemo)%bdry_conc
+	write(nflog,*) 'ichemo, Caverage: ',ichemo,chemo(ichemo)%bdry_conc
 !	write(*,*) 'call update_Cex_Cin: ',ichemo
 	call update_Cex_Cin_const(ichemo)	! initialise with SS values
 	Fcurr => Cflux(:,:,:,ichemo)
@@ -1077,6 +1078,8 @@ do ixb = xb1,xb2-1
 	enddo
 enddo
 chemo(ichemo)%medium_cbnd = csum/ncsum		! average concentration on the boundary of the fine grid
+!write(nflog,'(a,i4)') 'interpolate_Cave: ichemo, Cave: ',ichemo
+!write(nflog,'(10f8.2)') Cave(NX/2,NY/2,:)
 end subroutine
 
 !--------------------------------------------------------------------------------------
@@ -1285,7 +1288,9 @@ do ic = 1,nfinemap
 		Cprev => chemo(ichemo)%Cprev
 		Fcurr => Cflux(:,:,:,ichemo)
 		
-!			write(*,*) 'fine grid: ichemo: ',ichemo
+!		write(nflog,*) 'fine grid: ichemo: ',ichemo
+!		write(nflog,'(a,i4)') 'Cave: '
+!		write(nflog,'(10f8.2)') Cave(NX/2,NY/2,:)
 
 		if (mass(ichemo) > massmin) then
 
@@ -1309,26 +1314,29 @@ do ic = 1,nfinemap
 		!	write(*,*) 'itsol_create_precond_ARMS: ierr: ',ierr 
 		endif
 
-		if (it == 1) then
-			do iz = 1,NZ-1
-				do iy = 2,NY-1
-					do ix = 2,NX-1
-						k = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
-						x(k) = Cave(ix,iy,iz)		! initial guess
-					enddo
+		do iz = 1,NZ-1
+			do iy = 2,NY-1
+				do ix = 2,NX-1
+					k = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
+					x(k) = Cave(ix,iy,iz)		! initial guess
 				enddo
 			enddo
-		endif
+		enddo
 		
 		if (.not.zeroC(ichemo)) then
 !			write(*,*) 'call itsol_solve_fgmr_ILU'
+!			write(nflog,*) 'before fgmr: istep,ichemo: ',istep,ichemo
+!			write(nflog,*) 'x:'
+!			write(nflog,'(10e12.3)') x(1:100)
+!			write(nflog,*) 'rhs:'
+!			write(nflog,'(10e12.3)') rhs(1:100)
 			call itsol_solve_fgmr_ILU(icc,rhs, x, im_krylov, maxits, tol, iters, ierr)
 !			write(*,*) 'itsol_solve_fgmr_ILU: Cave: ierr, iters: ',ierr,iters
+!			write(nflog,*) 'x:'
+!			write(nflog,'(10e12.3)') x(1:100)
 			if (ierr /= 0) then
-				write(nflog,*) 'x:'
-				write(nflog,'(10e12.3)') x
-				write(nflog,*) 'rhs:'
-				write(nflog,'(10e12.3)') rhs
+				write(logmsg,*) 'itsol_solve_fgmr_ILU failed with err: ',ierr
+				call logger(logmsg)
 				stop
 			endif
 		else
