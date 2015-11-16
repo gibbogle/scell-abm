@@ -1,5 +1,11 @@
 // myvtk.cpp
 
+#if VTK_VER >= 6
+#include <vtkAutoInit.h>
+VTK_MODULE_INIT(vtkRenderingOpenGL);
+VTK_MODULE_INIT(vtkInteractionStyle);
+#endif
+
 #include <vtkCamera.h>
 #include <vtkInteractorStyleTrackballCamera.h>
 #include <vtkObjectFactory.h>
@@ -74,7 +80,7 @@ vtkStandardNewMacro(MouseInteractorStyle4);
 //-----------------------------------------------------------------------------------------
 MyVTK::MyVTK(QWidget *page, QWidget *key_page)
 {
-    zoomlevel = 0.7;
+    zoomlevel = 1.0;
 	double backgroundColor[] = {0.0,0.0,0.0};
 
 
@@ -109,7 +115,7 @@ MyVTK::MyVTK(QWidget *page, QWidget *key_page)
 	vtkSmartPointer<MouseInteractorStyle4> style = vtkSmartPointer<MouseInteractorStyle4>::New();
 	iren->SetInteractorStyle( style );
 
-//    iren->Initialize();
+    iren->Initialize();
 
 	// Create mappers
 	createMappers();
@@ -129,17 +135,9 @@ MyVTK::MyVTK(QWidget *page, QWidget *key_page)
     display_celltype[1] = true;
     display_celltype[2] = true;
     TCpos_list.clear();
-//    ren->GetActiveCamera()->Zoom(zoomlevel);		// try zooming OUT
+    ren->GetActiveCamera()->Zoom(zoomlevel);		// try zooming OUT
 
-    ren->ResetCamera();
-//    double x0 = Global::NX*Global::DELTA_X/2;
-
-    // Depth peeling
-//    renWin->SetAlphaBitPlanes(1);
-//    renWin->SetMultiSamples(0);
-//    ren->SetUseDepthPeeling(1);
-//    ren->SetMaximumNumberOfPeels(100);
-//    ren->SetOcclusionRatio(0.1);
+//    ren->ResetCamera();
 }
 
 //-----------------------------------------------------------------------------------------
@@ -354,44 +352,23 @@ void MyVTK::cleanup()
 
 //---------------------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------
-void MyVTK::setCameraPosition()
-{
-    ren->GetActiveCamera()->SetPosition(Global::blobcentre[0], Global::blobcentre[1], Global::blobcentre[2]-400);
-    ren->GetActiveCamera()->SetFocalPoint(Global::blobcentre[0], Global::blobcentre[1], Global::blobcentre[2]);
-    sprintf(msg,"blobcentre: %6.1f %6.1f %6.1f",Global::blobcentre[0], Global::blobcentre[1], Global::blobcentre[2]);
-    LOG_MSG(msg);
-}
-
-//---------------------------------------------------------------------------------------------
-//---------------------------------------------------------------------------------------------
 void MyVTK::renderCells()
 {
     double p[3];
+    double x0 = ((Global::NX+1)/2)*Global::DELTA_X;
+    if (Global::NX == 0) return;
     process_Tcells();
-	if (first_VTK) {
+    LOG_QMSG("renderCells");
+    if (first_VTK) {
 		LOG_MSG("Initializing the renderer");
-        iren->Initialize();
-        double x0 = ((Global::NX+1)/2)*Global::DELTA_X;
         sprintf(msg,"NX: %d DELTA_X: %6.1f",Global::NX,Global::DELTA_X);
         LOG_MSG(msg);
-        ren->GetActiveCamera()->SetPosition(0, 0, 0);
-        ren->GetActiveCamera()->SetFocalPoint(x0, x0, x0);
+        ren->ResetCamera();
+//        ren->GetActiveCamera()->SetPosition(0, 0, 0);
+//        ren->GetActiveCamera()->SetFocalPoint(x0, x0, x0);
     }
     iren->Render();
-//    LOG_QMSG("renderCells");
-//    int depthPeelingWasUsed=ren->GetLastRenderingUsedDepthPeeling();
-//    sprintf(msg,"Was depth peeling used? %d\n",depthPeelingWasUsed);
-//    LOG_MSG(msg);
     first_VTK = false;
-//    if (record) {
-//        recorder();
-//    }
-//    ren->GetActiveCamera()->GetPosition(p);
-//    sprintf(msg,"camera position: %6.1f %6.1f %6.1f",p[0],p[1],p[2]);
-//    LOG_MSG(msg);
-//    ren->GetActiveCamera()->GetFocalPoint(p);
-//    sprintf(msg,"camera focal pt: %6.1f %6.1f %6.1f",p[0],p[1],p[2]);
-//    LOG_MSG(msg);
 }
 
 //---------------------------------------------------------------------------------------------

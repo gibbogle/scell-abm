@@ -1,6 +1,6 @@
 #include "ui_SimpleView3DUI.h"
 #include "SimpleView3DUI.h"
- 
+
 #include <vtkPolyDataMapper.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
@@ -94,7 +94,12 @@ void SimpleView3D::create()
         glyphFilter->SetScaleModeToScaleByVector();
     //    glyphFilter->SetColorModeToColorByVector();
         glyphFilter->SetColorModeToColorByScalar();
+#if VTK_VER < 6
         glyphFilter->SetInputConnection(sgrid->GetProducerPort());
+#else
+        // http://www.vtk.org/Wiki/VTK/VTK_6_Migration/Removal_of_GetProducerPort
+        glyphFilter->SetInputData(sgrid);
+#endif
         glyphFilter->Update();
 
         sgridMapper = vtkSmartPointer<vtkPolyDataMapper>::New();

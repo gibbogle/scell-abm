@@ -89,7 +89,6 @@ public:
 	void cleanup();
 	void unpack(int x, double *, double *, double *);
     void renderCells();
-    void setCameraPosition();
     void process_Tcells();
 //    void process_Dcells();
 //    void process_bonds();

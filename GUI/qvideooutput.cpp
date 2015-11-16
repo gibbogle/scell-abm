@@ -10,6 +10,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Includes
 ////////////////////////////////////////////////////////////////////////////////
+
+//#include <vtkAutoInit.h>
+//VTK_MODULE_INIT(vtkRenderingOpenGL);
+//VTK_MODULE_INIT(vtkInteractionStyle);
+
 #include "qvideooutput.h"
 #include "stdio.h"
 #include "log.h"
@@ -635,10 +640,14 @@ void QVideoOutput::recorder()
     LOG_MSG(msg);
     if (!record) return;
     if (source == VTK_SOURCE) {
-        id = vtkImageData::New();
+//        id = vtkImageData::New();
         id = w2i->GetOutput();
         w2i->Modified();	//important
+#if VTK_VER < 6
         id->Update();
+#else
+        w2i->Update();
+#endif
         imwidth = id->GetDimensions()[0];
         imheight = id->GetDimensions()[1];
         if (imwidth == 0) {

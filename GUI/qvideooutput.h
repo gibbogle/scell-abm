@@ -24,6 +24,9 @@ extern "C" {
 #include "libswscale/swscale.h"
 }
 
+//#define vtkRenderingCore_AUTOINIT 4(vtkInteractionStyle,vtkRenderingFreeType,vtkRenderingFreeTypeOpenGL,vtkRenderingOpenGL)
+//#define vtkRenderingVolume_AUTOINIT 1(vtkRenderingVolumeOpenGL)
+
 #include <QPainter>
 #include <QWidget>
 #include <QFileDialog>
