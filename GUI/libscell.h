@@ -11,7 +11,7 @@ extern "C" {
 
 void get_dll_build_version(char *, int *);
 void execute(int *,char *, int *,char *, int *, double *);
-void simulate_step(bool *, int *);
+void simulate_step(int *);
 void terminate_run(int *);
 void get_dimensions(int *, int *, int *, int *, double *, int *, int *, bool *, double *, double *);
 //void get_scene(int *, CELL_DATA *);

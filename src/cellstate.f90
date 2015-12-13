@@ -528,17 +528,22 @@ type(cell_type), pointer :: cp1, cp2
 ok = .true.
 tnow = istep*DELTA_T
 cp1 => cell_list(kcell1)
-nlist = nlist + 1
-if (nlist > MAX_NLIST) then
-	ok = .false.
-	call logger('Error: Maximum number of cells MAX_NLIST has been exceeded.  Increase and rebuild.')
-	return
+if (ngaps > 0) then
+    kcell2 = gaplist(ngaps)
+    ngaps = ngaps - 1
+else
+	nlist = nlist + 1
+	if (nlist > MAX_NLIST) then
+		ok = .false.
+		call logger('Error: Maximum number of cells MAX_NLIST has been exceeded.  Increase and rebuild.')
+		return
+	endif
+	kcell2 = nlist
 endif
 ncells = ncells + 1
 ityp = cp1%celltype
 ncells_type(ityp) = ncells_type(ityp) + 1
 ncells_mphase = ncells_mphase - 1
-kcell2 = nlist
 cp2 => cell_list(kcell2)
 cp1%state = ALIVE
 cp1%V = cp1%V/2

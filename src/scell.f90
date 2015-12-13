@@ -646,7 +646,8 @@ k_v = 2/alpha_v - sqr_es_e + sqrt(es_e - shift/epsilon)
 k_detach = k_v*alpha_v/2
 !write(*,'(a,f8.4)') 'k_detach: ',k_detach
 
-call setup_nbrlists
+call setup_nbrlists(ok)
+if (.not.ok) return
 call logger('did setup_nbrlists')
 call setup_react_diff(ok)
 ! For simple testing...
@@ -963,15 +964,17 @@ integer :: kcell, hour, kpar=0
 real(REAL_KIND) :: radiation_dose, dt
 integer :: i, k, nit, irepeat, nrepeat, nt_diff, it_diff, ncells0, nhypoxic(3)
 integer :: nshow = 100
-integer :: Nhop, nt_hour
+integer :: Nhop, nt_hour, nt_nbr
 integer :: nvars, ns
 real(REAL_KIND) :: dxc, ex_conc(35*O2_BY_VOL+1)		! just for testing
+real(REAL_KIND), parameter :: FULL_NBRLIST_UPDATE_HOURS = 4
 logical :: ok, done, changed
 logical :: dbug
 
 !Nhop = 10*(30/DELTA_T)
 Nhop = 1
 nt_hour = 3600/DELTA_T
+nt_nbr = nt_hour*FULL_NBRLIST_UPDATE_HOURS
 istep = istep + 1
 dbug = .false.
 if (Ncells == 0) then
@@ -1034,6 +1037,7 @@ do while (.not.done)
 	endif
 enddo
 enddo
+call update_all_nbrlists
 
 !if (mod(istep,Nhop) == 0) then
 !	! determine cell death and tagging for death
@@ -1047,29 +1051,18 @@ enddo
 
 call make_grid_flux_weights
 
-! Reaction-diffusion system
-! Assuming DELTA_T = 600 ...
-!if (ncells < 2000) then
-!	nt_diff = 1
-!elseif (ncells < 3000) then
-!	nt_diff = 2
-!elseif (ncells < 4000) then
-!	nt_diff = 3
-!elseif (ncells < 5000) then
-!	nt_diff = 4
-!elseif (ncells < 7000) then
-!	nt_diff = 5
-!elseif (ncells < 10000) then
-!	nt_diff = 6
-!else
-!	nt_diff = 7
-!endif
-
-if (ngaps > 1000) then
-	call squeezer
-	call setup_nbrlists
+if (ngaps > 2000 .or. mod(istep,nt_nbr) == 0) then
+	if (ngaps > 2000) then
+		call squeezer
+	endif
+	call setup_nbrlists(ok)
+	if (.not.ok) then
+		res = 5
+		return
+	endif
 endif
 
+! Reaction-diffusion system
 nt_diff = 1
 dt = DELTA_T/nt_diff
 do it_diff = 1,nt_diff

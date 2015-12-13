@@ -29,6 +29,7 @@ if (ncells <= 1 .and. cell_list(1)%Iphase) then
 endif
 allocate(force(3,ncells,2))
 call forces(force,fmax,ok)
+if (.not.ok) return
 
 if (fmax > 0) then
 do
@@ -118,6 +119,7 @@ logical :: ok
 integer :: k1, kcell, kpar, nd, nr, nc(0:8), kfrom(0:8), kto(0:8), tMnodes
 real(REAL_KIND) :: F(3,2), r(3), amp, fsum
 real(REAL_KIND),allocatable :: cell_fmax(:)
+logical :: badforce
 
 if (ncells < 100) then
 	tMnodes = 1
@@ -149,6 +151,7 @@ endif
 allocate(cell_fmax(ncells))
 cell_fmax = 0
 fsum = 0
+badforce = .false.
 call omp_set_num_threads(tMnodes)
 !$omp parallel do private(k1,kcell,F,ok)
 !do k1 = 1,ncells
@@ -157,6 +160,10 @@ do kpar = 0,tMnodes-1
     do k1 = kfrom(kpar),kto(kpar)
 	    kcell = perm_index(k1)
 	    call get_cell_force(kcell,F,ok)
+	    if (.not.ok) then
+			badforce = .true.
+			exit
+		endif
 	    call get_random_dr(r)
 	    F(:,1) = F(:,1) + frandom*r
 	    force(:,k1,1) = F(:,1)
@@ -183,6 +190,7 @@ fmax = maxval(cell_fmax(:))
 !	endif
 !endif
 deallocate(cell_fmax)
+ok = .not.badforce
 end subroutine
 
 !-----------------------------------------------------------------------------------------
@@ -238,15 +246,15 @@ do k2 = 1,cp1%nbrs
 !				stop
 !			endif
             if (.not.ok) then
-                write(*,*) kcell,knbr,isphere1,isphere2
-                write(*,'(a,i6,3e12.3)') 'nbrlist: ',kcell,c1
-                write(*,'(10i6)') cp1%nbrlist(1:cp1%nbrs)%indx
-                write(*,'(a,i6,3e12.3)') 'nbrlist: ',knbr,c2
-                write(*,'(10i6)') cp2%nbrlist(1:cp2%nbrs)%indx
+                write(nflog,*) kcell,knbr,isphere1,isphere2
+                write(nflog,'(a,i6,3e12.3)') 'nbrlist: ',kcell,c1
+                write(nflog,'(10i6)') cp1%nbrlist(1:cp1%nbrs)%indx
+                write(nflog,'(a,i6,3e12.3)') 'nbrlist: ',knbr,c2
+                write(nflog,'(10i6)') cp2%nbrlist(1:cp2%nbrs)%indx
 !                write(*,'(a,3f8.3)') 'cell 10: ',cell_list(10)%centre(:,1)
 !                write(*,'(a,3f8.3)') 'cell 30: ',cell_list(30)%centre(:,1)
 !                write(*,'(a,3f8.3)') 'cell 44: ',cell_list(44)%centre(:,1)
-                stop
+                return
             endif
 			if (isphere1 == 1) F(:,isphere1) = F(:,isphere1) + dF*v
 			if (Mphase .and. isphere1 == 2) F(:,isphere1) = F(:,isphere1) + dF*v
@@ -386,6 +394,7 @@ if (use_hysteresis) then
 		call logger(logmsg)
 		F = 0
 		ok = .false.
+		return
 	!	stop
 	else
 		F = a_force/((x-x0_force)*(x1_force-x)) + b_force
@@ -400,6 +409,7 @@ else
 		call logger(logmsg)
 		F = 0
 		ok = .false.
+		return
 	!	stop
 	else
 		F = a_force/((x-x0_force)*(x1_force-x)) + b_force
@@ -441,7 +451,7 @@ end function
 !-----------------------------------------------------------------------------------------
 subroutine setup_force_parameters
 integer :: i
-real(REAL_KIND) :: dx, delta
+real(REAL_KIND) :: dx, delta, x, F
 
 !a_separation = 1
 !a_force = 1.0
@@ -450,15 +460,15 @@ real(REAL_KIND) :: dx, delta
 !x1_force = 1.3
 write(logmsg,'(a,f6.2)') 'force parameters: a_separation: ',a_separation
 call logger(logmsg)
-write(logmsg,'(a,4f6.2)') 'force parameters: a_force,c_force,x0_force,x1_force: ',a_force,c_force,x0_force,x1_force
-call logger(logmsg)
 
 dx = x1_force - x0_force
 b_force = -c_force - 4*a_force/dx**2
 delta = dx**2 + 4*a_force/b_force
 xcross1_force = (x0_force+x1_force)/2 - 0.5*sqrt(delta)
 xcross2_force = (x0_force+x1_force)/2 + 0.5*sqrt(delta)
-write(logmsg,*) 'force parameters: xcross:',xcross1_force,xcross2_force
+write(logmsg,'(a,4f6.2)') 'force parameters: a_force,b_force,x0_force,x1_force: ',a_force,b_force,x0_force,x1_force
+call logger(logmsg)
+write(logmsg,*) 'force parameters: xcross:',xcross2_force
 call logger(logmsg)
 
 dt_min = 1.0
@@ -466,6 +476,21 @@ delta_min = 0.02e-4		! um -> cm
 delta_max = 0.30e-4		! um -> cm
 delta_tmove = dt_min
 ndt = 5
+
+! Test forces
+!dx = (1.1*xcross2_force - 1.05*x0_force)/100
+!write(nflog,'(3f8.3)') 1.1*xcross2_force,1.05*x1_force,dx
+!do i = 1,100
+!	x = 1.05*x0_force + i*dx
+!	if (x > xcross2_force) then
+!		F = 0
+!	else
+!		F = a_force/((x-x0_force)*(x1_force-x)) + b_force
+!	endif
+!	write(nflog,*) i,x,F
+!enddo
+!stop	
+
 end subroutine
 
 

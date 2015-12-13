@@ -9,14 +9,18 @@ contains
 !-----------------------------------------------------------------------------------------
 ! Dumb version to start
 !-----------------------------------------------------------------------------------------
-subroutine setup_nbrlists
+subroutine setup_nbrlists(ok)
+logical :: ok
 type(cell_type), pointer :: cp1, cp2
 real(REAL_KIND) :: R1, c1(3), R2, c2(3), v(3), d2, d, Rsum, dfactor
-integer :: kcell, k2, k, isphere1, nspheres1, isphere2, nspheres2, nbrs
-type(neighbour_type) :: nbrlist(100)
+integer :: kcell, k2, k, isphere1, nspheres1, isphere2, nspheres2, nbrs, i
+!type(neighbour_type) :: nbrlist(1000)
+integer :: nbrlist(1000), t(1000)
+real(REAL_KIND) :: nbr_d(1000)
 logical :: near, incontact, contact(2,2)
 logical :: dbug = .false.
 
+!call logger('start setup_nbrlists')
 do kcell = 1,nlist
 	cp1 => cell_list(kcell)
 	if (cp1%state == DEAD) cycle
@@ -73,26 +77,42 @@ do kcell = 1,nlist
 					endif
 				endif
 			enddo
+			if (near) exit
 		enddo
 		if (near) then
 			nbrs = nbrs + 1
-			if (nbrs > MAX_NBRS) then
-				write(logmsg,'(a,5i4)') 'Size of nbrlist exceeded: istep, kcell, ncells: ',istep,kcell,ncells,nbrs,MAX_NBRS
+!			if (nbrs > MAX_NBRS) then
+			if (nbrs > 1000) then
+				write(logmsg,'(a,5i6)') 'Size of nbrlist exceeded: istep, kcell, ncells: ',istep,kcell,ncells,nbrs,1000
 				call logger(logmsg)
-				write(*,'(10i6)') nbrlist(:)%indx
-				stop
+!				write(nflog,'(10i6)') nbrlist(:)%indx
+				write(nflog,'(10i6)') nbrlist(:)
+				ok = .false.
+				return
 			endif
-			nbrlist(nbrs)%indx = k2
-			nbrlist(nbrs)%contact = contact
+!			nbrlist(nbrs)%indx = k2
+!			nbrlist(nbrs)%contact = contact
+			nbrlist(nbrs) = k2
+			nbr_d(nbrs) = d
 		endif
 	enddo
-	cp1%nbrs = nbrs
-	cp1%nbrlist(1:nbrs) = nbrlist(1:nbrs)
-    !if (kcell == 10 .or. kcell == 30) then  !!!!!!!!!! #10 does not see #30, and #30 does not see #10 !!!!!! this is the problem
-    !	write(*,'(a,3i4)') 'kcell: ',kcell,nspheres1,nbrs
-	   ! write(*,'(10i6)') nbrlist(1:nbrs)%indx 
-    !endif
+!	cp1%nbrs = nbrs
+!	cp1%nbrlist(1:nbrs) = nbrlist(1:nbrs)
+!   Note: replacing method of creating nbrlist with one that orders the neighbours by distance, and keeps the closest.
+	do i = 1,nbrs
+		t(i) = i
+	enddo
+	call qqsort(nbr_d,nbrs,t)     ! sort in increasing order
+	! Now the ith nearest is nbrlist(t(i))
+	! set cp1%nbrlist(:) as the closest #
+	cp1%nbrs = min(nbrs,100)
+	do i = 1,cp1%nbrs
+		cp1%nbrlist(i)%indx = nbrlist(t(i))
+	enddo
+
 enddo
+!call logger('end setup_nbrlists')
+ok = .true.
 end subroutine
 
 !-----------------------------------------------------------------------------------------

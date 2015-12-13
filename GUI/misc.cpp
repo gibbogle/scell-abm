@@ -168,7 +168,6 @@ void ExecThread::run()
     int len_version;
     QString dll_version;
     bool cused[32];
-    bool update_vtk;
 
 	infile_path = inputFile;
 	QString casename = QFileInfo(inputFile).baseName();
@@ -232,9 +231,10 @@ void ExecThread::run()
             break;
         }
 
-        simulate_step(&update_vtk, &res);
+        simulate_step(&res);
         if (res != 0) {
             LOG_MSG("simulate_step: res != 0");
+            exit(1);
             break;
         }
 //        LOG_MSG("did simulate_step");

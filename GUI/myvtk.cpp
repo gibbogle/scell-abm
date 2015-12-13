@@ -80,7 +80,7 @@ vtkStandardNewMacro(MouseInteractorStyle4);
 //-----------------------------------------------------------------------------------------
 MyVTK::MyVTK(QWidget *page, QWidget *key_page)
 {
-    zoomlevel = 1.0;
+    zoomlevel = 0.25;
 	double backgroundColor[] = {0.0,0.0,0.0};
 
 
@@ -136,7 +136,9 @@ MyVTK::MyVTK(QWidget *page, QWidget *key_page)
     display_celltype[2] = true;
     TCpos_list.clear();
     ren->GetActiveCamera()->Zoom(zoomlevel);		// try zooming OUT
-
+//    ren->GetActiveCamera()->SetPosition(0, 0, 0);
+//    double x0 = ((33+1)/2.)*38;
+//    ren->GetActiveCamera()->SetFocalPoint(x0, x0, x0);
 //    ren->ResetCamera();
 }
 
