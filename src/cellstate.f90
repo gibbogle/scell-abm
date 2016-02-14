@@ -63,13 +63,14 @@ subroutine Irradiation(dose,ok)
 real(REAL_KIND) :: dose
 logical :: ok
 integer :: kcell, site(3), iv, ityp, idrug, im, ichemo, kpar=0
-real(REAL_KIND) :: C_O2, SER, p_death, p_recovery, R, kill_prob
+real(REAL_KIND) :: C_O2, SER, p_death, p_recovery, R, kill_prob, tnow
 real(REAL_KIND) :: Cs							! concentration of radiosensitising drug
 real(REAL_KIND) :: SER_max0, SER_Km, SER_KO2	! SER parameters of the drug
 real(REAL_KIND) :: SERmax						! max sensitisation at the drug concentration
 
 ok = .true.
 call logger('Irradiation')
+tnow = istep*DELTA_T	! seconds
 do kcell = 1,nlist
 	if (cell_list(kcell)%state == DEAD) cycle
 	if (cell_list(kcell)%radiation_tag) cycle	! we do not tag twice (yet)
@@ -99,6 +100,13 @@ do kcell = 1,nlist
 		cell_list(kcell)%radiation_tag = .true.
 		Nradiation_tag(ityp) = Nradiation_tag(ityp) + 1
 		cell_list(kcell)%p_rad_death = p_death
+		if (LQ(ityp)%growth_delay_N > 0 .and. cell_list(kcell)%Iphase) then
+			cell_list(kcell)%growth_delay = .true.
+			cell_list(kcell)%dt_delay = LQ(ityp)%growth_delay_factor*dose
+			cell_list(kcell)%N_delayed_cycles_left = LQ(ityp)%growth_delay_N
+		else
+			cell_list(kcell)%growth_delay = .false.
+		endif
 	endif
 enddo
 end subroutine
@@ -323,11 +331,11 @@ logical :: divide
 
 ok = .true.
 changed = .false.
-if (MITOSIS_MODE == CONTINUOUS_MITOSIS) then
-	tgrowth = divide_time_mean
-else
-	tgrowth = divide_time_mean - mitosis_duration
-endif
+! Cancel CONTINUOUS_MITOSIS option 13/02/2016
+!if (MITOSIS_MODE == CONTINUOUS_MITOSIS) then
+!	tgrowth = divide_time_mean
+!else
+tgrowth = divide_time_mean - mitosis_duration
 c_rate(1:2) = log(2.0)/tgrowth(1:2)		! Note: to randomise divide time need to use random number, not mean!
 r_mean(1:2) = Vdivide0/(2*tgrowth(1:2))
 
@@ -339,123 +347,112 @@ do k = 1,ncells
 	cp => cell_list(kcell)
 	ityp = cell_list(kcell)%celltype
 	divide = .false.
-!	write(*,*) 'test_growthrate, dVdt: ',test_growthrate*dt, cp%dVdt
-!	if (cp%state == DEAD) cycle
-	if (MITOSIS_MODE == CONTINUOUS_MITOSIS) then	! always Mphase, growing and separating
-		! need to set initial mitosis axis and d_divide at birth
-!		cp%V = cp%V + cp%growthrate*DELTA_T
+!	if (MITOSIS_MODE == CONTINUOUS_MITOSIS) then	! always Mphase, growing and separating
+!		! need to set initial mitosis axis and d_divide at birth
+!		call growcell(cp,dt,c_rate(ityp),r_mean(ityp))
+!		cp%mitosis = cp%V/cp%V_divide
+!		cp%d = cp%mitosis*cp%d_divide
+!		r = cp%centre(:,2) - cp%centre(:,1)
+!		r = r/sqrt(dot_product(r,r))	! axis direction unit vector
+!		c = (cp%centre(:,1) + cp%centre(:,2))/2
+!		cp%centre(:,1) = c - (cp%d/2)*r
+!		cp%centre(:,2) = c + (cp%d/2)*r
+!		call cubic_solver(cp%d,cp%V,rad)
+!		cp%radius = rad
+!		if (cp%d > 2*rad) then			! time for completion of cell division
+!			divide = .true.
+!		endif
+!		write(nflog,'(a,i4,3f8.3)') 'V,d,rad: ',kcell,cp%V,cp%d,rad
+!	elseif (MITOSIS_MODE == TERMINAL_MITOSIS) then
+	if (cp%Iphase) then
 		call growcell(cp,dt,c_rate(ityp),r_mean(ityp))
-		cp%mitosis = cp%V/cp%V_divide
-		cp%d = cp%mitosis*cp%d_divide
+		cp%radius(1) = (3*cp%V/(4*PI))**(1./3.)
+		if (cp%V > cp%V_divide) then
+			if (cp%radiation_tag .and..not.cp%G2_M) then
+				if (par_uni(kpar) < cp%p_rad_death) then
+					call CellDies(kcell)
+					changed = .true.
+					Nradiation_dead(ityp) = Nradiation_dead(ityp) + 1
+					cycle
+				endif
+			endif
+			drugkilled = .false.
+			do idrug = 1,ndrugs_used
+				if (cp%drug_tag(idrug)) then
+					call CellDies(kcell)
+					changed = .true.
+					Ndrug_dead(idrug,ityp) = Ndrug_dead(idrug,ityp) + 1
+					drugkilled = .true.
+					exit
+				endif
+			enddo
+			if (drugkilled) cycle
+			
+			if (cp%radiation_tag) then
+!				if (kcell == 784) write(*,'(a,i6,a,2L2,3f8.0,i3)') 'tagged cell: ',kcell,' growth_delay: ', &
+!					cp%growth_delay,cp%G2_M,cp%dt_delay,tnow,cp%t_growth_delay_end,cp%N_delayed_cycles_left
+				if (cp%growth_delay) then
+					if (.not.cp%G2_M) then	! this is the first time to divide
+						cp%t_growth_delay_end = tnow + cp%dt_delay
+						cp%G2_M = .true.
+					endif
+					if (tnow > cp%t_growth_delay_end) then
+						cp%G2_M = .false.	! delay ended, time to enter mitosis
+!						if (kcell == 784) write(*,*) 'growth delay for cell: ',kcell,' cycles left: ',cp%N_delayed_cycles_left
+					else
+						cycle				! continue delaying mitosis
+					endif
+				endif
+			endif
+		
+			cp%Iphase = .false.
+            cp%nspheres = 2
+			ncells_mphase = ncells_mphase + 1
+			call get_random_vector3(r)	! set initial axis direction
+			cp%d = 0.1*small_d
+			c = cp%centre(:,1)
+			cp%centre(:,1) = c + (cp%d/2)*r
+			cp%centre(:,2) = c - (cp%d/2)*r
+			cp%mitosis = 0
+			cp%t_start_mitosis = tnow
+			cp%d_divide = 2.0**(2./3)*cp%radius(1)
+		endif
+	else
+		cp%mitosis = (tnow - cp%t_start_mitosis)/mitosis_duration
+		d_desired = max(cp%mitosis*cp%d_divide,small_d)
 		r = cp%centre(:,2) - cp%centre(:,1)
-		r = r/sqrt(dot_product(r,r))	! axis direction unit vector
+		cp%d = sqrt(dot_product(r,r))
+		r = r/cp%d	! axis direction
 		c = (cp%centre(:,1) + cp%centre(:,2))/2
-		cp%centre(:,1) = c - (cp%d/2)*r
-		cp%centre(:,2) = c + (cp%d/2)*r
-		call cubic_solver(cp%d,cp%V,rad)
+		cp%site = c/DELTA_X + 1
+!			cp%centre(1,:) = c - (cp%d/2)*r		! For fmover we do not need to set centre positions
+!			cp%centre(2,:) = c + (cp%d/2)*r
+		call cubic_solver(d_desired,cp%V,rad)
 		cp%radius = rad
 		if (cp%d > 2*rad) then			! time for completion of cell division
 			divide = .true.
-!			ndivide = ndivide + 1
-!			divide_list(ndivide) = kcell
-		endif
-		write(nflog,'(a,i4,3f8.3)') 'V,d,rad: ',kcell,cp%V,cp%d,rad
-	elseif (MITOSIS_MODE == TERMINAL_MITOSIS) then
-		if (cp%Iphase) then
-!			cp%V = cp%V + cp%growthrate*dt
-			call growcell(cp,dt,c_rate(ityp),r_mean(ityp))
-			cp%radius(1) = (3*cp%V/(4*PI))**(1./3.)
-			if (cp%V > cp%V_divide) then
-				cp%Iphase = .false.
-                cp%nspheres = 2
-				ncells_mphase = ncells_mphase + 1
-				call get_random_vector3(r)	! set initial axis direction
-				cp%d = 0.1*small_d
-				c = cp%centre(:,1)
-				cp%centre(:,1) = c + (cp%d/2)*r
-				cp%centre(:,2) = c - (cp%d/2)*r
-				cp%mitosis = 0
-				cp%t_start_mitosis = tnow
-				cp%d_divide = 2.0**(2./3)*cp%radius(1)
-!				write(*,*) 'start mitosis'
-			endif
-		else
-			cp%mitosis = (tnow - cp%t_start_mitosis)/mitosis_duration
-			d_desired = max(cp%mitosis*cp%d_divide,small_d)
-			r = cp%centre(:,2) - cp%centre(:,1)
-			cp%d = sqrt(dot_product(r,r))
-			r = r/cp%d	! axis direction
-			c = (cp%centre(:,1) + cp%centre(:,2))/2
-			cp%site = c/DELTA_X + 1
-!			cp%centre(1,:) = c - (cp%d/2)*r		! For fmover we do not need to set centre positions
-!			cp%centre(2,:) = c + (cp%d/2)*r
-			call cubic_solver(d_desired,cp%V,rad)
-!			write(*,*) 'mitosis,d,d_divide,V,rad: ',cp%mitosis,cp%d,cp%d_divide,cp%V,rad
-			cp%radius = rad
-			if (cp%d > 2*rad) then			! time for completion of cell division
-				divide = .true.
-!				ndivide = ndivide + 1
-!				divide_list(ndivide) = kcell
-			endif
 		endif
 	endif
 	if (divide) then
-		if (cp%radiation_tag) then
-			if (par_uni(kpar) < cp%p_rad_death) then
-				call CellDies(kcell)
-				changed = .true.
-				Nradiation_dead(ityp) = Nradiation_dead(ityp) + 1
-!				Nradiation_tag(ityp) = Nradiation_tag(ityp) - 1
-!				do idrug = 1,ndrugs_used
-!					if (cp%drug_tag(idrug)) then
-!						Ndrug_tag(idrug,ityp) = Ndrug_tag(idrug,ityp) - 1
-!					endif
-!				enddo
-!				if (cp%anoxia_tag) then
-!					Nanoxia_tag(ityp) = Nanoxia_tag(ityp) - 1
-!				endif
-			endif
-			cycle
-		endif
-!		if (cp%drugA_tag) then
-!			call CellDies(kcell)
-!			NdrugA_dead(ityp) = NdrugA_dead(ityp) + 1
-!			if (cp%anoxia_tag) then
-!				Nanoxia_tag(ityp) = Nanoxia_tag(ityp) - 1
-!			endif
-!			if (cp%radiation_tag) then
-!				Nradiation_tag(ityp) = Nradiation_tag(ityp) - 1
+!		if (cp%radiation_tag) then
+!			if (par_uni(kpar) < cp%p_rad_death) then
+!				call CellDies(kcell)
+!				changed = .true.
+!				Nradiation_dead(ityp) = Nradiation_dead(ityp) + 1
 !			endif
 !			cycle
 !		endif
-!		if (cp%drugB_tag) then
-!			call CellDies(kcell)
-!			NdrugB_dead(ityp) = NdrugB_dead(ityp) + 1
-!			if (cp%anoxia_tag) then
-!				Nanoxia_tag(ityp) = Nanoxia_tag(ityp) - 1
+!		drugkilled = .false.
+!		do idrug = 1,ndrugs_used
+!			if (cp%drug_tag(idrug)) then
+!				call CellDies(kcell)
+!				changed = .true.
+!				Ndrug_dead(idrug,ityp) = Ndrug_dead(idrug,ityp) + 1
+!				drugkilled = .true.
+!				exit
 !			endif
-!			if (cp%radiation_tag) then
-!				Nradiation_tag(ityp) = Nradiation_tag(ityp) - 1
-!			endif
-!			cycle
-!		endif
-		drugkilled = .false.
-		do idrug = 1,ndrugs_used
-			if (cp%drug_tag(idrug)) then
-				call CellDies(kcell)
-				changed = .true.
-				Ndrug_dead(idrug,ityp) = Ndrug_dead(idrug,ityp) + 1
-!				if (cp%anoxia_tag) then
-!					Nanoxia_tag(ityp) = Nanoxia_tag(ityp) - 1
-!				endif
-!				if (cp%radiation_tag) then
-!					Nradiation_tag(ityp) = Nradiation_tag(ityp) - 1
-!				endif
-				drugkilled = .true.
-				exit
-			endif
-		enddo
-		if (drugkilled) cycle
+!		enddo
+!		if (drugkilled) cycle
 		ndivide = ndivide + 1
 		divide_list(ndivide) = kcell
 	endif
@@ -561,6 +558,13 @@ cp1%drug_tag = .false.
 cp1%anoxia_tag = .false.
 cp1%t_hypoxic = 0
 
+if (cp1%growth_delay) then
+	cp1%N_delayed_cycles_left = cp1%N_delayed_cycles_left - 1
+	cp1%growth_delay = (cp1%N_delayed_cycles_left > 0)
+!	write(*,*) 'growth_delay cell divides: ',kcell1,kcell2,cp1%N_delayed_cycles_left
+endif
+cp1%G2_M = .false.
+
 nbrs0 = cp1%nbrs
 cp1%nbrs = nbrs0 + 1
 cp1%nbrlist(cp1%nbrs)%indx = kcell2
@@ -593,6 +597,13 @@ cp2%drug_tag = .false.
 cp2%anoxia_tag = .false.
 cp2%t_hypoxic = 0
 
+cp2%growth_delay = cp1%growth_delay
+if (cp2%growth_delay) then
+	cp2%dt_delay = cp1%dt_delay
+	cp2%N_delayed_cycles_left = cp1%N_delayed_cycles_left
+endif
+cp2%G2_M = .false.
+
 cp2%Cin = cp1%Cin
 cp2%Cex = cp1%Cex
 
@@ -605,24 +616,24 @@ cp2%nbrs = nbrs0 + 1
 cp2%nbrlist(cp2%nbrs)%indx = kcell1
 cp2%nbrlist(cp2%nbrs)%contact = .false.
 cp2%nbrlist(cp2%nbrs)%contact(1,1) = .true.
-if (MITOSIS_MODE == CONTINUOUS_MITOSIS) then
-	cp1%Iphase = .false.
-	cp2%Iphase = .false.
-	call get_random_vector3(r)	! set initial axis direction
-	cp1%d = 0.1*small_d
-	c = cp1%centre(:,1)
-	cp1%centre(:,1) = c + (cp1%d/2)*r
-	cp1%centre(:,2) = c - (cp1%d/2)*r
-	cp2%d = 0.1*small_d
-	c = cp2%centre(:,1)
-	cp2%centre(:,1) = c + (cp2%d/2)*r
-	cp2%centre(:,2) = c - (cp2%d/2)*r
-else
-	cp1%Iphase = .true.
-    cp1%nspheres = 1
-	cp2%Iphase = .true.
-    cp2%nspheres = 1
-endif
+! Cancel CONTINUOUS_MITOSIS option 13/02/2016
+!if (MITOSIS_MODE == CONTINUOUS_MITOSIS) then
+!	cp1%Iphase = .false.
+!	cp2%Iphase = .false.
+!	call get_random_vector3(r)	! set initial axis direction
+!	cp1%d = 0.1*small_d
+!	c = cp1%centre(:,1)
+!	cp1%centre(:,1) = c + (cp1%d/2)*r
+!	cp1%centre(:,2) = c - (cp1%d/2)*r
+!	cp2%d = 0.1*small_d
+!	c = cp2%centre(:,1)
+!	cp2%centre(:,1) = c + (cp2%d/2)*r
+!	cp2%centre(:,2) = c - (cp2%d/2)*r
+!else
+cp1%Iphase = .true.
+cp1%nspheres = 1
+cp2%Iphase = .true.
+cp2%nspheres = 1
 call update_nbrlist(kcell1)
 call update_nbrlist(kcell2)
 ! Note: any cell that has kcell1 in its nbrlist now needs to add kcell2 to the nbrlist.

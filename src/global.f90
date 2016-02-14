@@ -44,7 +44,7 @@ real(REAL_KIND), parameter :: Vcell_pL = 1.0e09
 integer, parameter :: ALIVE = 0
 integer, parameter :: DEAD = 1
 integer, parameter :: TERMINAL_MITOSIS   = 1
-integer, parameter :: CONTINUOUS_MITOSIS = 2
+!integer, parameter :: CONTINUOUS_MITOSIS = 2
 !integer, parameter :: MAX_CHEMO = 5
 integer, parameter :: CFSE = 0
 integer, parameter :: OXYGEN = 1
@@ -141,6 +141,11 @@ type cell_type
 	logical :: drug_tag(MAX_DRUGTYPES)
 	real(REAL_KIND) :: p_rad_death
 	real(REAL_KIND) :: p_drug_death(MAX_DRUGTYPES)
+	logical :: growth_delay
+	real(REAL_KIND) :: dt_delay
+	real(REAL_KIND) :: t_growth_delay_end			! this is for suppression of growth before first division
+	integer :: N_delayed_cycles_left		! decremented by 1 at each cell division
+	logical :: G2_M
 end type
 
 type XYZ_type
@@ -210,6 +215,8 @@ type LQ_type
 	real(REAL_KIND) :: alpha_H, beta_H
 	real(REAL_KIND) :: K_ms
 	real(REAL_KIND) :: death_prob
+	real(REAL_KIND) :: growth_delay_factor
+	real(REAL_KIND) :: growth_delay_N
 end type
 
 integer, parameter :: nflog=10, nfin=11, nfout=12, nfres=13, nfcell=14

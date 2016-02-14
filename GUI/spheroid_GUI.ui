@@ -42,7 +42,7 @@ padding: 8px
     <item row="0" column="0">
      <widget class="QStackedWidget" name="stackedWidget">
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="page_input">
        <layout class="QVBoxLayout" name="verticalLayout">
@@ -79,7 +79,7 @@ padding: 8px
            <enum>QTabWidget::West</enum>
           </property>
           <property name="currentIndex">
-           <number>1</number>
+           <number>3</number>
           </property>
           <property name="elideMode">
            <enum>Qt::ElideNone</enum>
@@ -1431,8 +1431,8 @@ padding: 8px
              <rect>
               <x>550</x>
               <y>30</y>
-              <width>341</width>
-              <height>231</height>
+              <width>361</width>
+              <height>331</height>
              </rect>
             </property>
             <property name="title">
@@ -1443,8 +1443,8 @@ padding: 8px
               <rect>
                <x>10</x>
                <y>15</y>
-               <width>321</width>
-               <height>200</height>
+               <width>352</width>
+               <height>301</height>
               </rect>
              </property>
              <layout class="QGridLayout" name="gridLayout_GLGL7">
@@ -1463,6 +1463,9 @@ padding: 8px
                   <height>16777215</height>
                  </size>
                 </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
                </widget>
               </item>
               <item row="2" column="0">
@@ -1479,6 +1482,9 @@ padding: 8px
                   <width>50</width>
                   <height>16777215</height>
                  </size>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                 </property>
                </widget>
               </item>
@@ -1497,6 +1503,9 @@ padding: 8px
                   <height>16777215</height>
                  </size>
                 </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
                </widget>
               </item>
               <item row="4" column="0">
@@ -1513,6 +1522,9 @@ padding: 8px
                   <width>50</width>
                   <height>16777215</height>
                  </size>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                 </property>
                </widget>
               </item>
@@ -1531,6 +1543,9 @@ padding: 8px
                   <height>16777215</height>
                  </size>
                 </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
                </widget>
               </item>
               <item row="1" column="2">
@@ -1540,6 +1555,9 @@ padding: 8px
                   <width>50</width>
                   <height>16777215</height>
                  </size>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                 </property>
                </widget>
               </item>
@@ -1551,6 +1569,9 @@ padding: 8px
                   <height>16777215</height>
                  </size>
                 </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
                </widget>
               </item>
               <item row="3" column="2">
@@ -1560,6 +1581,9 @@ padding: 8px
                   <width>50</width>
                   <height>16777215</height>
                  </size>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                 </property>
                </widget>
               </item>
@@ -1571,6 +1595,9 @@ padding: 8px
                   <height>16777215</height>
                  </size>
                 </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
                </widget>
               </item>
               <item row="5" column="2">
@@ -1580,6 +1607,9 @@ padding: 8px
                   <width>50</width>
                   <height>16777215</height>
                  </size>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                 </property>
                </widget>
               </item>
@@ -1621,7 +1651,7 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="6" column="1">
+              <item row="7" column="1">
                <widget class="QLineEdit" name="line_RADIATION_DEATH_PROB_1">
                 <property name="maximumSize">
                  <size>
@@ -1629,9 +1659,12 @@ padding: 8px
                   <height>16777215</height>
                  </size>
                 </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
                </widget>
               </item>
-              <item row="6" column="2">
+              <item row="7" column="2">
                <widget class="QLineEdit" name="line_RADIATION_DEATH_PROB_2">
                 <property name="maximumSize">
                  <size>
@@ -1639,12 +1672,15 @@ padding: 8px
                   <height>16777215</height>
                  </size>
                 </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
                </widget>
               </item>
-              <item row="6" column="0">
+              <item row="7" column="0">
                <widget class="QMyLabel" name="label_RADIATION_DEATH_PROB_1">
                 <property name="text">
-                 <string>label_DEATH_PROB_1</string>
+                 <string>label_RADIATION_DEATH_PROB_1</string>
                 </property>
                </widget>
               </item>
@@ -1655,7 +1691,7 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="7" column="1">
+              <item row="10" column="1">
                <widget class="QPushButton" name="pushButton_radSF_1">
                 <property name="maximumSize">
                  <size>
@@ -1668,7 +1704,7 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="7" column="2">
+              <item row="10" column="2">
                <widget class="QPushButton" name="pushButton_radSF_2">
                 <property name="maximumSize">
                  <size>
@@ -1678,6 +1714,78 @@ padding: 8px
                 </property>
                 <property name="text">
                  <string>Plot</string>
+                </property>
+               </widget>
+              </item>
+              <item row="8" column="0">
+               <widget class="QMyLabel" name="label_RADIATION_GROWTH_DELAY_FACTOR_1">
+                <property name="text">
+                 <string>label_RADIATION_GROWTH_DELAY_FACTOR_1</string>
+                </property>
+               </widget>
+              </item>
+              <item row="8" column="1">
+               <widget class="QLineEdit" name="line_RADIATION_GROWTH_DELAY_FACTOR_1">
+                <property name="maximumSize">
+                 <size>
+                  <width>50</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>0</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="8" column="2">
+               <widget class="QLineEdit" name="line_RADIATION_GROWTH_DELAY_FACTOR_2">
+                <property name="maximumSize">
+                 <size>
+                  <width>50</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>0</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="9" column="0">
+               <widget class="QMyLabel" name="label_RADIATION_GROWTH_DELAY_N_1">
+                <property name="text">
+                 <string>label_RADIATION_GROWTH_DELAY_N_1</string>
+                </property>
+               </widget>
+              </item>
+              <item row="9" column="1">
+               <widget class="QLineEdit" name="line_RADIATION_GROWTH_DELAY_N_1">
+                <property name="maximumSize">
+                 <size>
+                  <width>50</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="9" column="2">
+               <widget class="QLineEdit" name="line_RADIATION_GROWTH_DELAY_N_2">
+                <property name="maximumSize">
+                 <size>
+                  <width>50</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                 </property>
                </widget>
               </item>
@@ -8778,7 +8886,7 @@ padding: 8px
   <customwidget>
    <class>QMyGroupBox</class>
    <extends>QGroupBox</extends>
-   <header location="global">qmylabel.h</header>
+   <header>qmylabel.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

@@ -181,12 +181,16 @@ read(nfcell,*) LQ(1)%OER_am
 read(nfcell,*) LQ(1)%OER_bm
 read(nfcell,*) LQ(1)%K_ms
 read(nfcell,*) LQ(1)%death_prob
+read(nfcell,*) LQ(1)%growth_delay_factor
+read(nfcell,*) LQ(1)%growth_delay_N
 read(nfcell,*) LQ(2)%alpha_H
 read(nfcell,*) LQ(2)%beta_H
 read(nfcell,*) LQ(2)%OER_am
 read(nfcell,*) LQ(2)%OER_bm
 read(nfcell,*) LQ(2)%K_ms
 read(nfcell,*) LQ(2)%death_prob
+read(nfcell,*) LQ(2)%growth_delay_factor
+read(nfcell,*) LQ(2)%growth_delay_N
 read(nfcell,*) O2cutoff(1)
 read(nfcell,*) O2cutoff(2)
 read(nfcell,*) O2cutoff(3)
@@ -245,6 +249,7 @@ chemo(GLUCOSE)%used = (iuse_glucose == 1)
 chemo(TRACER)%used = (iuse_tracer == 1)
 chemo(OXYGEN)%MM_C0 = chemo(OXYGEN)%MM_C0/1000		! uM -> mM
 chemo(GLUCOSE)%MM_C0 = chemo(GLUCOSE)%MM_C0/1000	! uM -> mM
+LQ(:)%growth_delay_factor = 60*60*LQ(:)%growth_delay_factor	! hours -> seconds
 t_anoxic_limit = 60*60*anoxia_tag_hours				! hours -> seconds
 anoxia_death_delay = 60*60*anoxia_death_hours		! hours -> seconds
 nsteps = days*24*3600./DELTA_T
@@ -855,10 +860,16 @@ cp%birthtime = 0
 !cp2%V_divide = get_divide_volume()
 cp%d_divide = (3*cp%V_divide/PI)**(1./3.)
 cp%mitosis = 0
-!cp%drugA_tag = .false.
-!cp%drugB_tag = .false.
+
 cp%drug_tag = .false.
+cp%radiation_tag = .false.
 cp%anoxia_tag = .false.
+!cell_list(k)%exists = .true.
+!cp%active = .true.
+cp%growth_delay = .false.
+cp%G2_M = .false.
+cp%p_rad_death = 0
+
 cp%t_hypoxic = 0
 call get_random_vector3(r)	! set initial axis direction
 cp%d = 0.1*small_d

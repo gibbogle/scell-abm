@@ -382,6 +382,14 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 "Death prob",
 "Probability of death at mitosis for a cell tagged for damage by radiation"},
 
+{"RADIATION_GROWTH_DELAY_FACTOR_1", 0.0, 0, 0,
+"Growth delay factor",
+"For a damaged cell, cell cycle is delayed for a number of hours given by this factor x radiation dose"},
+
+{"RADIATION_GROWTH_DELAY_N_1", 0, 0, 0,
+"Growth delay cycles",
+"For a damaged cell, cell cycle delay persists for a number of cell cycles"},
+
 {"RADIATION_ALPHA_H_2", 0.0473, 0, 0,
 "Alpha (hypoxia)",
 "alpha for irradiation of cells under anoxia (zero oxygen)"},
@@ -405,6 +413,14 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 {"RADIATION_DEATH_PROB_2", 1.0, 0, 0,
 "Death prob",
 "Probability of death at mitosis for a cell tagged for damage by radiation"},
+
+{"RADIATION_GROWTH_DELAY_FACTOR_2", 0.0, 0, 0,
+"Growth delay factor",
+"For a damaged cell, cell cycle is delayed for a number of hours given by this factor x radiation dose"},
+
+{"RADIATION_GROWTH_DELAY_N_2", 0, 0, 0,
+"Growth delay cycles",
+"For a damaged cell, cell cycle delay persists for a number of cell cycles"},
 
 {"HYPOXIA_1", 0.1, 0, 0,
 "Hypoxia threshold 1",
