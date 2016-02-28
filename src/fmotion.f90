@@ -24,6 +24,7 @@ done = .false.
 ok = .true.
 dt_move = ndt*delta_tmove
 if (ncells <= 1 .and. cell_list(1)%Iphase) then
+	dt_move = DELTA_T	! one time step of DELTA_T
 	done = .true.
 	return
 endif

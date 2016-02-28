@@ -225,8 +225,8 @@ void MyVTK::key_canvas(QWidget *key_page)
 void MyVTK::createMappers()
 {
     vtkSphereSource *Tcell = vtkSphereSource::New();
-    Tcell->SetThetaResolution(12);
-    Tcell->SetPhiResolution(12);
+    Tcell->SetThetaResolution(24);
+    Tcell->SetPhiResolution(24);
     Tcell->SetRadius(0.5);
     TcellMapper = vtkPolyDataMapper::New();
 

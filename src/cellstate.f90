@@ -367,6 +367,7 @@ do k = 1,ncells
 	if (cp%Iphase) then
 		call growcell(cp,dt,c_rate(ityp),r_mean(ityp))
 		cp%radius(1) = (3*cp%V/(4*PI))**(1./3.)
+!		write(*,*) 'grower: V: ',cp%V
 		if (cp%V > cp%V_divide) then
 			if (cp%radiation_tag .and..not.cp%G2_M) then
 				if (par_uni(kpar) < cp%p_rad_death) then

@@ -850,7 +850,11 @@ cp%nspheres = 1
 !cp%radius(1) = Raverage
 !cp%V = (4.*PI/3.)*Raverage**3						! need to randomise 
 cp%V_divide = Vdivide0
-cp%V = (0.5 + 0.49*par_uni(kpar))*cp%V_divide
+if (initial_count == 1) then
+	cp%V = 0.9*cp%V_divide
+else
+	cp%V = (0.5 + 0.49*par_uni(kpar))*cp%V_divide
+endif
 cp%radius(1) = (3*cp%V/(4*PI))**(1./3.)
 cp%centre(:,1) = rsite
 cp%site = rsite/DELTA_X + 1

@@ -294,7 +294,7 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
  "Membrane diff constant",
  "Cell membrane diffusion coefficient Kd"},
 
-{"GLUCOSE_BDRY_CONC", 9.0, 0, 0,
+{"GLUCOSE_BDRY_CONC", 5.5, 0, 0,
  "Boundary concentration",
  "GLUCOSE boundary concentration"},
 
