@@ -1421,6 +1421,19 @@ padding: 8px
              </property>
             </widget>
            </widget>
+           <widget class="QCheckBox" name="cbox_GLUCOSE_GROWTH">
+            <property name="geometry">
+             <rect>
+              <x>540</x>
+              <y>210</y>
+              <width>141</width>
+              <height>18</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Glucose controls growth</string>
+            </property>
+           </widget>
           </widget>
           <widget class="QWidget" name="tab_treatment">
            <attribute name="title">
@@ -1432,7 +1445,7 @@ padding: 8px
               <x>550</x>
               <y>30</y>
               <width>361</width>
-              <height>331</height>
+              <height>321</height>
              </rect>
             </property>
             <property name="title">
@@ -1444,7 +1457,7 @@ padding: 8px
                <x>10</x>
                <y>15</y>
                <width>352</width>
-               <height>301</height>
+               <height>271</height>
               </rect>
              </property>
              <layout class="QGridLayout" name="gridLayout_GLGL7">
@@ -1790,6 +1803,19 @@ padding: 8px
                </widget>
               </item>
              </layout>
+            </widget>
+            <widget class="QMyCheckBox" name="cbox_RADIATION_GROWTH_DELAY_ALL">
+             <property name="geometry">
+              <rect>
+               <x>10</x>
+               <y>290</y>
+               <width>141</width>
+               <height>18</height>
+              </rect>
+             </property>
+             <property name="text">
+              <string>Delay growth of all cells</string>
+             </property>
             </widget>
            </widget>
            <widget class="QGroupBox" name="groupBox_TPZ_DNB_2">
