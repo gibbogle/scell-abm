@@ -864,6 +864,7 @@ cp%birthtime = 0
 !cp2%V_divide = get_divide_volume()
 cp%d_divide = (3*cp%V_divide/PI)**(1./3.)
 cp%mitosis = 0
+cp%t_divide_last = 0
 
 cp%drug_tag = .false.
 cp%radiation_tag = .false.

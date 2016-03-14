@@ -122,6 +122,7 @@ type cell_type
 	real(REAL_KIND) :: d			! centre separation distance (um) -> cm
 	real(REAL_KIND) :: birthtime
 	real(REAL_KIND) :: V_divide
+	real(REAL_KIND) :: t_divide_last
 	real(REAL_KIND) :: t_hypoxic
 	real(REAL_KIND) :: t_anoxia_die
 	real(REAL_KIND) :: t_start_mitosis

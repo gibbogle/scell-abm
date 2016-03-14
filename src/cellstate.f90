@@ -551,6 +551,7 @@ cp1%birthtime = tnow
 cp1%V_divide = get_divide_volume()
 cp1%d_divide = (3*cp1%V_divide/PI)**(1./3.)
 cp1%mitosis = 0
+cp1%t_divide_last = tnow
 cfse0 = cp1%CFSE
 cp1%CFSE = generate_CFSE(cfse0/2)
 cfse1 = cfse0 - cp1%CFSE
@@ -584,6 +585,7 @@ cp2%birthtime = tnow
 cp2%V_divide = get_divide_volume()
 cp2%d_divide = (3*cp2%V_divide/PI)**(1./3.)
 cp2%mitosis = 0
+cp2%t_divide_last = tnow
 cp2%CFSE = cfse1
 
 cp2%ID = cp1%ID
