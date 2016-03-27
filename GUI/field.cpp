@@ -595,6 +595,10 @@ void Field::displayField(int hr, int *res)
             rgbcol[0] = 255;
             rgbcol[1] = 0;
             rgbcol[2] = 255;
+        } else if (fdata.cell_data[i].status >= 10) {   // tagged to die of treatment
+            rgbcol[0] = 255;
+            rgbcol[1] = 150;
+            rgbcol[2] = 0;
         }
         brush.setColor(QColor(rgbcol[0],rgbcol[1],rgbcol[2]));
         scene->addEllipse(xp,yp,d,d,Qt::NoPen, brush);

@@ -22,6 +22,7 @@ use react_diff
 use transfer
 use cellstate
 use packer
+use colony
 
 #include "../src/version.h"
 
@@ -71,7 +72,7 @@ logical :: ok
 integer :: i, idrug, nmetab, im, ichemo
 integer :: Nmm3, itestcase, ictype, ishow_progeny
 integer :: iuse_oxygen, iuse_glucose, iuse_tracer, iuse_drug, iuse_metab, iV_depend, iV_random, iuse_FD
-integer :: iuse_extra, iuse_relax, iuse_par_relax
+integer :: iuse_extra, iuse_relax, iuse_par_relax, iuse_gd_all
 real(REAL_KIND) :: days, percent, fluid_fraction, d_layer, sigma(MAX_CELLTYPES), Vsite_cm3, bdry_conc, spcrad_value
 integer :: iuse_drop, iconstant, isaveprofiledata, iglucosegrowth
 logical :: use_metabolites
@@ -191,9 +192,12 @@ read(nfcell,*) LQ(2)%K_ms
 read(nfcell,*) LQ(2)%death_prob
 read(nfcell,*) LQ(2)%growth_delay_factor
 read(nfcell,*) LQ(2)%growth_delay_N
+read(nfcell,*) iuse_gd_all
+use_radiation_growth_delay_all = (iuse_gd_all == 1)
 read(nfcell,*) O2cutoff(1)
 read(nfcell,*) O2cutoff(2)
 read(nfcell,*) O2cutoff(3)
+read(nfcell,*) hypoxia_threshold
 read(nfcell,*) growthcutoff(1)
 read(nfcell,*) growthcutoff(2)
 read(nfcell,*) growthcutoff(3)
@@ -244,6 +248,7 @@ Kdrag = 1.0e5*Kdrag
 MM_THRESHOLD = MM_THRESHOLD/1000					! uM -> mM
 ANOXIA_THRESHOLD = ANOXIA_THRESHOLD/1000			! uM -> mM
 O2cutoff = O2cutoff/1000							! uM -> mM
+hypoxia_threshold = hypoxia_threshold/1000			! uM -> mM
 chemo(OXYGEN)%used = (iuse_oxygen == 1)
 chemo(GLUCOSE)%used = (iuse_glucose == 1)
 chemo(TRACER)%used = (iuse_tracer == 1)
@@ -488,9 +493,9 @@ Nevents = kevent
 do kevent = 1,Nevents
 	event(kevent)%done = .false.
 	event(kevent)%time = event(kevent)%time*60*60
-!	event(kevent)%volume = event(kevent)%volume*1.0e-3
+!	event(kevent)%V = event(kevent)%V*1.0e-3
 	E = event(kevent)
-!	write(*,'(a,i3,f8.0,2i3,3f8.4)') 'event: ',kevent,E%time,E%etype,E%ichemo,E%volume,E%conc,E%dose
+!	write(*,'(a,i3,f8.0,2i3,3f8.4)') 'event: ',kevent,E%time,E%etype,E%ichemo,E%V,E%conc,E%dose
 enddo
 ! Check that events are sequential
 do kevent = 1,Nevents-1
@@ -800,7 +805,7 @@ else
 				kcell = kcell + 1
 				rsite = blobcentre + d*site
 				call AddCell(kcell,rsite)
-!				write(*,'(i6,3f8.4)') kcell,rsite
+				write(*,'(i6,3f8.4)') kcell,rsite
 				occup(ix,iy,iz) = .true.
 			enddo
 		enddo
@@ -834,6 +839,7 @@ type(cell_type), pointer :: cp
 cp => cell_list(kcell)
 cp%ID = kcell
 cp%state = ALIVE
+cp%generation = 1
 !cp%celltype = 1		! temporary!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 cp%celltype = random_choice(celltype_fraction,Ncelltypes,kpar)
 ityp = cp%celltype
@@ -849,11 +855,11 @@ cp%nspheres = 1
 			
 !cp%radius(1) = Raverage
 !cp%V = (4.*PI/3.)*Raverage**3						! need to randomise 
-cp%V_divide = Vdivide0
+cp%divide_volume = Vdivide0
 if (initial_count == 1) then
-	cp%V = 0.9*cp%V_divide
+	cp%V = 0.9*cp%divide_volume
 else
-	cp%V = (0.5 + 0.49*par_uni(kpar))*cp%V_divide
+	cp%V = (0.5 + 0.49*par_uni(kpar))*cp%divide_volume
 endif
 cp%radius(1) = (3*cp%V/(4*PI))**(1./3.)
 cp%centre(:,1) = rsite
@@ -861,8 +867,8 @@ cp%site = rsite/DELTA_X + 1
 cp%d = 0
 cp%birthtime = 0
 !cp%growthrate = test_growthrate
-!cp2%V_divide = get_divide_volume()
-cp%d_divide = (3*cp%V_divide/PI)**(1./3.)
+!cp2%divide_volume = get_divide_volume()
+cp%d_divide = (3*cp%divide_volume/PI)**(1./3.)
 cp%mitosis = 0
 cp%t_divide_last = 0
 
@@ -998,6 +1004,13 @@ if (Ncells == 0) then
 !    res = 3
 !    return
 endif
+
+if (istep == -100) then
+	tnow = istep*DELTA_T
+	call make_colony_distribution(tnow)
+	stop
+endif
+
 t_simulation = (istep-1)*DELTA_T	! seconds
 radiation_dose = 0
 if (use_events) then

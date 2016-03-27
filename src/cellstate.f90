@@ -107,6 +107,12 @@ do kcell = 1,nlist
 		else
 			cell_list(kcell)%growth_delay = .false.
 		endif
+	elseif (use_radiation_growth_delay_all .and. LQ(ityp)%growth_delay_N > 0) then
+		cell_list(kcell)%growth_delay = .true.
+		cell_list(kcell)%dt_delay = LQ(ityp)%growth_delay_factor*dose
+		cell_list(kcell)%N_delayed_cycles_left = LQ(ityp)%growth_delay_N
+	else
+		cell_list(kcell)%growth_delay = .false.
 	endif
 enddo
 end subroutine
@@ -324,7 +330,8 @@ real(REAL_KIND) :: dt
 logical :: changed, ok
 integer :: k, kcell, ityp, idrug, kpar=0
 type(cell_type), pointer :: cp
-real(REAL_KIND) :: r(3), c(3), rad, tnow, d_desired, tgrowth(MAX_CELLTYPES), c_rate(MAX_CELLTYPES), r_mean(MAX_CELLTYPES)
+real(REAL_KIND) :: rr(3), c(3), rad, tnow, d_desired, tgrowth(MAX_CELLTYPES), c_rate(MAX_CELLTYPES), r_mean(MAX_CELLTYPES)
+real(REAL_KIND) :: R
 integer :: ndivide, divide_list(1000)
 logical :: drugkilled
 logical :: divide
@@ -350,13 +357,13 @@ do k = 1,ncells
 !	if (MITOSIS_MODE == CONTINUOUS_MITOSIS) then	! always Mphase, growing and separating
 !		! need to set initial mitosis axis and d_divide at birth
 !		call growcell(cp,dt,c_rate(ityp),r_mean(ityp))
-!		cp%mitosis = cp%V/cp%V_divide
+!		cp%mitosis = cp%V/cp%divide_volume
 !		cp%d = cp%mitosis*cp%d_divide
-!		r = cp%centre(:,2) - cp%centre(:,1)
-!		r = r/sqrt(dot_product(r,r))	! axis direction unit vector
+!		rr = cp%centre(:,2) - cp%centre(:,1)
+!		rr = rr/sqrt(dot_product(r,r))	! axis direction unit vector
 !		c = (cp%centre(:,1) + cp%centre(:,2))/2
-!		cp%centre(:,1) = c - (cp%d/2)*r
-!		cp%centre(:,2) = c + (cp%d/2)*r
+!		cp%centre(:,1) = c - (cp%d/2)*rr
+!		cp%centre(:,2) = c + (cp%d/2)*rr
 !		call cubic_solver(cp%d,cp%V,rad)
 !		cp%radius = rad
 !		if (cp%d > 2*rad) then			! time for completion of cell division
@@ -368,15 +375,15 @@ do k = 1,ncells
 		call growcell(cp,dt,c_rate(ityp),r_mean(ityp))
 		cp%radius(1) = (3*cp%V/(4*PI))**(1./3.)
 !		write(*,*) 'grower: V: ',cp%V
-		if (cp%V > cp%V_divide) then
-			if (cp%radiation_tag .and..not.cp%G2_M) then
-				if (par_uni(kpar) < cp%p_rad_death) then
-					call CellDies(kcell)
-					changed = .true.
-					Nradiation_dead(ityp) = Nradiation_dead(ityp) + 1
-					cycle
-				endif
-			endif
+		if (cp%V > cp%divide_volume) then	! time to divide
+!			if (cp%radiation_tag .and..not.cp%G2_M) then
+!				if (par_uni(kpar) < cp%p_rad_death) then
+!					call CellDies(kcell)
+!					changed = .true.
+!					Nradiation_dead(ityp) = Nradiation_dead(ityp) + 1
+!					cycle
+!				endif
+!			endif
 			drugkilled = .false.
 			do idrug = 1,ndrugs_used
 				if (cp%drug_tag(idrug)) then
@@ -389,31 +396,52 @@ do k = 1,ncells
 			enddo
 			if (drugkilled) cycle
 			
-			if (cp%radiation_tag) then
-!				if (kcell == 784) write(*,'(a,i6,a,2L2,3f8.0,i3)') 'tagged cell: ',kcell,' growth_delay: ', &
-!					cp%growth_delay,cp%G2_M,cp%dt_delay,tnow,cp%t_growth_delay_end,cp%N_delayed_cycles_left
-				if (cp%growth_delay) then
-					if (.not.cp%G2_M) then	! this is the first time to divide
-						cp%t_growth_delay_end = tnow + cp%dt_delay
-						cp%G2_M = .true.
-					endif
-					if (tnow > cp%t_growth_delay_end) then
-						cp%G2_M = .false.	! delay ended, time to enter mitosis
-!						if (kcell == 784) write(*,*) 'growth delay for cell: ',kcell,' cycles left: ',cp%N_delayed_cycles_left
+			if (cell_list(kcell)%growth_delay) then
+				if (cell_list(kcell)%G2_M) then
+					if (tnow > cell_list(kcell)%t_growth_delay_end) then
+						cell_list(kcell)%G2_M = .false.
 					else
-						cycle				! continue delaying mitosis
+						cycle
 					endif
+				else
+					cell_list(kcell)%t_growth_delay_end = tnow + cell_list(kcell)%dt_delay
+					cell_list(kcell)%G2_M = .true.
+					cycle
 				endif
 			endif
+			! try moving death prob test to here
+			if (cell_list(kcell)%radiation_tag) then
+				R = par_uni(kpar)
+				if (R < cp%p_rad_death) then
+					call CellDies(kcell)
+					changed = .true.
+					Nradiation_dead(ityp) = Nradiation_dead(ityp) + 1
+					cycle
+				endif
+			endif
+		
+!			if (cp%radiation_tag) then
+!				if (cp%growth_delay) then
+!					if (.not.cp%G2_M) then	! this is the first time to divide
+!						cp%t_growth_delay_end = tnow + cp%dt_delay
+!						cp%G2_M = .true.
+!					endif
+!					if (tnow > cp%t_growth_delay_end) then
+!						cp%G2_M = .false.	! delay ended, time to enter mitosis
+!					else
+!						cycle				! continue delaying mitosis
+!					endif
+!				endif
+!			endif
 		
 			cp%Iphase = .false.
             cp%nspheres = 2
 			ncells_mphase = ncells_mphase + 1
-			call get_random_vector3(r)	! set initial axis direction
+			call get_random_vector3(rr)	! set initial axis direction
 			cp%d = 0.1*small_d
 			c = cp%centre(:,1)
-			cp%centre(:,1) = c + (cp%d/2)*r
-			cp%centre(:,2) = c - (cp%d/2)*r
+			cp%centre(:,1) = c + (cp%d/2)*rr
+			cp%centre(:,2) = c - (cp%d/2)*rr
 			cp%mitosis = 0
 			cp%t_start_mitosis = tnow
 			cp%d_divide = 2.0**(2./3)*cp%radius(1)
@@ -421,9 +449,9 @@ do k = 1,ncells
 	else
 		cp%mitosis = (tnow - cp%t_start_mitosis)/mitosis_duration
 		d_desired = max(cp%mitosis*cp%d_divide,small_d)
-		r = cp%centre(:,2) - cp%centre(:,1)
-		cp%d = sqrt(dot_product(r,r))
-		r = r/cp%d	! axis direction
+		rr = cp%centre(:,2) - cp%centre(:,1)
+		cp%d = sqrt(dot_product(rr,rr))
+		rr = rr/cp%d	! axis direction
 		c = (cp%centre(:,1) + cp%centre(:,2))/2
 		cp%site = c/DELTA_X + 1
 !			cp%centre(1,:) = c - (cp%d/2)*r		! For fmover we do not need to set centre positions
@@ -517,7 +545,7 @@ subroutine divider(kcell1, ok)
 integer :: kcell1
 logical :: ok
 integer :: kcell2, ityp, nbrs0
-real(REAL_KIND) :: r(3), c(3), cfse0, cfse1
+real(REAL_KIND) :: r(3), c(3), cfse0, cfse1, V0, Tdiv
 type(cell_type), pointer :: cp1, cp2
 
 !write(*,*) 'divider:'
@@ -544,12 +572,16 @@ ncells_type(ityp) = ncells_type(ityp) + 1
 ncells_mphase = ncells_mphase - 1
 cp2 => cell_list(kcell2)
 cp1%state = ALIVE
-cp1%V = cp1%V/2
+cp1%generation = cp1%generation + 1
+V0 = cp1%V/2
+cp1%V = V0
 cp1%site = cp1%centre(:,1)/DELTA_X + 1
 cp1%d = 0
 cp1%birthtime = tnow
-cp1%V_divide = get_divide_volume()
-cp1%d_divide = (3*cp1%V_divide/PI)**(1./3.)
+!cp1%divide_volume = get_divide_volume1()
+cp1%divide_volume = get_divide_volume(ityp,V0,Tdiv)
+cp1%divide_time = Tdiv
+cp1%d_divide = (3*cp1%divide_volume/PI)**(1./3.)
 cp1%mitosis = 0
 cp1%t_divide_last = tnow
 cfse0 = cp1%CFSE
@@ -576,14 +608,17 @@ cp1%nbrlist(cp1%nbrs)%contact(1,1) = .true.
 cp2%ID = cp1%ID
 cp2%celltype = cp1%celltype
 cp2%state = ALIVE
-cp2%V = cp1%V
+cp2%generation = cp1%generation
+cp2%V = V0
 cp2%radius(1) = cp1%radius(2)
 cp2%centre(:,1) = cp1%centre(:,2)
 cp2%site = cp2%centre(:,1)/DELTA_X + 1
 cp2%d = 0
 cp2%birthtime = tnow
-cp2%V_divide = get_divide_volume()
-cp2%d_divide = (3*cp2%V_divide/PI)**(1./3.)
+!cp2%divide_volume = get_divide_volume1()
+cp2%divide_volume = get_divide_volume(ityp,V0,Tdiv)
+cp2%divide_time = Tdiv
+cp2%d_divide = (3*cp2%divide_volume/PI)**(1./3.)
 cp2%mitosis = 0
 cp2%t_divide_last = tnow
 cp2%CFSE = cfse1
@@ -644,7 +679,7 @@ end subroutine
 
 !-----------------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------------
-function get_divide_volume() result(vol)
+function get_divide_volume1() result(vol)
 real(REAL_KIND) :: vol
 integer :: kpar = 0
 real(REAL_KIND) :: U

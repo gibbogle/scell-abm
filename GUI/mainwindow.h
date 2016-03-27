@@ -190,6 +190,7 @@ public slots:
     void makeSFPlot(QString, double, double, QVector<double> *x, QVector<double> *y);
     void makeGlucosePlot(double *ndays, QVector<double> *x, QVector<double> *y);
     void makeDrugPlot(QString drugTypeStr, QString cellTypeStr, double *maxdose, QString, QVector<double> *x, QVector<double> *y);
+    void makeDrugRadiationPlot(QString drugTypeStr, QString cellTypeStr, double *maxO2, QString plotStr, QVector<double> *x, QVector<double> *y);
 
     void processGroupBoxClick(QString);
 signals:

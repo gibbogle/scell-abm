@@ -42,7 +42,7 @@ padding: 8px
     <item row="0" column="0">
      <widget class="QStackedWidget" name="stackedWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="page_input">
        <layout class="QVBoxLayout" name="verticalLayout">
@@ -5522,7 +5522,7 @@ padding: 8px
             <property name="geometry">
              <rect>
               <x>10</x>
-              <y>370</y>
+              <y>350</y>
               <width>101</width>
               <height>61</height>
              </rect>
@@ -5575,8 +5575,8 @@ padding: 8px
            <widget class="QPushButton" name="pushButton_savedrugdata">
             <property name="geometry">
              <rect>
-              <x>130</x>
-              <y>380</y>
+              <x>10</x>
+              <y>440</y>
               <width>91</width>
               <height>23</height>
              </rect>
@@ -5588,9 +5588,9 @@ padding: 8px
            <widget class="QGroupBox" name="groupBox_drug_plot">
             <property name="geometry">
              <rect>
-              <x>300</x>
+              <x>200</x>
               <y>340</y>
-              <width>271</width>
+              <width>371</width>
               <height>131</height>
              </rect>
             </property>
@@ -5701,7 +5701,7 @@ padding: 8px
             <widget class="QLineEdit" name="lineEdit_drug_O2">
              <property name="geometry">
               <rect>
-               <x>190</x>
+               <x>180</x>
                <y>10</y>
                <width>50</width>
                <height>20</height>
@@ -5723,7 +5723,7 @@ padding: 8px
             <widget class="QLabel" name="alabel_6">
              <property name="geometry">
               <rect>
-               <x>140</x>
+               <x>130</x>
                <y>10</y>
                <width>51</width>
                <height>21</height>
@@ -5736,7 +5736,7 @@ padding: 8px
             <widget class="QLabel" name="alabel_7">
              <property name="geometry">
               <rect>
-               <x>250</x>
+               <x>240</x>
                <y>10</y>
                <width>21</width>
                <height>21</height>
@@ -5749,7 +5749,7 @@ padding: 8px
             <widget class="QPushButton" name="pushButton_drugKF_0">
              <property name="geometry">
               <rect>
-               <x>190</x>
+               <x>180</x>
                <y>70</y>
                <width>51</width>
                <height>23</height>
@@ -5762,7 +5762,7 @@ padding: 8px
             <widget class="QLineEdit" name="lineEdit_maxdrugconc">
              <property name="geometry">
               <rect>
-               <x>190</x>
+               <x>180</x>
                <y>40</y>
                <width>51</width>
                <height>20</height>
@@ -5778,7 +5778,7 @@ padding: 8px
             <widget class="QLabel" name="alabel_8">
              <property name="geometry">
               <rect>
-               <x>110</x>
+               <x>100</x>
                <y>40</y>
                <width>81</width>
                <height>21</height>
@@ -5791,7 +5791,7 @@ padding: 8px
             <widget class="QLabel" name="alabel_9">
              <property name="geometry">
               <rect>
-               <x>250</x>
+               <x>240</x>
                <y>40</y>
                <width>21</width>
                <height>21</height>
@@ -5804,9 +5804,64 @@ padding: 8px
             <widget class="QPushButton" name="pushButton_drugSF_0">
              <property name="geometry">
               <rect>
-               <x>190</x>
+               <x>180</x>
                <y>100</y>
                <width>51</width>
+               <height>23</height>
+              </rect>
+             </property>
+             <property name="text">
+              <string>Plot SF</string>
+             </property>
+            </widget>
+            <widget class="QLabel" name="alabel_complementary">
+             <property name="geometry">
+              <rect>
+               <x>270</x>
+               <y>10</y>
+               <width>91</width>
+               <height>21</height>
+              </rect>
+             </property>
+             <property name="text">
+              <string>+ radiation dose</string>
+             </property>
+            </widget>
+            <widget class="QLineEdit" name="lineEdit_radiationdose">
+             <property name="geometry">
+              <rect>
+               <x>280</x>
+               <y>40</y>
+               <width>41</width>
+               <height>20</height>
+              </rect>
+             </property>
+             <property name="text">
+              <string>5</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             </property>
+            </widget>
+            <widget class="QLabel" name="alabel_Gy">
+             <property name="geometry">
+              <rect>
+               <x>330</x>
+               <y>40</y>
+               <width>21</width>
+               <height>21</height>
+              </rect>
+             </property>
+             <property name="text">
+              <string>Gy</string>
+             </property>
+            </widget>
+            <widget class="QPushButton" name="pushButton_complementarySF_0">
+             <property name="geometry">
+              <rect>
+               <x>280</x>
+               <y>70</y>
+               <width>41</width>
                <height>23</height>
               </rect>
              </property>
@@ -7096,7 +7151,7 @@ padding: 8px
              <property name="flat">
               <bool>true</bool>
              </property>
-             <widget class="QRadioButton" name="radioButton_hypoxia_1">
+             <widget class="QRadioButton" name="rbut_HYPOXIA_1">
               <property name="geometry">
                <rect>
                 <x>10</x>
@@ -7108,8 +7163,11 @@ padding: 8px
               <property name="text">
                <string/>
               </property>
+              <attribute name="buttonGroup">
+               <string>buttonGroup_hypoxia</string>
+              </attribute>
              </widget>
-             <widget class="QRadioButton" name="radioButton_hypoxia_2">
+             <widget class="QRadioButton" name="rbut_HYPOXIA_2">
               <property name="geometry">
                <rect>
                 <x>10</x>
@@ -7121,8 +7179,11 @@ padding: 8px
               <property name="text">
                <string/>
               </property>
+              <attribute name="buttonGroup">
+               <string>buttonGroup_hypoxia</string>
+              </attribute>
              </widget>
-             <widget class="QRadioButton" name="radioButton_hypoxia_3">
+             <widget class="QRadioButton" name="rbut_HYPOXIA_3">
               <property name="geometry">
                <rect>
                 <x>10</x>
@@ -7137,6 +7198,9 @@ padding: 8px
               <property name="checked">
                <bool>true</bool>
               </property>
+              <attribute name="buttonGroup">
+               <string>buttonGroup_hypoxia</string>
+              </attribute>
              </widget>
             </widget>
             <widget class="QLineEdit" name="line_HYPOXIA_1">
@@ -8192,6 +8256,35 @@ padding: 8px
          <string>Cell constituent</string>
         </property>
        </widget>
+       <widget class="QLineEdit" name="line_HYPOXIA_THRESHOLD">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="geometry">
+         <rect>
+          <x>1110</x>
+          <y>170</y>
+          <width>41</width>
+          <height>20</height>
+         </rect>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+       <widget class="QMyLabel" name="label_HYPOXIA_THRESHOLD">
+        <property name="geometry">
+         <rect>
+          <x>1160</x>
+          <y>170</y>
+          <width>111</width>
+          <height>21</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>label_HYPOXIA_THRESHOLD</string>
+        </property>
+       </widget>
       </widget>
       <widget class="QWidget" name="page_FACS">
        <widget class="QMyGroupBox" name="groupBox_FACS">
@@ -8931,6 +9024,7 @@ padding: 8px
   <buttongroup name="buttonGroup_drugcelltype"/>
   <buttongroup name="buttonGroup_farfield"/>
   <buttongroup name="buttonGroup_histotype"/>
+  <buttongroup name="buttonGroup_hypoxia"/>
   <buttongroup name="buttonGroup_plane"/>
   <buttongroup name="buttonGroup_celltype"/>
   <buttongroup name="buttonGroup_drug"/>

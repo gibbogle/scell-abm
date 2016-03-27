@@ -68,6 +68,8 @@ integer, parameter :: NCONST = MAX_CHEMO
 
 integer, parameter :: MITOSIS_MODE = TERMINAL_MITOSIS
 
+logical, parameter :: OFF_LATTICE = .true.
+
 type neighbour_type
 	integer :: indx
 !	logical :: incontact
@@ -111,6 +113,7 @@ type cell_type
 !	integer :: varindex
 	integer :: ID
 	integer :: celltype
+	integer :: generation
 	integer :: state
 	logical :: Iphase
     integer :: nspheres             ! =1 for Iphase, =2 for Mphase
@@ -121,8 +124,10 @@ type cell_type
 	real(REAL_KIND) :: centre(3,2)  ! sphere centre positions
 	real(REAL_KIND) :: d			! centre separation distance (um) -> cm
 	real(REAL_KIND) :: birthtime
-	real(REAL_KIND) :: V_divide
+	real(REAL_KIND) :: divide_volume ! actual volume (cm3)
+	real(REAL_KIND) :: divide_time
 	real(REAL_KIND) :: t_divide_last
+	real(REAL_KIND) :: t_divide_next
 	real(REAL_KIND) :: t_hypoxic
 	real(REAL_KIND) :: t_anoxia_die
 	real(REAL_KIND) :: t_start_mitosis
@@ -266,8 +271,9 @@ integer :: Ndrug_tag(MAX_DRUGTYPES,MAX_CELLTYPES)
 !integer :: NdrugA_dead(MAX_CELLTYPES), NdrugB_dead(MAX_CELLTYPES)
 integer :: Nradiation_dead(MAX_CELLTYPES), Nanoxia_dead(MAX_CELLTYPES)
 integer :: Ndrug_dead(MAX_DRUGTYPES,MAX_CELLTYPES)
-real(REAL_KIND) :: O2cutoff(3)
+real(REAL_KIND) :: O2cutoff(3), hypoxia_threshold
 real(REAL_KIND) :: growthcutoff(3)
+logical :: use_radiation_growth_delay_all = .true.
 
 
 ! From react_diff
@@ -322,6 +328,8 @@ logical :: saveprofiledata
 logical :: use_death = .true.
 logical :: use_extracellular_O2 = .false.
 logical :: use_migration = .false.
+logical :: use_divide_time_distribution = .true.
+logical :: use_constant_divide_volume = .true.
 logical :: suppress_growth = .false.
 logical :: use_hysteresis = .false.
 logical :: use_permute = .false.
@@ -561,6 +569,35 @@ write(logmsg,*) 'ERROR: random_choice: ',N,p
 call logger(logmsg)
 stop
 end function
+
+!--------------------------------------------------------------------------------------
+!--------------------------------------------------------------------------------------
+real(REAL_KIND) function rv_normal(p1,p2,kpar)
+integer :: kpar
+real(REAL_KIND) :: p1,p2
+real(REAL_KIND) :: R
+
+R = par_rnor(kpar)
+rv_normal = p1+R*p2
+end function
+
+!--------------------------------------------------------------------------------------
+! When Y is normal N(p1,p2) then X = exp(Y) is lognormal with
+!   median = m = exp(p1)
+!   shape  = s = exp(p2)
+! Also median = m = mean/(s^2/2)
+! kpar = parallel process number
+!--------------------------------------------------------------------------------------
+real(REAL_KIND) function rv_lognormal(p1,p2,kpar)
+integer :: kpar
+real(REAL_KIND) :: p1,p2
+real(REAL_KIND) :: R,z
+
+R = par_rnor(kpar)
+z = p1 + R*p2
+rv_lognormal = exp(z)
+end function
+
 !-----------------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------------
 !subroutine get_random_drot(axis,drot)
@@ -571,6 +608,68 @@ end function
 !axis = random_int(1,3,kpar)
 !drot = 2*(par_uni(kpar) - 0.5)
 !end subroutine
+
+!-----------------------------------------------------------------------------------------
+! ityp = cell type
+! V0 = cell starting volume (after division) = %volume
+! Two approaches:
+! 1. Use Vdivide0 and dVdivide to generate a volume
+! 2. Use the divide time log-normal distribution
+!    (a) use_V_dependence = true
+!    (b) use_V_dependence = false
+! NOTE: %volume and %divide_volume are normalised.
+!-----------------------------------------------------------------------------------------
+function get_divide_volume(ityp,V0,Tdiv) result(Vdiv)
+integer :: ityp
+real(REAL_KIND) :: V0, Tdiv
+real(REAL_KIND) :: Vdiv
+real(REAL_KIND) :: Tmean, b, R
+integer :: kpar=0
+
+Tmean = divide_time_mean(ityp)
+if (use_divide_time_distribution) then
+	Tdiv = DivideTime(ityp)
+	if (use_constant_divide_volume) then
+		Vdiv = Vdivide0
+	else
+		if (use_V_dependence) then
+			b = log(2.0)*(Tdiv/Tmean)
+			Vdiv = V0*exp(b)
+		else
+			Vdiv = V0 + (Vdivide0/2)*(Tdiv/Tmean)
+		endif
+	endif
+else
+	if (use_constant_divide_volume) then
+		Vdiv = Vdivide0
+	else
+		R = par_uni(kpar)
+		Vdiv = Vdivide0 + dVdivide*(2*R-1)
+	endif
+	Tdiv = Tmean
+endif
+end function	
+
+!--------------------------------------------------------------------------------------
+!--------------------------------------------------------------------------------------
+real(REAL_KIND) function DivideTime(ityp)
+integer :: ityp
+real(REAL_KIND) :: p1, p2
+integer :: kpar = 0
+
+dividetime = 0
+p1 = divide_dist(ityp)%p1
+p2 = divide_dist(ityp)%p2
+select case (divide_dist(ityp)%class)
+case (NORMAL_DIST)
+	DivideTime = rv_normal(p1,p2,kpar)
+case (LOGNORMAL_DIST)
+	DivideTime = rv_lognormal(p1,p2,kpar)
+case (CONSTANT_DIST)
+	DivideTime = p1
+end select
+end function
+
 !--------------------------------------------------------------------------------
 ! Returns a permutation of the elements of a()
 !--------------------------------------------------------------------------------

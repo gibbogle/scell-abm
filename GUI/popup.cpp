@@ -16,6 +16,7 @@ void MainWindow::setupPopup()
     connect(pushButton_glucose_0,SIGNAL(clicked()),this,SLOT(pushButton_clicked()));
     connect(pushButton_drugKF_0,SIGNAL(clicked()),this,SLOT(pushButton_clicked()));
     connect(pushButton_drugSF_0,SIGNAL(clicked()),this,SLOT(pushButton_clicked()));
+    connect(pushButton_complementarySF_0,SIGNAL(clicked()),this,SLOT(pushButton_clicked()));
 }
 
 //--------------------------------------------------------------------------------------------------------
@@ -168,6 +169,43 @@ void MainWindow::pushButton_clicked()
             popup_plot->xAxis->setAutoTickStep(false);
             popup_plot->xAxis->setTickStep(maxdrug/5);
             popup_plot->xAxis->setRange(0, maxdrug);
+            popup_plot->yAxis->setRange(1.e-5, 1);
+            popup_plot->yAxis->setScaleType(QCPAxis::stLogarithmic);
+            popup_plot->yAxis->setScaleLogBase(10);
+            popup_plot->yAxis->setNumberFormat("eb"); // e = exponential, b = beautiful decimal powers
+            popup_plot->yAxis->setNumberPrecision(0); // makes sure "1*10^4" is displayed only as "10^4"
+        } else if (plotType == "complementarySF") {
+            plotName = "Drug + Radiation Survival Fraction";
+            plotwin->setWindowTitle(plotName);
+            QString cellTypeStr, drugTypeStr;
+            if (radioButton_drugcelltype_1->isChecked()) {
+                cellTypeStr = "CT1";
+            } else {
+                cellTypeStr = "CT2";
+            }
+            if (radioButton_drugtype_1->isChecked()) {
+                drugTypeStr = "PARENT";
+            } else if (radioButton_drugtype_2->isChecked()) {
+                drugTypeStr = "METAB1";
+            } else {
+                drugTypeStr = "METAB2";
+            }
+            QVector<double> x0(NPLOT), y0(NPLOT);
+            double maxO2;
+            x0[0] = 1;
+            makeDrugRadiationPlot(drugTypeStr, cellTypeStr, &maxO2, "SF", &x0, &y0);
+            if (x0[0] == 1) return; // does not kill
+            // create graph and assign data to it:
+            popup_plot->addGraph();
+            popup_plot->graph(0)->setData(x0, y0);
+            popup_plot->graph(0)->setPen(QPen(Qt::blue));
+            // give the axes some labels:
+            popup_plot->xAxis->setLabel("O2 concentration (mM)");
+            popup_plot->yAxis->setLabel("Survival fraction/hour");
+            // set axes ranges
+            popup_plot->xAxis->setAutoTickStep(false);
+            popup_plot->xAxis->setTickStep(maxO2/5);
+            popup_plot->xAxis->setRange(0, maxO2);
             popup_plot->yAxis->setRange(1.e-5, 1);
             popup_plot->yAxis->setScaleType(QCPAxis::stLogarithmic);
             popup_plot->yAxis->setScaleLogBase(10);
@@ -447,4 +485,130 @@ elseif (killmodel == 5) then
     kill_prob = kill_prob + Kd*(cell_list(kcell)%conc(ichemo + im)**2)*dt
 endif
 */
+}
+
+//--------------------------------------------------------------------------------------------------------
+// The net survival fraction is the product of the survival fractions from the radiation dose and from the drug.
+//--------------------------------------------------------------------------------------------------------
+void MainWindow::makeDrugRadiationPlot(QString drugTypeStr, QString cellTypeStr, double *maxO2, QString plotStr, QVector<double> *x, QVector<double> *y)
+{
+    QLineEdit *line;
+    QString objName0, objName, cellTypeNum;
+    int killmodel;
+    double C_O2, C2, Kmet0, KO2, n_O2, Ckill_O2, f, T, Ckill, Kd, c;
+    double Cdrug, rad_dose, kmet, dMdt, SF_drug, SF_rad, SF;   //, kill_prob;
+
+    objName = "cbox_" + drugTypeStr + "_" + cellTypeStr + "_15";
+    QCheckBox *cbox = findChild<QCheckBox *>(objName);
+    if (!cbox->isChecked()) {
+        LOG_MSG("Does not kill");
+        return;     // Does not kill
+    }
+//    qDebug("makeDrugRadiationPlot");
+    cellTypeNum = cellTypeStr.mid(2,1);
+    objName0 = "line_" + drugTypeStr + "_" + cellTypeStr + "_";
+    objName = objName0 + "16";
+    line = findChild<QLineEdit *>(objName);
+    killmodel = line->text().toInt();
+    objName = objName0 + "0";
+    line = findChild<QLineEdit *>(objName);
+    Kmet0 = line->text().toDouble();
+    Kmet0 = Kmet0/60;                       // /min -> /sec
+    objName = objName0 + "1";
+    line = findChild<QLineEdit *>(objName);
+    C2 = line->text().toDouble();
+    objName = objName0 + "2";
+    line = findChild<QLineEdit *>(objName);
+    KO2 = line->text().toDouble();
+    KO2 = 1.0e-3*KO2;                       // um -> mM
+    objName = objName0 + "13";
+    line = findChild<QLineEdit *>(objName);
+    n_O2 = line->text().toDouble();
+    objName = objName0 + "6";
+    line = findChild<QLineEdit *>(objName);
+    Ckill_O2 = line->text().toDouble();     // kill_O2
+    objName = objName0 + "7";
+    line = findChild<QLineEdit *>(objName);
+    Ckill = line->text().toDouble();        // kill_drug
+    objName = objName0 + "8";
+    line = findChild<QLineEdit *>(objName);
+    T = line->text().toDouble();            // kill_duration
+    T = 60*T;                               // min -> sec
+//    qDebug("Kmet0: %f C2: %f KO2: %f Ckill_O2: %f Ckill: %f T: %f",Kmet0,C2,KO2,Ckill_O2,Ckill,T);
+
+    objName = objName0 + "9";
+    line = findChild<QLineEdit *>(objName);
+    f = line->text().toDouble();            // kill_fraction
+
+    kmet = (1 - C2 + C2*pow(KO2,n_O2)/(pow(KO2,n_O2) + pow(Ckill_O2,n_O2)))*Kmet0;
+    if (killmodel == 1) {
+        Kd = -log(1-f)/(T*kmet*Ckill);
+    } else if (killmodel == 2) {
+        Kd = -log(1-f)/(T*kmet*pow(Ckill,2));
+    } else if (killmodel == 3) {
+        Kd = -log(1-f)/(T*pow(kmet*Ckill,2));
+    } else if (killmodel == 4) {
+        Kd = -log(1-f)/(T*Ckill);
+    } else if (killmodel == 5) {
+        Kd = -log(1-f)/(T*pow(Ckill,2));
+    }
+
+    line = findChild<QLineEdit *>("lineEdit_drug_O2");
+    *maxO2 = line->text().toDouble();
+    line = findChild<QLineEdit *>("lineEdit_maxdrugconc");
+    Cdrug = line->text().toDouble();
+
+    QString objAlphaName = "line_RADIATION_ALPHA_H_" + cellTypeNum;
+    QString objBetaName = "line_RADIATION_BETA_H_" + cellTypeNum;
+    QString objOERAlphaName = "line_RADIATION_OER_ALPHA_" + cellTypeNum;
+    QString objOERBetaName = "line_RADIATION_OER_BETA_" + cellTypeNum;
+    QString objKmName = "line_RADIATION_KM_" + cellTypeNum;
+    line = findChild<QLineEdit *>(objAlphaName);
+    double LQ_alpha_H = line->text().toDouble();
+    line = findChild<QLineEdit *>(objBetaName);
+    double LQ_beta_H = line->text().toDouble();
+    line = findChild<QLineEdit *>(objOERAlphaName);
+    double LQ_OER_am = line->text().toDouble();
+    line = findChild<QLineEdit *>(objOERBetaName);
+    double LQ_OER_bm = line->text().toDouble();
+    line = findChild<QLineEdit *>(objKmName);
+    double LQ_K_ms = line->text().toDouble();
+    double SER = 1;
+
+    line = findChild<QLineEdit *>("lineEdit_radiationdose");
+    rad_dose = line->text().toDouble();
+
+    for (int i=0; i<NPLOT; i++) {
+        C_O2 = (i*(*maxO2)/(NPLOT-1));
+        kmet = (1 - C2 + C2*pow(KO2,n_O2)/(pow(KO2,n_O2) + pow(C_O2,n_O2)))*Kmet0;
+        dMdt = kmet*Cdrug;
+        if (killmodel == 1) {
+            c = Kd*dMdt;
+        } else if (killmodel == 2) {
+            c = Kd*dMdt*Cdrug;
+        } else if (killmodel == 3) {
+            c = Kd*pow(dMdt,2);
+        } else if (killmodel == 4) {
+            c = Kd*Cdrug;
+        } else if (killmodel == 5) {
+            c = Kd*pow(Cdrug,2);
+        }
+        SF_drug = exp(-c*3600);      // 3600 sec = 1 hour
+
+        double OER_alpha_d = rad_dose*(LQ_OER_am*C_O2 + LQ_K_ms)/(C_O2 + LQ_K_ms);
+        double OER_beta_d = rad_dose*(LQ_OER_bm*C_O2 + LQ_K_ms)/(C_O2 + LQ_K_ms);
+
+        OER_alpha_d = OER_alpha_d*SER;
+        OER_beta_d = OER_beta_d*SER;
+
+        double expon = LQ_alpha_H*OER_alpha_d + LQ_beta_H*pow(OER_beta_d,2);
+        SF_rad = exp(-expon);
+
+        SF = SF_rad*SF_drug;
+        (*x)[i] = C_O2;
+        if (plotStr == "KF")
+            (*y)[i] = (1 - SF);
+        else
+            (*y)[i] = SF;
+    }
 }

@@ -100,7 +100,14 @@ do kcell = 1,nlist
 		endif
 		if (cp%anoxia_tag) then
 			cdata(nc)%status = 2	! tagged to die of anoxia
-		elseif (cp%Cin(OXYGEN) < 4e-3) then
+		elseif (cp%radiation_tag) then
+			cdata(nc)%status = 10
+			write(nflog,*) 'Tagged to die from radiation: ',kcell
+		elseif (cp%drug_tag(1)) then
+			cdata(nc)%status = 11
+		elseif (cp%drug_tag(1)) then
+			cdata(nc)%status = 12
+		elseif (cp%Cin(OXYGEN) < hypoxia_threshold) then
 			cdata(nc)%status = 1	! radiobiological hypoxia
 		elseif (cp%mitosis > 0) then
 			cdata(nc)%status = 3	! in mitosis
@@ -998,13 +1005,13 @@ do ichemo = 0,nvars-1
 			endif
         elseif (ichemo == CELL_VOLUME) then	
 			if (kcell > 0) then
-				ex_conc(k) = Vcell_pL*cell_list(kcell)%volume
+				ex_conc(k) = Vcell_pL*cell_list(kcell)%V
 			else
 				ex_conc(k) = 0
 			endif
         elseif (ichemo == O2_BY_VOL) then	
 			if (kcell > 0) then
-				ex_conc(k) = allstate(i,OXYGEN)*Vcell_pL*cell_list(kcell)%volume
+				ex_conc(k) = allstate(i,OXYGEN)*Vcell_pL*cell_list(kcell)%V
 			else
 				ex_conc(k) = 0
 			endif

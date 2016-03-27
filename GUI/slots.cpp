@@ -242,6 +242,12 @@ void MainWindow::radioButtonChanged(QAbstractButton *b)
                 LOG_QMSG("found: " + wtag);
                 sprintf(msg,"parm->set_value: %d",rbutton_case);
                 LOG_MSG(msg);
+                if (ptag.compare("HYPOXIA")==0) {
+                    QString linetag = "line_HYPOXIA_"+QString::number(rbutton_case);
+                    LOG_QMSG("hypoxia tag: " + linetag);
+                    QLineEdit *line = findChild<QLineEdit *>(linetag);
+                    line_HYPOXIA_THRESHOLD->setText(line->text());
+                }
                 break;
             }
         }
@@ -249,6 +255,17 @@ void MainWindow::radioButtonChanged(QAbstractButton *b)
         if (wtag.contains("FD_SOLVER")) {
             setFields();
         }
+//        if (radioButton_hypoxia_1->isChecked()) {
+//            Global::i_hypoxia_cutoff = 1;
+//            line_HYPOXIA_THRESHOLD->setText(line_HYPOXIA_1->text());
+//        } else if (radioButton_hypoxia_2->isChecked()) {
+//            Global::i_hypoxia_cutoff = 2;
+//            line_HYPOXIA_THRESHOLD->setText(line_HYPOXIA_2->text());
+//        } else if (radioButton_hypoxia_3->isChecked()) {
+//            Global::i_hypoxia_cutoff = 3;
+//            line_HYPOXIA_THRESHOLD->setText(line_HYPOXIA_3->text());
+//        }
+
 }
 
 void MainWindow::buttonClick_cell_constituent(QAbstractButton* button)

@@ -661,6 +661,7 @@ do kcell = 1,nlist
 	cp%cnr(:,6) = [ix+1, iy+1, iz]
 	cp%cnr(:,7) = [ix+1, iy, iz+1]
 	cp%cnr(:,8) = [ix+1, iy+1, iz+1]
+!	write(*,*) 'make_grid_flux_weights: ',kcell,cp%state
 	call grid_flux_weights(kcell, cp%cnr, cp%wt)
 enddo
 end subroutine
