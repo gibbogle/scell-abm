@@ -63,6 +63,7 @@ namespace Global
     int ncell_list;
     CELL_DATA cell_list[MAX_CELLS];
     double blobcentre[3];
+    double droppedcentre[3];
 
 //    double *profile_x[20];
 //    double *profile_y[20];
@@ -74,6 +75,6 @@ namespace Global
     bool recordingFACS;
     bool showingField;
     bool recordingField;
-
+    bool dropped;
 
 } // namespace Global

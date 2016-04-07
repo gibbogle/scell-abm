@@ -115,6 +115,9 @@ MainWindow::MainWindow(QWidget *parent)
     vbox_FACS_y_vars = NULL;
     buttonGroup_FACS_y_vars = new QButtonGroup;
 
+	rbut_HYPOXIA_3->setChecked(true);
+    Global::i_hypoxia_cutoff = 3;
+
     setupGraphSelector();
     setGraphsActive();
 
@@ -2689,7 +2692,7 @@ void MainWindow::changeParam()
     QObject *w = sender(); // Gets the pointer to the object that invoked the changeParam slot.
 	if (w->isWidgetType()) {
 		QString wname = w->objectName();
-        LOG_QMSG("changeParam:" + wname);
+//        LOG_QMSG("changeParam:" + wname);
         if (wname.contains("_PARENT_") || wname.contains("_METAB1_") || wname.contains("_METAB2_")) {
             changeDrugParam(w);
             return;
@@ -3277,29 +3280,29 @@ void MainWindow::setupConstituents()
         name[nvarlen] = NULL;
         str = name;
         Global::var_string[ivar] = str.trimmed();
-        LOG_QMSG(name);
+//        LOG_QMSG(name);
     }
     free(name_array);
 
-    sprintf(msg,"field->vbox_cell_constituent: %p",field->vbox_cell_constituent);
-    LOG_MSG(msg);
+//    sprintf(msg,"field->vbox_cell_constituent: %p",field->vbox_cell_constituent);
+//    LOG_MSG(msg);
     tag = "cell";
     field->setCellConstituentButtons(groupBox_cell_constituent, field->buttonGroup_cell_constituent, &field->vbox_cell_constituent, &field->cell_constituent_rb_list, tag);
-    LOG_MSG("did setCellCellConstituentButtons: cell");
+//    LOG_MSG("did setCellCellConstituentButtons: cell");
     tag = "field";
     field->setFieldConstituentButtons(groupBox_field_constituent, field->buttonGroup_field_constituent, &field->vbox_field_constituent, &field->field_constituent_rb_list, tag);
-    LOG_MSG("did setCellCellConstituentButtons: field");
+//    LOG_MSG("did setCellCellConstituentButtons: field");
     tag = "histo";
     field->setCellConstituentButtons(groupBox_Histo_y_vars, buttonGroup_histo, &vbox_histo, &histo_rb_list, tag);
-    LOG_MSG("did setCellConstituentButtons: histo");
+//    LOG_MSG("did setCellConstituentButtons: histo");
     tag = "FACS_x";
     field->setCellConstituentButtons(groupBox_FACS_x_vars, buttonGroup_FACS_x_vars, &vbox_FACS_x_vars, &FACS_x_vars_rb_list, tag);
-    LOG_MSG("did setCellConstituentButtons: FACS_x");
+//    LOG_MSG("did setCellConstituentButtons: FACS_x");
     tag = "FACS_y";
     field->setCellConstituentButtons(groupBox_FACS_y_vars, buttonGroup_FACS_y_vars, &vbox_FACS_y_vars, &FACS_y_vars_rb_list, tag);
-    LOG_MSG("did setCellConstituentButtons: FACS_y");
+//    LOG_MSG("did setCellConstituentButtons: FACS_y");
     field->setMaxConcentrations(groupBox_maxconc);
-    LOG_MSG("did setMaxConcentrations");
+//    LOG_MSG("did setMaxConcentrations");
 
 }
 

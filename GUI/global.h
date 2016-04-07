@@ -105,6 +105,7 @@ namespace Global
     extern int ncell_list;
     extern CELL_DATA cell_list[MAX_CELLS];
     extern double blobcentre[3];
+    extern double droppedcentre[3];
 
 //    extern double *profile_x[20];
 //    extern double *profile_y[20];
@@ -116,7 +117,7 @@ namespace Global
     extern bool recordingFACS;
     extern bool showingField;
     extern bool recordingField;
-
+    extern bool dropped;
 
 } // namespace Global
 

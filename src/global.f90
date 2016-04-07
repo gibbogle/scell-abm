@@ -264,6 +264,7 @@ real(REAL_KIND) :: alpha_shape, beta_shape	! squashed sphere shape parameters
 real(REAL_KIND) :: adrop, bdrop, cdrop		! drop shape transformation parameters
 integer :: zmin     						! drop lower bound at drop time = lower limit of blob thereafter
 logical :: is_dropped
+real(REAL_KIND) :: wall_attraction_factor = 0
 
 integer :: Nradiation_tag(MAX_CELLTYPES), Nanoxia_tag(MAX_CELLTYPES)
 !integer :: NdrugA_tag(MAX_CELLTYPES), NdrugB_tag(MAX_CELLTYPES), Nradiation_tag(MAX_CELLTYPES), Nanoxia_tag(MAX_CELLTYPES)

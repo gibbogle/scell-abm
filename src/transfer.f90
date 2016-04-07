@@ -45,16 +45,17 @@ end subroutine
 
 !-----------------------------------------------------------------------------------------
 ! Distances are still all cm 
+! Added ixyz to pass the appropriate Caverage array index
 !-----------------------------------------------------------------------------------------
-subroutine get_fielddata(axis, fraction, fdata, res) bind(C)
+subroutine get_fielddata(axis, fraction, fdata, ixyz, res) bind(C)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_fielddata
 use, intrinsic :: iso_c_binding
-integer(c_int) :: axis, res
+integer(c_int) :: axis, ixyz, res
 real(c_double) :: fraction
 type (fielddata_type)    :: fdata
 type(celldata_type), save :: cdata(4000)
 type(cell_type), pointer :: cp
-real(REAL_KIND) :: x, y, z, c(3), r, rad
+real(REAL_KIND) :: x, y, z, c(3), r, rad, csum(3), bcentre(3)
 integer :: i, kcell, nc
 
 fdata%NX = NX
@@ -64,14 +65,35 @@ fdata%NCONST = NCONST
 fdata%DX = DELTA_X
 fdata%conc_ptr = c_loc(Caverage)
 fdata%cell_ptr = c_loc(cdata)
+
+write(nflog,*) 'get_fielddata: axis: ',axis
+! Find blob centre
+csum = 0
+nc = 0
+do kcell = 1,nlist
+	cp => cell_list(kcell)
+	if (cp%state == DEAD) cycle
+	nc = nc+1
+	csum = csum + cp%centre(:,1)
+!	write(nflog,'(a,i6,3f8.4)') 'cell centre: ',kcell,cp%centre(:,1) 
+enddo
+bcentre = csum/nc
+write(nflog,'(a,3f8.4)') 'actual blobcentre: ',bcentre
+
 nc = 0
 ! start by fixing on central plane, ignoring fraction
 if (axis == X_AXIS) then
-	x = ((NX-1)/2)*DELTA_X		
+!	x = ((NX-1)/2)*DELTA_X
+	x = bcentre(1)	
+	ixyz = x/DELTA_X		! approx?
 elseif (axis == Y_AXIS) then
-	y = ((NY-1)/2)*DELTA_X 
+!	y = ((NY-1)/2)*DELTA_X 
+	y = bcentre(2)	
+	ixyz = y/DELTA_X
 elseif (axis == Z_AXIS) then
-	z = ((NZ-1)/2)*DELTA_X 
+!	z = ((NZ-1)/2)*DELTA_X 
+	z = bcentre(3)	
+	ixyz = z/DELTA_X
 endif
 do kcell = 1,nlist
 	cp => cell_list(kcell)
@@ -84,13 +106,13 @@ do kcell = 1,nlist
 			rad = sqrt(r**2-(c(1)-x)**2)
 			nc = nc + 1
 			cdata(nc)%radius = rad
-			cdata(nc)%centre(1:2) = [c(2),c(3)]		! always use centre(1:2) to store the 2D coordinates
+			cdata(nc)%centre(1:2) = [c(2),(NX-1.1)*DELTA_X - c(3)]		! always use centre(1:2) to store the 2D coordinates
 		elseif (axis == Y_AXIS) then
 			if (c(2) + r < y .or. c(2) - r > y) cycle
 			rad = sqrt(r**2-(c(2)-y)**2)
 			nc = nc + 1
 			cdata(nc)%radius = rad
-			cdata(nc)%centre(1:2) = [c(1),c(3)]		! always use centre(1:2) to store the 2D coordinates
+			cdata(nc)%centre(1:2) = [c(1),(NX-1.1)*DELTA_X - c(3)]		! invert z = c(3).  1.1 corrects for cell-wall interpenetration
 		elseif (axis == Z_AXIS) then
 			if (c(3) + r < z .or. c(3) - r > z) cycle
 			rad = sqrt(r**2-(c(3)-z)**2)
@@ -115,7 +137,8 @@ do kcell = 1,nlist
 			cdata(nc)%status = 0
 		endif
 	enddo
-enddo		
+enddo
+write(nflog,*) 'axis: ',axis,' nc: ',nc
 fdata%ncells = nc
 res = 0
 end subroutine

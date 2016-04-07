@@ -500,7 +500,7 @@ subroutine growcell(cp, dt, c_rate, r_mean)
 type(cell_type), pointer :: cp
 real(REAL_KIND) :: dt, c_rate, r_mean
 real(REAL_KIND) :: Cin_0(NCONST), Cex_0(NCONST)		! at some point NCONST -> MAX_CHEMO
-real(REAL_KIND) :: dVdt,  Vin_0, dV, metab_O2, metab_glucose, metab
+real(REAL_KIND) :: dVdt,  Vin_0, dV, metab_O2, metab_glucose, metab, dVdt_new
 logical :: glucose_growth
 integer :: C_option = 1	! we must use this
 
@@ -513,13 +513,15 @@ if (glucose_growth) then
 else
 	metab = metab_O2
 endif
-if (use_V_dependence) then
-	dVdt = c_rate*metab*cp%V/(Vdivide0/2)
-else
-	dVdt = r_mean*metab
-!	write(*,'(a,2e12.3)') 'Vdivide0,tgrowth: ',Vdivide0,divide_time_mean(1) - mitosis_duration
-!	write(*,'(a,3e12.3)') 'r_mean, metab, dVdt: ',r_mean, metab, dVdt
-endif
+!if (use_V_dependence) then
+!	dVdt = c_rate*metab*cp%V/(Vdivide0/2)
+!else
+!	dVdt = r_mean*metab
+!!	write(*,'(a,2e12.3)') 'Vdivide0,tgrowth: ',Vdivide0,divide_time_mean(1) - mitosis_duration
+!!	write(*,'(a,3e12.3)') 'r_mean, metab, dVdt: ',r_mean, metab, dVdt
+!endif
+dVdt = get_dVdt(cp,metab)
+!write(*,'(a,2e12.3)') 'dVdt: ',dVdt,dVdt_new
 !if (suppress_growth) then	! for checking solvers
 !	dVdt = 0
 !endif
@@ -536,6 +538,62 @@ elseif (C_option == 2) then
 	! Calculation based on change in volumes without mass transfer of constituents
 	cp%Cin = Vin_0*Cin_0/(Vin_0 + dV)
 endif
+end subroutine
+
+!-----------------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------------------
+function get_dVdt(cp, metab) result(dVdt)
+type(cell_type), pointer :: cp
+real(REAL_KIND) :: metab, dVdt
+integer :: ityp
+real(REAL_KIND) :: r_mean, c_rate
+
+if (use_V_dependence) then
+	if (use_constant_divide_volume) then
+		dVdt = metab*log(2.0)*cp%V/cp%divide_time
+	else
+		ityp = cp%celltype
+		c_rate = log(2.0)/divide_time_mean(ityp)
+		dVdt = c_rate*cp%V*metab
+	endif
+else
+	if (use_constant_divide_volume) then
+		dVdt = metab*Vdivide0/(2*cp%divide_time)
+	else
+		ityp = cp%celltype
+		r_mean = Vdivide0/(2*divide_time_mean(ityp))
+		dVdt = r_mean*metab
+	endif
+endif
+end function
+
+!-----------------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------------------
+subroutine SetInitialGrowthRate
+integer :: kcell, ityp
+real(REAL_KIND) :: C_O2, C_glucose, metab, metab_O2, metab_glucose, dVdt
+logical :: glucose_growth
+type(cell_type), pointer :: cp
+
+glucose_growth = chemo(GLUCOSE)%controls_growth
+do kcell = 1,nlist
+	cp => cell_list(kcell)
+	if (cp%state == DEAD) cycle
+	C_O2 = chemo(OXYGEN)%bdry_conc
+	C_glucose = cp%Cin(GLUCOSE)
+	metab_O2 = O2_metab(C_O2)
+	metab_glucose = glucose_metab(C_glucose)
+	if (glucose_growth) then
+		metab = metab_O2*metab_glucose
+	else
+		metab = metab_O2
+	endif
+	dVdt = get_dVdt(cp,metab)
+	if (suppress_growth) then	! for checking solvers
+		dVdt = 0
+	endif
+	cp%dVdt = dVdt
+enddo
 end subroutine
 
 !-----------------------------------------------------------------------------------------

@@ -94,7 +94,7 @@ void Field::setCellConstituentButtons(QGroupBox *gbox, QButtonGroup *bg, QVBoxLa
     QString name, str;
     QRadioButton *rb;
 
-    LOG_QMSG("setCellConstituentButtons: " + tag);
+//    LOG_QMSG("setCellConstituentButtons: " + tag);
     if (rb_list->length() != 0) {
         LOG_MSG("rb_list not NULL, delete it");
         for (ivar=0; ivar<rb_list->length(); ivar++) {
@@ -105,14 +105,14 @@ void Field::setCellConstituentButtons(QGroupBox *gbox, QButtonGroup *bg, QVBoxLa
         rb_list->clear();
     }
     if (!*vbox) {
-        LOG_MSG("vbox = NULL, create it");
+//        LOG_MSG("vbox = NULL, create it");
         *vbox = new QVBoxLayout;
         gbox->setLayout(*vbox);
     }
     name = "rb_cell_constituent_"+tag;
-    LOG_QMSG(name);
-    sprintf(msg,"rb_list: %p vbox: %p bg: %p nvars_used: %d",rb_list,*vbox,bg,Global::nvars_used);
-    LOG_MSG(msg);
+//    LOG_QMSG(name);
+//    sprintf(msg,"rb_list: %p vbox: %p bg: %p nvars_used: %d",rb_list,*vbox,bg,Global::nvars_used);
+//    LOG_MSG(msg);
     for (ivar=0; ivar<Global::nvars_used; ivar++) {
         str = Global::var_string[ivar];
         rb = new QRadioButton;
@@ -123,7 +123,7 @@ void Field::setCellConstituentButtons(QGroupBox *gbox, QButtonGroup *bg, QVBoxLa
         bg->addButton(rb,ivar);
         rb_list->append(rb);
     }
-    LOG_MSG("added buttons");
+//    LOG_MSG("added buttons");
     if (tag.contains("FACS")) {
         (*rb_list)[0]->setChecked(true);   // CFSE
     } else {
@@ -133,7 +133,7 @@ void Field::setCellConstituentButtons(QGroupBox *gbox, QButtonGroup *bg, QVBoxLa
     rect.setHeight(25*Global::nvars_used);
     gbox->setGeometry(rect);
     gbox->show();
-    LOG_MSG("completed");
+//    LOG_MSG("completed");
 }
 
 
@@ -303,7 +303,7 @@ void Field::setPlane(QAbstractButton *button)
 //    QMessageBox msgBox;
 //    msgBox.setText("setPlane");
 //    msgBox.exec();
-    LOG_MSG("setPlane");
+//    LOG_MSG("setPlane");
     QString text = button->text();
 	int prev_axis = axis;
     if (text.compare("X-Y") == 0)
@@ -314,7 +314,7 @@ void Field::setPlane(QAbstractButton *button)
         axis = Y_AXIS;
 	if (axis != prev_axis) {
         slice_changed = true;
-        LOG_MSG("setPlane");
+//        LOG_MSG("setPlane");
         displayField(hour,&res);
 	}
 }
@@ -440,25 +440,25 @@ void Field::displayField(int hr, int *res)
 {
     QGraphicsScene* scene = new QGraphicsScene(QRect(0, 0, CANVAS_WIDTH, CANVAS_WIDTH));
     QBrush brush;
-    int i, k, ix, iy, iz, w, rgbcol[3], ichemo;
-    double xp, yp, x, y, d, C, cmin, cmax, rmax;
-    double a, b, Wc, dx, Wx, radius, r;
-    int Nc, NX, NY, NZ, nx;
+    int i, k, ix, iy, iz, w, rgbcol[3], ichemo, ixyz;
+    double xp, yp, x, y, d, C, cmin, cmax, rmax, valmin;
+    double a, b, Wc, dx, Wx, radius;
+    int Nc, NX, NY, NZ;
     double beta = 1.0;
 
     ichemo = Global::GUI_to_DLL_index[field_constituent];
-    LOG_QMSG("displayField: field: " + QString::number(field_constituent) + " --> " + QString::number(ichemo));
+//    LOG_QMSG("displayField: field: " + QString::number(field_constituent) + " --> " + QString::number(ichemo));
     use_log = false;    // temporary
     *res = 0;
     if (hr >= 0) hour = hr;
 	if (slice_changed) {
-        get_fielddata(&axis, &fraction, &fdata, res);
+        get_fielddata(&axis, &fraction, &fdata, &ixyz, res);
         if (*res != 0) {
             LOG_MSG("Error: get_fielddata: FAILED");
             return;
         }
-        sprintf(msg,"fdata: %d %d %d %d ncells: %d",fdata.NX,fdata.NY,fdata.NZ,fdata.NCONST,fdata.ncells);
-        LOG_MSG(msg);
+//        sprintf(msg,"fdata: %d %d %d %d ncells: %d",fdata.NX,fdata.NY,fdata.NZ,fdata.NCONST,fdata.ncells);
+//        LOG_MSG(msg);
         slice_changed = false;
     }
 
@@ -500,31 +500,35 @@ void Field::displayField(int hr, int *res)
     Wc = CANVAS_WIDTH;
     a = Wc/(beta*Wx);
     b = Wc/2 - a*Wx/2;
-    sprintf(msg,"Wx: %f Wc: %f a: %f b: %f",Wx,Wc,a,b);
-    LOG_MSG(msg);
+//    sprintf(msg,"Wx: %f Wc: %f a: %f b: %f",Wx,Wc,a,b);
+//    LOG_MSG(msg);
     brush.setStyle(Qt::SolidPattern);
     brush.setColor(QColor(0,0,0));
     scene->addRect(0,0,CANVAS_WIDTH,CANVAS_WIDTH,Qt::NoPen, brush);
     view->setScene(scene);
     view->setGeometry(QRect(0, 0, 700, 700));
 
-    sprintf(msg,"displayField: field constituent: %d ichemo: %d cmax: %f",field_constituent,ichemo,cmax);
-    LOG_MSG(msg);
+//    sprintf(msg,"displayField: field constituent: %d ichemo: %d cmax: %f",field_constituent,ichemo,cmax);
+//    LOG_MSG(msg);
     cmax = line_maxConc_list[field_constituent]->text().toDouble();
-    sprintf(msg,"displayField: field constituent: %d ichemo: %d cmax: %f",field_constituent,ichemo,cmax);
-    LOG_MSG(msg);
+//    sprintf(msg,"displayField: field constituent: %d ichemo: %d cmax: %f",field_constituent,ichemo,cmax);
+//    LOG_MSG(msg);
     rgbcol[0] = 0;
     rgbcol[1] = 0;
     rgbcol[2] = 0;
     w = a*dx + 0.5;
+    valmin = 1.0e10;
     if (axis == X_AXIS) {           // Y-Z plane
-        ix = (NX+1)/2 - 1;
+//        ix = (NX+1)/2 - 1;
+        ix = ixyz;
         for (iy=0; iy<NY; iy++) {
             x = iy*dx;
             for (iz=0; iz<NZ; iz++) {
-                y = iz*dx;
+//                y = iz*dx;
+                y = (NZ-1-iz)*dx;
                 k = (ichemo-1)*NZ*NY*NX + iz*NY*NX + iy*NX + ix;    // index(ix,iy,iz,ichemo);
                 C = fdata.Cave[k];
+                valmin = MIN(C,valmin);
                 rgbcol[1] = 255*min(C,cmax)/cmax;
                 rgbcol[2] = 255*min(C,cmax)/cmax;
                 xp = int(a*x + b);
@@ -537,13 +541,16 @@ void Field::displayField(int hr, int *res)
             }
         }
     } else if (axis == Y_AXIS) {           // X-Z plane
-        iy = (NY+1)/2 - 1;
+//        iy = (NY+1)/2 - 1;
+        iy = ixyz;
         for (ix=0; ix<NX; ix++) {
             x = ix*dx;
             for (iz=0; iz<NZ; iz++) {
-                y = iz*dx;
+//                y = iz*dx;
+                y = (NZ-1-iz)*dx;
                 k = (ichemo-1)*NZ*NY*NX + iz*NY*NX + iy*NX + ix;    // index(ix,iy,iz,ichemo);
                 C = fdata.Cave[k];
+                valmin = MIN(C,valmin);
                 rgbcol[1] = 255*min(C,cmax)/cmax;
                 rgbcol[2] = 255*min(C,cmax)/cmax;
                 xp = int(a*x + b);
@@ -553,13 +560,15 @@ void Field::displayField(int hr, int *res)
             }
         }
     } else if (axis == Z_AXIS) {           // X-Y plane
-        iz = (NZ+1)/2 - 1;
+//        iz = (NZ+1)/2 - 1;
+        iz = ixyz;
         for (ix=0; ix<NX; ix++) {
             x = ix*dx;
             for (iy=0; iy<NY; iy++) {
                 y = iy*dx;
                 k = (ichemo-1)*NZ*NY*NX + iz*NY*NX + iy*NX + ix;    // index(ix,iy,iz,ichemo);
                 C = fdata.Cave[k];
+                valmin = MIN(C,valmin);
                 rgbcol[1] = 255*min(C,cmax)/cmax;
                 rgbcol[2] = 255*min(C,cmax)/cmax;
                 xp = int(a*x + b);
@@ -569,9 +578,12 @@ void Field::displayField(int hr, int *res)
             }
         }
     }
+//    sprintf(msg,"axis: %d valmin: %f",axis,valmin);
+//    LOG_MSG(msg);
 
     ichemo = Global::GUI_to_DLL_index[cell_constituent];
-    LOG_QMSG("displayField: cell: " + QString::number(cell_constituent) + " --> " + QString::number(ichemo));
+//    LOG_QMSG("displayField: cell: " + QString::number(cell_constituent) + " --> " + QString::number(ichemo));
+//    LOG_QMSG("displayField: nc: " + QString::number(fdata.ncells));
     for (i=0; i<fdata.ncells; i++) {
         x = fdata.cell_data[i].centre[0];
         y = fdata.cell_data[i].centre[1];
@@ -579,6 +591,8 @@ void Field::displayField(int hr, int *res)
         xp = a*x + b;
         yp = a*y + b;
         d = 2*a*radius;
+//        sprintf(msg,"Cell: %d x,y: %f %f radius: %f xp,yp: %f %f",i,x,y,radius,xp,yp);
+//        LOG_MSG(msg);
         if (fdata.cell_data[i].status == 0) {
             rgbcol[0] = 0;
             rgbcol[1] = 200;

@@ -28,7 +28,14 @@
 #include <vtkTransform.h>
 #include <vtkTransformPolyDataFilter.h>
 
-//#include <vtkConfigure.h>
+#include <vtkPoints.h>
+#include <vtkPolyData.h>
+#include <vtkCellData.h>
+#include <vtkCellArray.h>
+#include <vtkUnsignedCharArray.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkPolygon.h>
+#include <vtkRegularPolygonSource.h>
 
 #include <QInputDialog>
 #include <QFileDialog>
@@ -90,6 +97,7 @@ public:
 	void unpack(int x, double *, double *, double *);
     void renderCells();
     void process_Tcells();
+    void MakeWellBottom();
 //    void process_Dcells();
 //    void process_bonds();
 	bool startPlayer(QString, QTimer *, bool);
@@ -106,6 +114,8 @@ public:
 
     QList<CELL_POS > TCpos_list;
     QList<ACTOR_TYPE> T_Actor_list;
+    vtkSmartPointer<vtkActor> sqactor;
+    vtkSmartPointer<vtkPolyDataMapper> sqmapper;
 
     QWidget *page_VTK;
 	QVTKWidget* qvtkWidget;
@@ -135,6 +145,7 @@ public:
 	bool paused;
 	bool save_image;
     bool display_celltype[10];
+    bool dropped;
     double opacity[10];
     QColor celltype_colour[10];
     QString casename;

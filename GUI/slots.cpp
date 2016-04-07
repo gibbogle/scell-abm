@@ -243,6 +243,7 @@ void MainWindow::radioButtonChanged(QAbstractButton *b)
                 sprintf(msg,"parm->set_value: %d",rbutton_case);
                 LOG_MSG(msg);
                 if (ptag.compare("HYPOXIA")==0) {
+                    Global::i_hypoxia_cutoff = rbutton_case;
                     QString linetag = "line_HYPOXIA_"+QString::number(rbutton_case);
                     LOG_QMSG("hypoxia tag: " + linetag);
                     QLineEdit *line = findChild<QLineEdit *>(linetag);

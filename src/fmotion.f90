@@ -4,7 +4,39 @@ module fmotion
 use global
 implicit none
 
+real(REAL_KIND) :: fwall
+
 contains
+
+!-----------------------------------------------------------------------------------------
+! Start with a very simple dropping, just place the blob slightly above the bottom of the well.
+!-----------------------------------------------------------------------------------------
+subroutine drop_blob
+integer :: kcell, isph, kmin
+real(REAL_KIND) :: blob_zmin
+type(cell_type), pointer :: cp
+
+blob_zmin = 1.0e10
+do kcell = 1,nlist
+	cp => cell_list(kcell)
+	if (cp%state == DEAD) cycle
+	do isph = 1,cp%nspheres
+		if (cp%centre(3,isph)-cp%radius(isph) < blob_zmin) then
+			blob_zmin = cp%centre(3,isph)-cp%radius(isph)
+			kmin = kcell
+		endif
+	enddo
+enddo
+write(nflog,*) 'blob_zmin: ',blob_zmin
+write(nflog,*) 'min x,y: ',cell_list(kmin)%centre(1:2,1)
+do kcell = 1,nlist
+	cp => cell_list(kcell)
+	if (cp%state == DEAD) cycle
+	do isph = 1,cp%nspheres
+		cp%centre(3,isph) = cp%centre(3,isph) - blob_zmin
+	enddo
+enddo
+end subroutine
 
 !-----------------------------------------------------------------------------------------
 ! In each time step we want to find cell positions that make all forces = 0, or
@@ -118,7 +150,7 @@ subroutine forces(force,fmax,ok)
 real(REAL_KIND) :: fmax, force(:,:,:)
 logical :: ok
 integer :: k1, kcell, kpar, nd, nr, nc(0:8), kfrom(0:8), kto(0:8), tMnodes
-real(REAL_KIND) :: F(3,2), r(3), amp, fsum
+real(REAL_KIND) :: F(3,2), r(3), amp, fsum, fwall_prev
 real(REAL_KIND),allocatable :: cell_fmax(:)
 logical :: badforce
 
@@ -152,6 +184,8 @@ endif
 allocate(cell_fmax(ncells))
 cell_fmax = 0
 fsum = 0
+fwall_prev = fwall
+fwall = 0
 badforce = .false.
 call omp_set_num_threads(tMnodes)
 !$omp parallel do private(k1,kcell,F,ok)
@@ -166,14 +200,14 @@ do kpar = 0,tMnodes-1
 			exit
 		endif
 	    call get_random_dr(r)
-	    F(:,1) = F(:,1) + frandom*r
+	    F(:,1) = F(:,1) + frandom*r + fwall_prev*[0,0,1]
 	    force(:,k1,1) = F(:,1)
 	    amp = sqrt(dot_product(F(:,1),F(:,1)))
 	    cell_fmax(k1) = max(cell_fmax(k1),amp)
 !	    if (amp > 0) write(*,*) 'amp: ',k1,amp
 	    if (.not.cell_list(kcell)%Iphase) then
 			call get_random_dr(r)
-			F(:,2) = F(:,2) + frandom*r
+			F(:,2) = F(:,2) + frandom*r + fwall_prev*[0,0,1]
 		    force(:,k1,2) = F(:,2)
 		    cell_fmax(k1) = max(cell_fmax(k1),sqrt(dot_product(F(:,2),F(:,2))))
         endif
@@ -272,9 +306,30 @@ if (Mphase) then	! compute force between separating spheres, based on deviation 
 	dF = get_separating_force(d,d_hat)
 !		write(*,'(a,3e12.3)') 'separating dF: ',d,d_hat,dF
 	F(:,1) = F(:,1) + dF*v	! dF acts in the direction of v on sphere #1 when dF > 0
-	F(:,2) = F(:,2) - dF*v	! dF acts in the direction of -v on sphere #2 when dF > 0
+	F(:,2) = F(:,2) - dF*v	! dF acts in the direction of -v on sphere #2 when dF > 0 
 endif
 
+! Check for wall force (bottom of the well) NOT USED
+! For now the bottom is a plane
+! Treat wall as another cell
+do isphere1 = 1,nspheres1
+	R1 = cp1%radius(isphere1)
+	c1 = cp1%centre(:,isphere1)
+	d = c1(3)
+	incontact = (d < R1)
+	v = [0, 0, 1]
+	if (R1 < 1.5*d) then
+		dF = get_force(R1,R1,2*d,incontact,ok)	! returns magnitude and sign of force 
+		if (dF > 0) then
+			fwall = max(fwall,dF)
+		endif
+!		if (dF < 0) then
+!			dF = wall_attraction_factor*dF
+!		endif
+!		if (isphere1 == 1) F(:,isphere1) = F(:,isphere1) + dF*v
+!		if (Mphase .and. isphere1 == 2) F(:,isphere1) = F(:,isphere1) + dF*v
+	endif
+enddo
 end subroutine
 !-----------------------------------------------------------------------------------------
 ! Each cell has a varindex, and for Mphase the second sphere is varindex+1

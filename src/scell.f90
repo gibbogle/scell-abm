@@ -652,6 +652,8 @@ Nradiation_dead = 0
 Ndrug_dead = 0
 Nanoxia_dead = 0
 
+is_dropped = .false.
+
 k_v = 2/alpha_v - sqr_es_e + sqrt(es_e - shift/epsilon)
 k_detach = k_v*alpha_v/2
 !write(*,'(a,f8.4)') 'k_detach: ',k_detach
@@ -664,6 +666,7 @@ call setup_react_diff(ok)
 !cell_list(:)%Cin(OXYGEN) = chemo(OXYGEN)%bdry_conc
 !cell_list(:)%Cin(GLUCOSE) = chemo(GLUCOSE)%bdry_conc
 call logger('did setup_react_diff')
+call SetInitialGrowthRate
 call logger('completed Setup')
 end subroutine
 
@@ -758,7 +761,9 @@ integer :: ix, iy, iz, kcell, i, site(3), irad, lastid, nblob
 real(REAL_KIND) :: Radius, cellradius, d, r2lim, r2, rad(3), rsite(3), centre(3), ave(3)
 logical, allocatable :: occup(:,:,:)
 
-blobcentre = DELTA_X*[(NX+1)/2,(NY+1)/2,(NZ+1)/2]
+!blobcentre = DELTA_X*[(NX+1)/2,(NY+1)/2,(NZ+1)/2]
+blobcentre = DELTA_X*[(NX-1)/2,(NY-1)/2,(NZ-1)/2]
+write(nflog,'(a,3f8.4)') 'PlaceCells: blobcentre: ',blobcentre
 if (use_packer) then
 	nblob = initial_count
 	cellradius = Raverage
@@ -769,8 +774,8 @@ if (use_packer) then
 		ave = ave + centre
 	enddo
 	ave = ave/nblob
-!	write(*,'(a,3f8.4)') 'Average cell centre: ',ave
-!	write(*,'(a,3f8.4)') 'blobcentre: ',blobcentre
+	write(nflog,'(a,3f8.4)') 'Average cell centre: ',ave
+	write(nflog,'(a,3f8.4)') 'blobcentre: ',blobcentre
 !	write(*,*) 'Cell centres:'
 	kcell = 0
 	do i = 1,nblob
@@ -833,7 +838,7 @@ subroutine AddCell(kcell, rsite)
 integer :: kcell
 real(REAL_KIND) :: rsite(3)
 integer :: ityp, kpar = 0
-real(REAL_KIND) :: r(3), c(3), R1, R2
+real(REAL_KIND) :: r(3), c(3), R1, R2, V0, Tdiv
 type(cell_type), pointer :: cp
 	
 cp => cell_list(kcell)
@@ -855,7 +860,11 @@ cp%nspheres = 1
 			
 !cp%radius(1) = Raverage
 !cp%V = (4.*PI/3.)*Raverage**3						! need to randomise 
-cp%divide_volume = Vdivide0
+!ccell_list(k)%divide_volume = get_divide_volume(ityp,V0, Tdiv)
+V0 = Vdivide0/2
+cp%divide_volume = get_divide_volume(ityp, V0, Tdiv)
+cp%divide_time = Tdiv
+!cp%divide_volume = Vdivide0
 if (initial_count == 1) then
 	cp%V = 0.9*cp%divide_volume
 else
@@ -1009,6 +1018,11 @@ if (istep == -100) then
 	tnow = istep*DELTA_T
 	call make_colony_distribution(tnow)
 	stop
+endif
+
+if (use_dropper .and. .not.is_dropped .and. ncells > ndrop) then
+	call drop_blob
+	is_dropped = .true.
 endif
 
 t_simulation = (istep-1)*DELTA_T	! seconds
@@ -1423,15 +1437,20 @@ end subroutine
 !--------------------------------------------------------------------------------
 ! TC = tumour cell
 !--------------------------------------------------------------------------------
-subroutine get_scene(nTC_list,TC_list) BIND(C)
-!DEC$ ATTRIBUTES DLLEXPORT :: get_scene
+subroutine get_scene(nTC_list,TC_list,dropped,droppedcentre) BIND(C)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_scene 
 use, intrinsic :: iso_c_binding
 integer(c_int) :: nTC_list
 type(celldata_type) :: TC_list(*)
+logical(c_bool) :: dropped
+real(c_double) :: droppedcentre(3)
 integer :: kcell, nspheres, is
+real(REAL_KIND) :: centre(3)
 type(cell_type), pointer :: cp
 
-write(nflog,*) 'get_scene'
+write(nflog,*) 'get_scene: is_dropped: ',is_dropped
+dropped = is_dropped
+droppedcentre = 0
 nTC_list = 0
 do kcell = 1,nlist
 	cp => cell_list(kcell)
@@ -1445,7 +1464,12 @@ do kcell = 1,nlist
 		nTC_list = nTC_list + 1
 		TC_list(nTC_list)%tag = nTC_list
 		TC_list(nTC_list)%radius = 10000*cp%radius(is)		! cm -> um
-		TC_list(nTC_list)%centre = 10000*cp%centre(:,is)	! cm -> um
+		centre = 10000*cp%centre(:,is)	! cm -> um
+		droppedcentre = droppedcentre + centre
+		! rotate to make z the vertical axis on screen
+		TC_list(nTC_list)%centre(1) = centre(2)
+		TC_list(nTC_list)%centre(2) = centre(3)	! invert in z-dirn 
+		TC_list(nTC_list)%centre(3) = centre(1)
 		TC_list(nTC_list)%celltype = cp%celltype
 		TC_list(nTC_list)%status = 0
 		if (cp%mitosis > 0) then
@@ -1454,6 +1478,8 @@ do kcell = 1,nlist
 !		write(nflog,'(2i6,4e12.3)') nTC_list,TC_list(nTC_list)%tag,TC_list(nTC_list)%radius,TC_list(nTC_list)%centre
 	enddo
 enddo
+droppedcentre = droppedcentre/nTC_list
+write(nflog,'(a,3f8.2)') 'droppedcentre: ',droppedcentre
 write(nflog,*) 'nTC_list: ',nTC_list
 end subroutine
 

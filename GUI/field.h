@@ -30,7 +30,7 @@ typedef field_data FIELD_DATA;
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
 extern "C" {
-    void get_fielddata(int *, double *, FIELD_DATA *, int *);
+    void get_fielddata(int *, double *, FIELD_DATA *, int *, int *);
 }
 
 //class Field : public QMainWindow

@@ -17,7 +17,7 @@
 
 #include "global.h"
 
-extern "C" void get_scene(int *, CELL_DATA *);
+extern "C" void get_scene(int *, CELL_DATA *, bool *, double *);
 
 LOG_USE();
 char msg[2048];
@@ -303,7 +303,7 @@ void ExecThread::snapshot()
 {
 //    LOG_MSG("got snapshot");
     mutex2.lock();
-    get_scene(&Global::ncell_list,Global::cell_list);
+    get_scene(&Global::ncell_list,Global::cell_list,&Global::dropped,Global::droppedcentre);
     if (Global::ncell_list > MAX_CELLS) {
         LOG_MSG("Error: MAX_CELLS exceeded");
         exit(1);

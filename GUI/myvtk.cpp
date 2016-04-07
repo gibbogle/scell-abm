@@ -80,7 +80,7 @@ vtkStandardNewMacro(MouseInteractorStyle4);
 //-----------------------------------------------------------------------------------------
 MyVTK::MyVTK(QWidget *page, QWidget *key_page)
 {
-    zoomlevel = 0.25;
+    zoomlevel = 0.7;    //0.25
 	double backgroundColor[] = {0.0,0.0,0.0};
 
 
@@ -134,12 +134,15 @@ MyVTK::MyVTK(QWidget *page, QWidget *key_page)
     opacity[2] = 1.0;
     display_celltype[1] = true;
     display_celltype[2] = true;
+    dropped = false;
     TCpos_list.clear();
     ren->GetActiveCamera()->Zoom(zoomlevel);		// try zooming OUT
 //    ren->GetActiveCamera()->SetPosition(0, 0, 0);
 //    double x0 = ((33+1)/2.)*38;
 //    ren->GetActiveCamera()->SetFocalPoint(x0, x0, x0);
 //    ren->ResetCamera();
+
+    MakeWellBottom();
 }
 
 //-----------------------------------------------------------------------------------------
@@ -305,6 +308,86 @@ void MyVTK::createMappers()
     */
 }
 
+void MyVTK::MakeWellBottom()
+{
+    bool use_circle = true;
+    // Setup colors
+//    unsigned char red[3] = {255, 0, 0};
+    unsigned char bluegreen[3] = {0, 255, 255};
+
+    vtkSmartPointer<vtkUnsignedCharArray> colors = vtkSmartPointer<vtkUnsignedCharArray>::New();
+    colors->SetNumberOfComponents(3);
+    colors->SetName("Colors");
+    colors->InsertNextTupleValue(bluegreen);
+
+    if (use_circle) {
+        // Create a circle
+        vtkSmartPointer<vtkRegularPolygonSource> polygonSource = vtkSmartPointer<vtkRegularPolygonSource>::New();
+        polygonSource->SetNumberOfSides(50);
+        polygonSource->SetRadius(100);
+        polygonSource->SetCenter(0, 0, 0);
+        vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+        mapper->SetInputConnection(polygonSource->GetOutputPort());;
+        sqactor = vtkSmartPointer<vtkActor>::New();
+        sqactor->GetProperty()->SetColor(0, 1, 1);
+        sqactor->RotateX(90);
+        sqactor->SetPosition(600, 0, 600);
+        sqactor->SetMapper(mapper);
+
+    } else {
+        double **pt;
+        pt = (double **)malloc(4*sizeof(double *));
+        for (int i=0; i<4; i++) {
+            pt[i] = (double *)malloc(3*sizeof(double));
+        }
+        pt[0][0] =  500;
+        pt[0][2] =  500;
+        pt[0][1] =  0;
+        pt[1][0] =  700;
+        pt[1][2] =  500;
+        pt[1][1] =  0;
+        pt[2][0] =  700;
+        pt[2][2] =  700;
+        pt[2][1] =  0;
+        pt[3][0] =  500;
+        pt[3][2] =  700;
+        pt[3][1] =  0;
+
+        // Setup points
+        vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+        //  vtkSmartPointer<vtkCellArray> vertices = vtkSmartPointer<vtkCellArray>::New();
+        for (int i=0; i<4; i++) {
+          points->InsertNextPoint(pt[i]);
+        }
+        //Create square actor-----------------------------------------------------------------
+
+        //Create the polygon
+        vtkSmartPointer<vtkPolygon> polygon = vtkSmartPointer<vtkPolygon>::New();
+        polygon->GetPointIds()->SetNumberOfIds(4); //make a quad
+        polygon->GetPointIds()->SetId(0, 0);
+        polygon->GetPointIds()->SetId(1, 1);
+        polygon->GetPointIds()->SetId(2, 2);
+        polygon->GetPointIds()->SetId(3, 3);
+
+        //Add the polygon to a list of polygons
+        vtkSmartPointer<vtkCellArray> polygons = vtkSmartPointer<vtkCellArray>::New();
+        polygons->InsertNextCell(polygon);
+
+        //Create a PolyData
+        vtkSmartPointer<vtkPolyData> polygonPolyData = vtkSmartPointer<vtkPolyData>::New();
+        polygonPolyData->SetPoints(points);
+        polygonPolyData->SetPolys(polygons);
+        polygonPolyData->GetCellData()->SetScalars(colors);
+
+
+        //Create a mapper and actor
+        sqmapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+        sqmapper->SetInput(polygonPolyData);
+
+        sqactor = vtkSmartPointer<vtkActor>::New();
+        sqactor->SetMapper(sqmapper);
+    }
+}
 
 //-----------------------------------------------------------------------------------------
 // The cell info is fetched from the DLL by ExecThread::snapshot().
@@ -333,6 +416,7 @@ void MyVTK::get_cell_positions()
 //---------------------------------------------------------------------------------------------
 void MyVTK::init()
 {
+    dropped = false;
     T_Actor_list.clear();
 }
 
@@ -349,7 +433,8 @@ void MyVTK::cleanup()
         ren->RemoveActor(a.actor);
 	}
     T_Actor_list.clear();
-	first_VTK = true;	
+    first_VTK = true;
+    dropped = false;
 }
 
 //---------------------------------------------------------------------------------------------
@@ -358,17 +443,33 @@ void MyVTK::renderCells()
 {
     double p[3];
     double x0 = ((Global::NX+1)/2)*Global::DELTA_X;
+    bool just_dropped;
+
     if (Global::NX == 0) return;
     process_Tcells();
-    LOG_QMSG("renderCells");
-    if (first_VTK) {
+    just_dropped = false;
+//    LOG_QMSG("renderCells");
+    if (Global::dropped) {
+        LOG_MSG("dropped");
+        just_dropped = !dropped;
+        dropped = true;
+    }
+//    sprintf(msg,"Global_dropped, dropped, just_dropped: %d %d %d",Global::dropped,dropped,just_dropped);
+//    LOG_MSG(msg)
+    if (first_VTK || just_dropped) {
 		LOG_MSG("Initializing the renderer");
         sprintf(msg,"NX: %d DELTA_X: %6.1f",Global::NX,Global::DELTA_X);
         LOG_MSG(msg);
+        if (just_dropped) {
+            sqactor->SetPosition(Global::droppedcentre[1],0,Global::droppedcentre[0]);
+            ren->AddActor(sqactor);
+        }
+
         ren->ResetCamera();
 //        ren->GetActiveCamera()->SetPosition(0, 0, 0);
 //        ren->GetActiveCamera()->SetFocalPoint(x0, x0, x0);
     }
+//    ren->GetActiveCamera()->SetPosition(x0, x0, -100);
     iren->Render();
     first_VTK = false;
 }
