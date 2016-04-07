@@ -5,6 +5,12 @@
 
 LOG_USE();
 
+#ifdef __DISPLAY768
+#define CANVAS_WIDTH 640
+#else
+#define CANVAS_WIDTH 696
+#endif
+
 //-----------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
 Field::Field(QWidget *aParent) : QWidget(aParent)
@@ -506,7 +512,7 @@ void Field::displayField(int hr, int *res)
     brush.setColor(QColor(0,0,0));
     scene->addRect(0,0,CANVAS_WIDTH,CANVAS_WIDTH,Qt::NoPen, brush);
     view->setScene(scene);
-    view->setGeometry(QRect(0, 0, 700, 700));
+    view->setGeometry(QRect(0, 0, CANVAS_WIDTH+4, CANVAS_WIDTH+4));
 
 //    sprintf(msg,"displayField: field constituent: %d ichemo: %d cmax: %f",field_constituent,ichemo,cmax);
 //    LOG_MSG(msg);

@@ -9,8 +9,6 @@
 #include "plot.h"
 #include "myqgraphicsview.h"
 
-#define CANVAS_WIDTH 696
-
 struct field_data {
     int NX, NY, NZ;
     int NCONST;
