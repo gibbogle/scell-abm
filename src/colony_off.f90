@@ -40,7 +40,7 @@ real(REAL_KIND) :: ddist, dist(ndist)
 integer :: kcell, ityp, n, idist, ncycmax, ntot
 type (cell_type), pointer :: cp
 
-write(*,*) 'make_colony_distribution: nlist: ',nlist
+write(nflog,*) 'make_colony_distribution: nlist: ',nlist
 ncycmax = 24*3600*n_colony_days/divide_time_mean(1) + 3
 nmax = 2**ncycmax
 allocate(ccell_list(nmax))
@@ -67,16 +67,15 @@ do kcell = 1, nlist
 	cp%V = cp%divide_volume	! actual volume cm3
 	! Now simulate colony growth
 	call make_colony(kcell,t,tend,n)
-	write(*,*) 'cell: n: ',kcell,n
+	write(nflog,*) 'cell: n: ',kcell,n
 	ntot = ntot + n
 	idist = n/ddist + 1
 	dist(idist) = dist(idist) + 1
 enddo
 dist = dist/sum(dist)
-write(*,*) 'Colony size distribution: ', nlist,ntot
+write(nflog,*) 'Colony size distribution: ', nlist,ntot
 write(nfout,*) 'Colony size distribution: ', nlist,ntot
 do idist = 1,ndist
-	write(*,'(i4,a,i4,f6.3)') int((idist-1)*ddist),'-',int(idist*ddist),dist(idist)
 	write(nfout,'(i4,a,i4,f6.3)') int((idist-1)*ddist),'-',int(idist*ddist),dist(idist)
 enddo
 deallocate(ccell_list)
@@ -141,7 +140,7 @@ do while (t < tend)
 !			write(*,*) 'divides: ',icell
 			nl = nl+1
 			if (nl > nmax) then
-				write(*,*) 'nmax exceeded: ',nmax
+				write(nflog,*) 'nmax exceeded: ',nmax
 				stop
 			endif
 			call CloneColonyCell(icell,nl,t,ok)

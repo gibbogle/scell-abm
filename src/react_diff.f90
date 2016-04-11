@@ -317,7 +317,7 @@ do k = 1,nnz_b
 	if (ichemo == OXYGEN) then
 		if (amap_b(k,3) == NZB .and. kcol == krow-1) then
 			if (a_b(k) /= -2) then
-				write(*,*) 'Error in OXYGEN bdry adjustment'
+				write(nflog,*) 'Error in OXYGEN bdry adjustment'
 				stop
 			endif
 			a_b(k) = -1
@@ -462,8 +462,6 @@ real(REAL_KIND) :: alfa(3)
 type(cell_type), pointer :: cp
 real(REAL_KIND), pointer :: Cextra(:,:,:)
 
-write(*,*) 'update_Cex: ',ichemo
-
 Cextra => Caverage(:,:,:,ichemo)		! currently using the average concentration!
 !$omp parallel do private(cp, ix, iy, iz, alfa)
 do kcell = 1,nlist
@@ -548,11 +546,6 @@ do im = 0,2
 !	K1(im) = (1 - C2(im) + C2(im)*KO2(im)/(KO2(im) + CO2))
 	K1(im) = (1 - C2(im) + C2(im)*KO2(im)**n_O2(im)/(KO2(im)**n_O2(im) + CO2**n_O2(im)))
 enddo
-if (kcell == 1) then
-	write(*,*) 'integrate_cell_Cin: ichemo_parent,kcell,idrug: ',ichemo_parent,kcell,idrug
-	write(*,'(a,6e11.3)') 'Cex,in: ',Cex, Cin
-	write(*,'(a,6e11.3)') 'Kin,out: ',Kin, Kout
-endif
 dMdt = 0
 do it = 1,nt
 	K2(0) = Kmet0(0) + Vmax(0)/(Km(0) + Cin(0))
@@ -573,7 +566,6 @@ do im = 0,2
 	cp%dMdt(ichemo_parent+im) = Kin(im)*Cex(im) - Kout(im)*Cin(im)	!dMdt(im)/nt
 enddo
 
-if (kcell == 1) write(*,'(a,i6,6e11.3)') 'Cin: ',kcell,cp%Cin(ichemo_parent:ichemo_parent+2),cp%dMdt(ichemo_parent:ichemo_parent+2)
 end subroutine
 
 !-------------------------------------------------------------------------------------------
@@ -712,7 +704,7 @@ if (ichemo <= GLUCOSE) then
 				endif
 			enddo
 			if (n > 1) then
-				write(*,*) 'getCin_SS: two roots > 0: ',r
+				write(nflog,*) 'getCin_SS: two roots > 0: ',r
 				stop
 			endif
 		endif
@@ -750,16 +742,10 @@ else	! parent drug or drug metabolite
 			b = -Kin*Cex/Vin
 			Cin = -b/a
 		endif
-		if (kcell == 1) then
-			write(*,'(a,2e12.3)') 'parent: ',Cin
-		endif
 	elseif (im == 1) then	! metab1
 		CO2 = cell_list(kcell)%Cin(OXYGEN)
 		C_parent = cell_list(kcell)%Cin(ichemo-1)
 		Cin = (K1(0)*C_parent + Kin*Cex/Vin)/(K1(1) + Kd + Kout/Vin)
-		if (kcell == 1) then
-			write(*,'(a,i6,2e12.3)') 'metab1: ',kcell,C_parent,Cin
-		endif
 	elseif (im == 2) then	! metab2
 		CO2 = cell_list(kcell)%Cin(OXYGEN)
 		C_metab1 = cell_list(kcell)%Cin(ichemo-1)
@@ -815,7 +801,7 @@ if (ichemo <= GLUCOSE) then
 				endif
 			enddo
 			if (n > 1) then
-				write(*,*) 'getCin_SS: two roots > 0: ',r
+				write(nflog,*) 'getCin_SS: two roots > 0: ',r
 				stop
 			endif
 		endif
@@ -1341,7 +1327,7 @@ do ic = 1,nfinemap
 				stop
 			endif
 		else
-			write(*,*) 'no solve, zeroC: ',ichemo
+			write(nflog,*) 'no solve, zeroC: ',ichemo
 		endif
 		call itsol_free_precond_ILU(icc,ierr)
 		call itsol_free_matrix(icc,ierr)

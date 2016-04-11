@@ -225,7 +225,7 @@ type LQ_type
 	real(REAL_KIND) :: growth_delay_N
 end type
 
-integer, parameter :: nflog=10, nfin=11, nfout=12, nfres=13, nfcell=14
+integer, parameter :: nflog=10, nfin=11, nfout=12, nfres=13, nfcell=14, nfprofile=15
 integer, parameter :: MAX_NLIST = 100000
 integer, parameter :: MAX_NBRS = 50
 integer, parameter :: ndt_max = 30

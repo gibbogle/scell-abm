@@ -810,7 +810,6 @@ else
 				kcell = kcell + 1
 				rsite = blobcentre + d*site
 				call AddCell(kcell,rsite)
-				write(*,'(i6,3f8.4)') kcell,rsite
 				occup(ix,iy,iz) = .true.
 			enddo
 		enddo
@@ -1118,6 +1117,17 @@ do it_diff = 1,nt_diff
 !	endif
 	call diff_solver(dt)
 enddo
+
+if (saveprofiledata) then
+	if (istep*DELTA_T >= it_saveprofiledata*dt_saveprofiledata) then
+		call WriteProfileData
+		it_saveprofiledata = it_saveprofiledata + 1
+		if (it_saveprofiledata > nt_saveprofiledata) then
+			saveprofiledata = .false.
+		endif
+	endif
+endif
+
 if (mod(istep,nt_hour) == 0) then
 	write(logmsg,'(a,3i8)') 'istep, hour, Ncells: ',istep,istep/nt_hour,Ncells
 	call logger(logmsg)
@@ -1284,7 +1294,6 @@ do ichemo = 1,MAX_CHEMO
 	else
 		exconc(ichemo) = (Ve*Ce(ichemo) + fkeep*exmass(ichemo))/Vm_new
 	endif
-	write(*,'(a,i2,6f8.4)') 'MediumChange: exconc: ',ichemo,Ce(ichemo),Ve,fkeep,exmass(ichemo),Vm_new,exconc(ichemo)
 	write(nflog,'(a,i2,6f8.4)') 'MediumChange: exconc: ',ichemo,Ce(ichemo),Ve,fkeep,exmass(ichemo),Vm_new,exconc(ichemo)
 enddo
 ! TESTING

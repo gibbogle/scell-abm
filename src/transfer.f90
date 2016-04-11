@@ -39,7 +39,6 @@ enddo
 narr1 = n1
 narr2 = n2
 cptr = c_loc(a)
-write(*,'(4f6.0)') a
 
 end subroutine
 
@@ -141,6 +140,130 @@ enddo
 write(nflog,*) 'axis: ',axis,' nc: ',nc
 fdata%ncells = nc
 res = 0
+end subroutine
+
+!--------------------------------------------------------------------------------
+! This version computes concentrations in a spherical shell of thickness dr.
+!--------------------------------------------------------------------------------
+subroutine WriteProfileData
+integer :: ns
+real(REAL_KIND), allocatable :: ex_conc(:,:)
+real(REAL_KIND) :: dr = 20.e-4	! 20um -> cm
+real(REAL_KIND) :: dx, xyz0(3), dxyz(3), r2, r
+integer :: ntot, ir, nr, ichemo, kcell, site(3)
+integer :: i, ic, nc
+integer, parameter :: max_shells = 100
+integer :: cnt(max_shells)
+integer :: icmap(0:MAX_CHEMO+N_EXTRA)		! maps ichemo -> ic
+character*(16) :: title(1:MAX_CHEMO+N_EXTRA)
+character*(128) :: filename
+character*(6) :: mintag
+type(cell_type), pointer :: cp
+
+!write(nflog,*) 'WriteProfileData: MAX_CHEMO,N_EXTRA: ',MAX_CHEMO,N_EXTRA
+! First find the centre of the blob
+dx = DELTA_X
+xyz0 = 0
+ntot = 0
+do kcell = 1,nlist
+	cp => cell_list(kcell)
+	if (cp%state == DEAD) cycle
+	ntot = ntot+1
+	xyz0 = xyz0 + cp%centre(:,1)
+enddo
+if (ntot == 0) return
+xyz0 = xyz0/ntot	! this is the blob centre
+
+! Set up icmap
+ic = 0
+do ichemo = 0,MAX_CHEMO+N_EXTRA
+	if (ichemo == CFSE) then
+		if (.not.chemo(ichemo)%used) cycle
+		ic = ic + 1
+		title(ic) = 'CFSE'
+	    icmap(ichemo) = ic
+	elseif (ichemo <= MAX_CHEMO) then
+		if (.not.chemo(ichemo)%used) cycle
+		ic = ic + 1
+		title(ic) = chemo(ichemo)%name
+	    icmap(ichemo) = ic
+	elseif (ichemo == GROWTH_RATE) then
+		ic = ic + 1
+		title(ic) = 'Growth_rate'
+	    icmap(ichemo) = ic
+	elseif (ichemo == CELL_VOLUME) then
+		ic = ic + 1
+		title(ic) = 'Cell_volume'
+	    icmap(ichemo) = ic
+!	elseif (ichemo == O2_BY_VOL) then
+!		ic = ic + 1
+!		title(ic) = 'Cell_O2xVol'
+!	    icmap(ichemo) = ic
+	endif
+enddo
+nc = ic
+allocate(ex_conc(nc,max_shells))
+ex_conc = 0
+
+! Now look at shells at dr spacing. 
+nr = 0
+cnt = 0
+do kcell = 1,nlist
+	cp => cell_list(kcell)
+	if (cp%state == DEAD) cycle
+	dxyz = cp%centre(:,1) - xyz0
+	r2 = 0
+	do i = 1,3
+		r2 = r2 + dxyz(i)**2
+	enddo
+	r = sqrt(r2)
+	ir = r/dr + 1
+	nr = max(ir,nr)
+	cnt(ir) = cnt(ir) + 1
+	do ichemo = 0,MAX_CHEMO+N_EXTRA
+		ic = icmap(ichemo)
+		if (ichemo == CFSE .and. chemo(ichemo)%used) then
+			ex_conc(ic,ir) = ex_conc(ic,ir) + cp%cfse
+		elseif (ichemo <= MAX_CHEMO .and. chemo(ichemo)%used) then
+!			if (cp%conc(ichemo) > 10) then
+!			write(*,'(a,3i6,e12.3)') 'bad conc: ',kcell,ichemo,ic,cp%conc(ichemo)
+!			stop
+!			endif
+			ex_conc(ic,ir) = ex_conc(ic,ir) + cp%Cin(ichemo)
+		elseif (ichemo == GROWTH_RATE) then
+			ex_conc(ic,ir) = ex_conc(ic,ir) + cp%dVdt
+		elseif (ichemo == CELL_VOLUME) then
+			ex_conc(ic,ir) = ex_conc(ic,ir) + cp%V
+		endif
+	enddo
+enddo
+
+! Average
+do ir = 1,nr
+	do ic = 1,nc
+		ex_conc(ic,ir) = ex_conc(ic,ir)/cnt(ir)
+	enddo
+enddo			
+	
+! Remove time tag from the filename for download from NeSI
+write(mintag,'(i6)') int(istep*DELTA_T/60)
+filename = profiledatafilebase
+filename = trim(filename)//'_'
+filename = trim(filename)//trim(adjustl(mintag))
+filename = trim(filename)//'min.dat'
+open(nfprofile,file=filename,status='replace')
+write(nfprofile,'(a,a)') 'GUI version: ',gui_run_version
+write(nfprofile,'(a,a)') 'DLL version: ',dll_run_version
+write(nfprofile,'(i6,a)') int(istep*DELTA_T/60),' minutes'
+write(nfprofile,'(i6,a)') nr,' shells'
+write(nfprofile,'(f6.2,a)') 10000*dr,' dr (um)'
+write(nfprofile,'(32a16)') title(1:nc)
+do ir = 1,nr
+	write(nfprofile,'(32(e12.3,4x))') ex_conc(1:nc,ir)
+enddo
+close(nfprofile)
+deallocate(ex_conc)
+!write(nflog,*) 'did WriteProfileData: ',filename
 end subroutine
 
 !-----------------------------------------------------------------------------------------
@@ -1405,13 +1528,13 @@ enddo
 if (hit1) then
 	rmin(1) = smax
 else
-	write(*,*) 'Error: not hit1'
+	write(nflog,*) 'Error: not hit1'
 	stop
 endif
 if (hit2) then
 	rmax(1) = smin
 else
-	write(*,*) 'Error: not hit2'
+	write(nflog,*) 'Error: not hit2'
 	stop
 endif
 ! Y direction.  
@@ -1447,13 +1570,13 @@ enddo
 if (hit1) then
 	rmin(2) = smax
 else
-	write(*,*) 'Error: not hit1'
+	write(nflog,*) 'Error: not hit1'
 	stop
 endif
 if (hit2) then
 	rmax(2) = smin
 else
-	write(*,*) 'Error: not hit2'
+	write(nflog,*) 'Error: not hit2'
 	stop
 endif
 !write(*,*) 'seeking rmin, rmax in Z direction'
@@ -1488,18 +1611,18 @@ enddo
 if (hit1) then
 	rmin(3) = smax
 else
-	write(*,*) 'Error: not hit1'
+	write(nflog,*) 'Error: not hit1'
 	stop
 endif
 if (hit2) then
 	rmax(3) = smin
 else
-	write(*,*) 'Error: not hit2'
+	write(nflog,*) 'Error: not hit2'
 	stop
 endif
 
 #if 0
-write(*,*) 'seeking rmax in X direction'
+write(nflog,*) 'seeking rmax in X direction'
 smin = 1.0e10
 hit = .false.
 do ixx = 1,NX-1
@@ -1511,10 +1634,10 @@ do ixx = 1,NX-1
 			c = cp%centre(:,js)
 			if ((cblob(2) > c(2)-r .and. cblob(2) < c(2)+r) .and. &
 				(cblob(3) > c(3)-r .and. cblob(3) < c(3)+r)) then
-				write(*,'(3(2f8.4,2x))') c(1)-r,c(1)+r,c(2)-r,c(2)+r,c(3)-r,c(3)+r
+				write(nflog,'(3(2f8.4,2x))') c(1)-r,c(1)+r,c(2)-r,c(2)+r,c(3)-r,c(3)+r
 				if (smin > c(1)-r .and. cblob(1) < c(1)-r) then
 					smin = c(1)-r
-					write(*,'(a,f8.4)') 'smin: ',smin
+					write(nflog,'(a,f8.4)') 'smin: ',smin
 					hit = .true.
 				endif
 			endif
@@ -1524,12 +1647,12 @@ enddo
 if (hit) then
 	rmax(1) = smin
 else
-	write(*,*) 'Error: not hit'
+	write(nflog,*) 'Error: not hit'
 	stop
 endif
 
 ! Y direction.  
-write(*,*) 'Y direction'
+write(nflog,*) 'Y direction'
 do iyy = iy,1,-1
 	hit = .false.
 	smax = 0
@@ -1550,12 +1673,12 @@ do iyy = iy,1,-1
 	enddo
 	if (hit) then
 		rmin(2) = smax
-		write(*,'(a,f8.4)') 'rmin(2): ',rmin(2)
+		write(nflog,'(a,f8.4)') 'rmin(2): ',rmin(2)
 		exit
 	endif
 enddo
 if (.not.hit) then
-	write(*,*) 'Error: not hit'
+	write(nflog,*) 'Error: not hit'
 	stop
 endif
 do iyy = iy,NY-1
@@ -1578,16 +1701,16 @@ do iyy = iy,NY-1
 	enddo
 	if (hit) then
 		rmax(2) = smin
-		write(*,'(a,f8.4)') 'rmax(2): ',rmax(2)
+		write(nflog,'(a,f8.4)') 'rmax(2): ',rmax(2)
 		exit
 	endif
 enddo
 if (.not.hit) then
-	write(*,*) 'Error: not hit'
+	write(nflog,*) 'Error: not hit'
 	stop
 endif
 ! Z direction.  
-write(*,*) 'Z direction'
+write(nflog,*) 'Z direction'
 do izz = iz,1,-1
 	hit = .false.
 	smax = 0
@@ -1607,12 +1730,12 @@ do izz = iz,1,-1
 	enddo
 	if (hit) then
 		rmin(3) = smax
-		write(*,'(a,f8.4)') 'rmin(3): ',rmin(3)
+		write(nflog,'(a,f8.4)') 'rmin(3): ',rmin(3)
 		exit
 	endif
 enddo
 if (.not.hit) then
-	write(*,*) 'Error: not hit'
+	write(nflog,*) 'Error: not hit'
 	stop
 endif
 do izz = iz,NZ-1
@@ -1626,7 +1749,7 @@ do izz = iz,NZ-1
 			c = cp%centre(:,js)
 			if ((cblob(2) > c(2)-r .and. cblob(2) < c(2)+r) .and. &
 				(cblob(1) > c(1)-r .and. cblob(1) < c(1)+r)) then
-				write(*,*) cblob(3),c(3)-r
+				write(nflog,*) cblob(3),c(3)-r
 				if ((smin > c(3)-r .and. cblob(3) < c(3)-r)) then
 					smin = c(3)-r
 					hit = .true.
@@ -1636,12 +1759,12 @@ do izz = iz,NZ-1
 	enddo
 	if (hit) then
 		rmax(3) = smin
-		write(*,'(a,f8.4)') 'rmax(3): ',rmax(3)
+		write(nflog,'(a,f8.4)') 'rmax(3): ',rmax(3)
 		exit
 	endif
 enddo
 if (.not.hit) then
-	write(*,*) 'Error: not hit'
+	write(nflog,*) 'Error: not hit'
 	stop
 endif
 Rn = (rmax - rmin)/2
@@ -1653,7 +1776,7 @@ Rdiv = (3*Vdivide0/(4*PI))**(1./3.)
 !write(*,'(a,e12.3)') 'Rdiv: ',Rdiv
 !write(*,'(a,3e12.3)') 'Rn: ',Rn
 if (Rn(1) < 0 .or. Rn(2) < 0 .or. Rn(3) < 0) then
-	write(*,*) 'Rn < 0'
+	write(nflog,*) 'Rn < 0'
 	stop
 endif
 if (R3 > 0) then
@@ -1665,7 +1788,7 @@ if (R3 > 0) then
 elseif (R3 == 0) then
 	R = 0
 else
-	write(*,*) 'Error: getNecroticVolume: R3 < 0: ',R3
+	write(nflog,*) 'Error: getNecroticVolume: R3 < 0: ',R3
 	stop
 endif
 vol = (4./3.)*PI*R3 
