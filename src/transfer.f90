@@ -789,6 +789,13 @@ write(nfres,'(2a12,i8,2e12.4,19i7,17e12.4)') gui_run_version, dll_run_version, &
 	cbdry(OXYGEN), cbdry(GLUCOSE), cbdry(DRUG_A), cbdry(DRUG_B)
 		
 call sum_dMdt(GLUCOSE)
+
+if (diam_count_limit > LIMIT_THRESHOLD) then
+	if (Ncells > diam_count_limit) limit_stop = .true.
+elseif (diam_count_limit > 0) then
+	if (diam_um > diam_count_limit) limit_stop = .true.
+endif
+
 end subroutine
 
 !--------------------------------------------------------------------------------

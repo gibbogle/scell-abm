@@ -42,7 +42,7 @@ padding: 8px
     <item row="0" column="0">
      <widget class="QStackedWidget" name="stackedWidget">
       <property name="currentIndex">
-       <number>3</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="page_input">
        <layout class="QVBoxLayout" name="verticalLayout">
@@ -79,7 +79,7 @@ padding: 8px
            <enum>QTabWidget::West</enum>
           </property>
           <property name="currentIndex">
-           <number>3</number>
+           <number>7</number>
           </property>
           <property name="elideMode">
            <enum>Qt::ElideNone</enum>
@@ -6353,7 +6353,7 @@ padding: 8px
               <x>10</x>
               <y>20</y>
               <width>271</width>
-              <height>411</height>
+              <height>421</height>
              </rect>
             </property>
             <property name="title">
@@ -6365,7 +6365,7 @@ padding: 8px
                <x>10</x>
                <y>10</y>
                <width>251</width>
-               <height>391</height>
+               <height>408</height>
               </rect>
              </property>
              <layout class="QGridLayout" name="gridLayout_GL4">
@@ -6453,7 +6453,7 @@ padding: 8px
                 </property>
                </spacer>
               </item>
-              <item row="16" column="0">
+              <item row="17" column="0">
                <widget class="QMyLabel" name="label_SEED1">
                 <property name="mouseTracking">
                  <bool>false</bool>
@@ -6469,7 +6469,7 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="16" column="1">
+              <item row="17" column="1">
                <spacer name="horizontalSpacer_30">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
@@ -6482,7 +6482,7 @@ padding: 8px
                 </property>
                </spacer>
               </item>
-              <item row="16" column="2">
+              <item row="17" column="2">
                <widget class="QSpinBox" name="spin_SEED1">
                 <property name="maximumSize">
                  <size>
@@ -6498,7 +6498,7 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="17" column="0">
+              <item row="18" column="0">
                <widget class="QMyLabel" name="label_SEED2">
                 <property name="mouseTracking">
                  <bool>false</bool>
@@ -6514,7 +6514,7 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="17" column="1">
+              <item row="18" column="1">
                <spacer name="horizontalSpacer_31">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
@@ -6527,7 +6527,7 @@ padding: 8px
                 </property>
                </spacer>
               </item>
-              <item row="17" column="2">
+              <item row="18" column="2">
                <widget class="QSpinBox" name="spin_SEED2">
                 <property name="maximumSize">
                  <size>
@@ -6559,7 +6559,7 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="19" column="0">
+              <item row="20" column="0">
                <widget class="QMyLabel" name="label_NT_ANIMATION">
                 <property name="toolTip">
                  <string>animation update interval</string>
@@ -6569,7 +6569,7 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="19" column="1">
+              <item row="20" column="1">
                <spacer name="horizontalSpacer_32">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
@@ -6582,7 +6582,7 @@ padding: 8px
                 </property>
                </spacer>
               </item>
-              <item row="19" column="2">
+              <item row="20" column="2">
                <widget class="QSpinBox" name="spin_NT_ANIMATION">
                 <property name="maximumSize">
                  <size>
@@ -6605,7 +6605,7 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="18" column="0">
+              <item row="19" column="0">
                <widget class="QMyLabel" name="label_NCPU">
                 <property name="toolTip">
                  <string>animation update interval</string>
@@ -6615,7 +6615,7 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="18" column="1">
+              <item row="19" column="1">
                <spacer name="horizontalSpacer_34">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
@@ -6628,7 +6628,7 @@ padding: 8px
                 </property>
                </spacer>
               </item>
-              <item row="18" column="2">
+              <item row="19" column="2">
                <widget class="QSpinBox" name="spin_NCPU">
                 <property name="maximumSize">
                  <size>
@@ -6644,7 +6644,7 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="21" column="2">
+              <item row="22" column="2">
                <widget class="QLineEdit" name="line_TEST_CASE">
                 <property name="maximumSize">
                  <size>
@@ -6660,14 +6660,14 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="21" column="0">
+              <item row="22" column="0">
                <widget class="QMyLabel" name="label_TEST_CASE">
                 <property name="text">
                  <string>label_TEST_CASE</string>
                 </property>
                </widget>
               </item>
-              <item row="21" column="1">
+              <item row="22" column="1">
                <spacer name="horizontalSpacer_33">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
@@ -6703,14 +6703,14 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="6" column="0">
+              <item row="7" column="0">
                <widget class="QMyLabel" name="label_DELTA_T">
                 <property name="text">
                  <string>label_DELTA_T</string>
                 </property>
                </widget>
               </item>
-              <item row="6" column="1">
+              <item row="7" column="1">
                <spacer name="horizontalSpacer_35">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
@@ -6723,7 +6723,7 @@ padding: 8px
                 </property>
                </spacer>
               </item>
-              <item row="6" column="2">
+              <item row="7" column="2">
                <widget class="QLineEdit" name="line_DELTA_T">
                 <property name="maximumSize">
                  <size>
@@ -6739,14 +6739,14 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="7" column="0">
+              <item row="8" column="0">
                <widget class="QMyLabel" name="label_NT_CONC">
                 <property name="text">
                  <string>label_NT_CONC</string>
                 </property>
                </widget>
               </item>
-              <item row="7" column="1">
+              <item row="8" column="1">
                <spacer name="horizontalSpacer_36">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
@@ -6759,7 +6759,7 @@ padding: 8px
                 </property>
                </spacer>
               </item>
-              <item row="7" column="2">
+              <item row="8" column="2">
                <widget class="QLineEdit" name="line_NT_CONC">
                 <property name="maximumSize">
                  <size>
@@ -6775,14 +6775,14 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="8" column="0">
+              <item row="9" column="0">
                <widget class="QMyLabel" name="label_NMM3">
                 <property name="text">
                  <string>label_NMM3</string>
                 </property>
                </widget>
               </item>
-              <item row="8" column="1">
+              <item row="9" column="1">
                <spacer name="horizontalSpacer_37">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
@@ -6795,7 +6795,7 @@ padding: 8px
                 </property>
                </spacer>
               </item>
-              <item row="8" column="2">
+              <item row="9" column="2">
                <widget class="QLineEdit" name="line_NMM3">
                 <property name="maximumSize">
                  <size>
@@ -6808,14 +6808,14 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="9" column="0">
+              <item row="10" column="0">
                <widget class="QMyLabel" name="label_FLUID_FRACTION">
                 <property name="text">
                  <string>label_FLUID_FRACTION</string>
                 </property>
                </widget>
               </item>
-              <item row="9" column="1">
+              <item row="10" column="1">
                <spacer name="horizontalSpacer_38">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
@@ -6828,7 +6828,7 @@ padding: 8px
                 </property>
                </spacer>
               </item>
-              <item row="9" column="2">
+              <item row="10" column="2">
                <widget class="QLineEdit" name="line_FLUID_FRACTION">
                 <property name="maximumSize">
                  <size>
@@ -6841,14 +6841,14 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="6" column="3">
+              <item row="7" column="3">
                <widget class="QLabel" name="units_DELTA_T">
                 <property name="text">
                  <string>sec</string>
                 </property>
                </widget>
               </item>
-              <item row="10" column="1">
+              <item row="11" column="1">
                <spacer name="horizontalSpacer_43">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
@@ -6861,14 +6861,14 @@ padding: 8px
                 </property>
                </spacer>
               </item>
-              <item row="10" column="0">
+              <item row="11" column="0">
                <widget class="QMyLabel" name="label_MEDIUM_VOLUME">
                 <property name="text">
                  <string>label_MEDIUM_VOLUME</string>
                 </property>
                </widget>
               </item>
-              <item row="10" column="2">
+              <item row="11" column="2">
                <widget class="QLineEdit" name="line_MEDIUM_VOLUME">
                 <property name="maximumSize">
                  <size>
@@ -6881,21 +6881,21 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="10" column="3">
+              <item row="11" column="3">
                <widget class="QLabel" name="units_MEDIUM_VOLUME">
                 <property name="text">
                  <string>cm3</string>
                 </property>
                </widget>
               </item>
-              <item row="20" column="0">
+              <item row="21" column="0">
                <widget class="QMyLabel" name="label_SHOW_PROGENY">
                 <property name="text">
                  <string>label_SHOW_PROGENY</string>
                 </property>
                </widget>
               </item>
-              <item row="20" column="1">
+              <item row="21" column="1">
                <spacer name="horizontalSpacer_46">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
@@ -6908,7 +6908,7 @@ padding: 8px
                 </property>
                </spacer>
               </item>
-              <item row="20" column="2">
+              <item row="21" column="2">
                <widget class="QLineEdit" name="line_SHOW_PROGENY">
                 <property name="maximumSize">
                  <size>
@@ -6924,14 +6924,14 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="11" column="0">
+              <item row="12" column="0">
                <widget class="QMyLabel" name="label_UNSTIRRED_LAYER">
                 <property name="text">
                  <string>label_UNSTIRRED_LAYER</string>
                 </property>
                </widget>
               </item>
-              <item row="11" column="1">
+              <item row="12" column="1">
                <spacer name="horizontalSpacer_47">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
@@ -6944,7 +6944,7 @@ padding: 8px
                 </property>
                </spacer>
               </item>
-              <item row="11" column="2">
+              <item row="12" column="2">
                <widget class="QLineEdit" name="line_UNSTIRRED_LAYER">
                 <property name="maximumSize">
                  <size>
@@ -6957,7 +6957,7 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="11" column="3">
+              <item row="12" column="3">
                <widget class="QLabel" name="units_layer">
                 <property name="text">
                  <string>cm</string>
@@ -7074,6 +7074,49 @@ padding: 8px
               </item>
               <item row="3" column="3">
                <widget class="QLabel" name="alabel_11">
+                <property name="text">
+                 <string>um</string>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="0">
+               <widget class="QMyLabel" name="label_DIAM_LIMIT">
+                <property name="text">
+                 <string>label_DIAM_LIMIT</string>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="1">
+               <spacer name="horizontalSpacer_49">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>13</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item row="6" column="2">
+               <widget class="QLineEdit" name="line_DIAM_LIMIT">
+                <property name="maximumSize">
+                 <size>
+                  <width>50</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>0</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="3">
+               <widget class="QLabel" name="alabel_diamlimit">
                 <property name="text">
                  <string>um</string>
                 </property>
@@ -7376,7 +7419,7 @@ padding: 8px
               <x>290</x>
               <y>300</y>
               <width>261</width>
-              <height>131</height>
+              <height>141</height>
              </rect>
             </property>
             <property name="title">

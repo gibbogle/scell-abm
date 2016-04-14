@@ -73,7 +73,7 @@ integer :: i, idrug, nmetab, im, ichemo
 integer :: Nmm3, itestcase, ictype, ishow_progeny
 integer :: iuse_oxygen, iuse_glucose, iuse_tracer, iuse_drug, iuse_metab, iV_depend, iV_random, iuse_FD
 integer :: iuse_extra, iuse_relax, iuse_par_relax, iuse_gd_all
-real(REAL_KIND) :: days, percent, fluid_fraction, d_layer, sigma(MAX_CELLTYPES), Vsite_cm3, bdry_conc, spcrad_value
+real(REAL_KIND) :: days, percent, fluid_fraction, d_layer, sigma(MAX_CELLTYPES), Vsite_cm3, bdry_conc, spcrad_value, d_n_limit
 integer :: iuse_drop, iconstant, isaveprofiledata, iglucosegrowth
 logical :: use_metabolites
 character*(12) :: drug_name
@@ -100,6 +100,8 @@ read(nfcell,*) divide_time_shape(2)
 read(nfcell,*) iV_depend
 read(nfcell,*) iV_random
 read(nfcell,*) days							! number of days to simulate
+read(nfcell,*) d_n_limit					! possible limit on diameter or number of cells
+diam_count_limit = d_n_limit
 read(nfcell,*) DELTA_T						! time step size (sec)
 read(nfcell,*) NXB							! size of coarse grid = NYB
 read(nfcell,*) NZB							! size of coarse grid
@@ -667,6 +669,7 @@ call setup_react_diff(ok)
 !cell_list(:)%Cin(GLUCOSE) = chemo(GLUCOSE)%bdry_conc
 call logger('did setup_react_diff')
 call SetInitialGrowthRate
+limit_stop = .false.
 call logger('completed Setup')
 end subroutine
 
@@ -1009,8 +1012,13 @@ istep = istep + 1
 dbug = .false.
 if (Ncells == 0) then
 	call logger('Ncells = 0')
-!    res = 3
-!    return
+    res = 2
+    return
+endif
+if (limit_stop) then
+	call logger('Spheroid size limit reached')
+	res = 6
+	return
 endif
 
 if (istep == -100) then
@@ -1058,7 +1066,7 @@ do while (.not.done)
 !	if (ncells > nshow) write(*,*) 'moving'
 	call fmover(dt,done,ok)
 	if (.not.ok) then
-		call logger('mover error')
+		call logger('fmover error')
 		res = 1
 		return
 	endif
@@ -1069,7 +1077,7 @@ do while (.not.done)
 	call GrowCells(radiation_dose,dt,changed,ok)
 	if (.not.ok) then
 		call logger('grower error')
-		res = 2
+		res = 3
 		return
 	endif
 	radiation_dose = 0
@@ -1115,7 +1123,11 @@ do it_diff = 1,nt_diff
 !		write(logmsg,'(a,5i8)') 'istep,Ncells,Nsteps,Nit,ndt: ',istep,Ncells,Nsteps,Nit,ndt 
 !		call logger(logmsg)
 !	endif
-	call diff_solver(dt)
+	call diff_solver(dt,ok)
+	if (.not.ok) then
+		res = 7
+		return
+	endif
 enddo
 
 if (saveprofiledata) then
@@ -1578,6 +1590,7 @@ else
 	res = 1
 	stop
 endif
+execute_t1 = wtime()
 end subroutine
 
 !-----------------------------------------------------------------------------------------
@@ -1678,11 +1691,23 @@ if (res == 0) then
 	call logger(' Execution successful!')
 elseif (res == -1) then
 	call logger(' Execution stopped')
-else
-	call logger('  === Execution failed ===')
+elseif (res == 2) then
+	call logger(' No more live cells')
+elseif (res == 6) then
+	call logger(' Spheroid size limit reached')
+elseif (res == 1) then
+	call logger(' === Execution failed === ERROR in fmover')
+elseif (res == 3) then
+	call logger(' === Execution failed === ERROR in GrowCells')
+elseif (res == 4) then
+	call logger(' === Execution failed === ERROR in make_perm_index')
+elseif (res == 5) then
+	call logger(' === Execution failed === ERROR in setup_nbrlists')
+elseif (res == 7) then
+	call logger(' === Execution failed === ERROR in diff_solver')
 endif
-!write(logmsg,'(a,f10.2)') 'Execution time (min): ',(wtime() - execute_t1)/60 
-!call logger(logmsg)
+write(logmsg,'(a,f10.2)') 'Execution time (min): ',(wtime() - execute_t1)/60
+call logger(logmsg)
 
 !close(nflog)
 

@@ -65,6 +65,7 @@ integer, parameter :: O2_BY_VOL = MAX_CHEMO + 3
 
 integer, parameter :: N_EXTRA = O2_BY_VOL - MAX_CHEMO + 1	! = 4 = total # of variables - MAX_CHEMO
 integer, parameter :: NCONST = MAX_CHEMO
+integer, parameter :: LIMIT_THRESHOLD = 1500
 
 integer, parameter :: MITOSIS_MODE = TERMINAL_MITOSIS
 
@@ -246,6 +247,8 @@ integer :: NT_CONC, NT_GUI_OUT, initial_count, ntries, Ncelltypes, Ncells_type(M
 integer :: istep, ndt, ndtotal, ndtotal_last, ichemo_curr
 integer :: seed(2)
 integer :: jumpvec(3,27)
+integer :: diam_count_limit
+logical :: limit_stop
 real(REAL_KIND) :: DELTA_X, DELTA_T, tnow, t_simulation, dt_saveprofiledata
 real(REAL_KIND) :: blobcentre(3)	! blob centre
 real(REAL_KIND) :: epsilon, es_e, sqr_es_e, shift, Dfactor
@@ -256,6 +259,7 @@ real(REAL_KIND) :: Vdivide0, dVdivide, Rdivide0, MM_THRESHOLD, medium_volume0, t
 real(REAL_KIND) :: t_anoxic_limit, anoxia_death_delay, ANOXIA_THRESHOLD, anoxia_tag_hours, anoxia_death_hours
 real(REAL_KIND) :: divide_time_median(MAX_CELLTYPES), divide_time_shape(MAX_CELLTYPES), divide_time_mean(MAX_CELLTYPES), celltype_fraction(MAX_CELLTYPES)
 type(dist_type) :: divide_dist(MAX_CELLTYPES)
+real(REAL_KIND) :: execute_t1
 real(REAL_KIND) :: d_nbr_limit
 
 logical :: use_dropper
@@ -345,6 +349,17 @@ integer :: kcell_now
 !dec$ attributes dllexport :: nsteps, DELTA_T
 
 contains
+
+!-----------------------------------------------------------------------------------------
+! WTIME returns a reading of the wall clock time.
+!-----------------------------------------------------------------------------------------
+real(REAL_KIND) function wtime()
+!DEC$ ATTRIBUTES DLLEXPORT :: wtime
+  integer :: clock_max, clock_rate, clock_reading
+
+  call system_clock ( clock_reading, clock_rate, clock_max )
+  wtime = real(clock_reading,kind=DP)/clock_rate
+end function
 
 !-----------------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------------

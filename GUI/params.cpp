@@ -94,6 +94,10 @@ Off-lattice model: Dimension of the fine grid (number of grid pts in X,Y and Z d
 "Length of the simulation.\n\
 [days]"},
 
+{"DIAM_LIMIT", 0.0, 0.0, 0.0,
+"Diameter (ncells) limit",
+ "If the limit is less than 5000 it applies to the diameter (um), otherwise to the number of live cells.  A value of 0 implies no limit."},
+
 {"DELTA_T", 600, 0, 0,
 "Time step",
 "Length of main time step, for cell death, division, etc.  Should be a divisor of 3600. \n\

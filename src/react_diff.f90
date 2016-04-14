@@ -1113,8 +1113,9 @@ end subroutine
 ! For drugs, the three related constituents are solved for sequentially in the fine grid.
 ! First drug, then metab1 (using drug results), then metab2 (using metab1 results).
 !-------------------------------------------------------------------------------------- 
-subroutine diff_solver(dt)
+subroutine diff_solver(dt,ok)
 real(REAL_KIND) :: dt
+logical :: ok
 integer :: i, k, k1, ix, iy, iz, irow, icol, kc, ic, icc, it
 integer :: ixb, iyb, izb
 integer :: ichemo, ierr, nfill, iters, maxits, im_krylov
@@ -1135,6 +1136,7 @@ logical :: done
 logical :: do_fine = .true.
 logical :: use_const = .true.
 
+ok = .true.
 do ichemo = 1,MAX_CHEMO
 	if (.not.chemo(ichemo)%used) cycle
 	call getMass(ichemo,mass(ichemo))
@@ -1196,6 +1198,9 @@ do ic = 1,nchemo
 	!----------------------------------
 	call itsol_create_matrix(icc,nrow_b,nnz_b,a_b,ja_b,ia_b,ierr)
 	!write(nflog,*) 'itsol_create_matrix: ierr: ',ierr
+	if (ierr /= 0) then
+		ok = .false.
+	endif
 		
 	if (ILUtype == 1) then
 		call itsol_create_precond_ILUK(icc,nfill,ierr)
@@ -1210,6 +1215,9 @@ do ic = 1,nchemo
 		call itsol_create_precond_ARMS(icc,nfill,tol_b,ierr)
 	!	write(*,*) 'itsol_create_precond_ARMS: ierr: ',ierr 
 	endif
+	if (ierr /= 0) then
+		ok = .false.
+	endif
 
 	do izb = 1,NZB
 		do iyb = 1,NYB
@@ -1223,6 +1231,9 @@ do ic = 1,nchemo
 	!	write(nflog,*) 'call itsol_solve_fgmr_ILU'
 		call itsol_solve_fgmr_ILU(icc, rhs, x, im_krylov, maxits, tol_b, iters, ierr)
 	!	write(nflog,*) 'itsol_solve_fgmr_ILU: Cave_b: ierr, iters: ',ierr,iters
+		if (ierr /= 0) then
+			ok = .false.
+		endif
 	else
 		write(nflog,*) 'no solve, zeroC: ',ichemo
 	endif
@@ -1287,6 +1298,9 @@ do ic = 1,nfinemap
 		!-------------------------------------------
 		call itsol_create_matrix(icc,nrow,nnz,a,ja,ia,ierr)
 		!write(*,*) 'itsol_create_matrix: ierr: ',ierr
+		if (ierr /= 0) then
+			ok = .false.
+		endif
 		if (ILUtype == 1) then
 			call itsol_create_precond_ILUK(icc,nfill,ierr)
 		!	write(*,*) 'itsol_create_precond_ILUK: ierr: ',ierr 
@@ -1299,6 +1313,9 @@ do ic = 1,nfinemap
 		elseif (ILUtype == 4) then
 			call itsol_create_precond_ARMS(icc,nfill,tol,ierr)
 		!	write(*,*) 'itsol_create_precond_ARMS: ierr: ',ierr 
+		endif
+		if (ierr /= 0) then
+			ok = .false.
 		endif
 
 		do iz = 1,NZ-1
@@ -1324,7 +1341,7 @@ do ic = 1,nfinemap
 			if (ierr /= 0) then
 				write(logmsg,*) 'itsol_solve_fgmr_ILU failed with err: ',ierr
 				call logger(logmsg)
-				stop
+				ok = .false.
 			endif
 		else
 			write(nflog,*) 'no solve, zeroC: ',ichemo
