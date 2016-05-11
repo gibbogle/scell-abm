@@ -608,9 +608,9 @@ void Field::displayField(int hr, int *res)
             rgbcol[1] = 100;
             rgbcol[2] = 32;
         } else if (fdata.cell_data[i].status == 2) {
-            rgbcol[0] = 255;
+            rgbcol[0] = 0;
             rgbcol[1] = 0;
-            rgbcol[2] = 0;
+            rgbcol[2] = 255;
         } else if (fdata.cell_data[i].status == 3) {
             rgbcol[0] = 255;
             rgbcol[1] = 0;

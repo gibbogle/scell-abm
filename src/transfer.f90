@@ -4,6 +4,7 @@ module transfer
 
 use global
 use chemokine
+use envelope
 
 implicit none
 
@@ -681,23 +682,31 @@ end subroutine
 
 !-----------------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------------
-subroutine getNecroticFraction(necrotic_fraction, vol_cm3)
-real(REAL_KIND) :: necrotic_fraction, vol_cm3
-real(REAL_KIND) :: necrotic_vol_cm3
+subroutine getNecroticFraction(necrotic_fraction, totvol_cm3)
+real(REAL_KIND) :: necrotic_fraction, totvol_cm3
+real(REAL_KIND) :: dz, cellvol_cm3, dvol
+!real(REAL_KIND) :: necrotic_vol_cm3
 
-call getNecroticVolume(necrotic_vol_cm3)
-necrotic_fraction = necrotic_vol_cm3/vol_cm3
-!write(*,'(a,4e12.3)') 'R,n_vol,vol,necrotic_fraction: ',Radius,necrotic_vol_cm3,vol_cm3,necrotic_fraction
+!call getNecroticVolume(necrotic_vol_cm3)
+!necrotic_fraction = necrotic_vol_cm3/vol_cm3
+dz = 2*Raverage
+cellvol_cm3 = Ncells/(1000.*Nmm3)	! Nmm3 = calibration target # of cells/mm3
+dvol = totvol_cm3-cellvol_cm3
+necrotic_fraction = dvol/totvol_cm3
+!write(*,'(a,i6,3e12.3,f6.3)') 'getNecroticFraction: ',Ncells,cellvol_cm3,totvol_cm3,dvol,necrotic_fraction
+if (necrotic_fraction < 0.005) necrotic_fraction = 0
 end subroutine
 
 !-----------------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------------
 subroutine getDiamVol(diam_cm,vol_cm3)
 real(REAL_KIND) :: diam_cm, vol_cm3
-real(REAL_KIND) :: radius, cntr(3), rng(3)
-call getBlobCentreRange(cntr,rng,radius)
-diam_cm = 2*radius
-vol_cm3 = (4*PI/3)*radius**3
+real(REAL_KIND) :: area_cm2, radius, cntr(3), rng(3)
+!call getBlobCentreRange(cntr,rng,radius)
+!diam_cm = 2*radius
+!vol_cm3 = (4*PI/3)*radius**3
+call getVolume(vol_cm3, area_cm2)
+diam_cm = 2*sqrt(area_cm2/PI)
 end subroutine
 
 !-----------------------------------------------------------------------------------------
@@ -743,11 +752,11 @@ call getHypoxicCount(nhypoxic)
 hypoxic_percent_10 = (1000*nhypoxic(i_hypoxia_cutoff))/Ncells
 call getGrowthCount(ngrowth)
 growth_percent_10 = (1000*ngrowth(i_growth_cutoff))/Ncells
-if (TNanoxia_dead > 0) then
+!if (TNanoxia_dead > 0) then
 	call getNecroticFraction(necrotic_fraction,vol_cm3)
-else
-	necrotic_fraction = 0
-endif
+!else
+!	necrotic_fraction = 0
+!endif
 necrotic_percent_10 = 1000*necrotic_fraction
 call getNviable(Nviable, Nlive)
 do ityp = 1,Ncelltypes

@@ -147,12 +147,12 @@ The parameter 'b' is calculated by setting the minimum value of F(x) (which occu
 The function F(x) is zero at two points, xc1 and xc2.  There is a hysteresis loop for x > xc1: for two cells not in contact, the force is zero for x > xc1. \n\
 After contact is made the force is non-zero until x > xc2 - this is the effect of cell-cell adhesion."},
 
-{"X1_FORCE", 1.3, 0, 0,
+{"X1_FORCE", 1.7, 0, 0,
 "Right asymptote 'x1'",
 "The cell-cell force is a function of x = distance/(sum of radii): x = d/(R1+R2). \n\
 The force function is: F(x) = a/((x-x0)(x1-x)) + b, where x0 and x1 are the locations of the bounding asymptotes. \n\
 The parameter 'b' is calculated by setting the minimum value of F(x) (which occurs at x = (x0+x1)/2 ) equal to -c, this is the maximum attraction force. \n\
-The function F(x) is zero at two points, xc1 and xc2.  There is a hysteresis loop for x > xc1: for two cells not in contact, the force is zero for x > xc1. \n\
+The function F(x) is zero at two points, xc1 and xc2.  There should be a hysteresis loop for x > xc1: for two cells not in contact, the force is zero for x > xc1. \n\
 After contact is made the force is non-zero until x > xc2 - this is the effect of cell-cell adhesion."},
 
 {"KDRAG", 5, 0, 0,
@@ -533,18 +533,18 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
     {"ndrugBtagged",              0, 0,1,"","Current number of cells tagged to die by drugB"},
     {"nradiationtagged",          1, 0,1,"","Current number of cells tagged to die by radiation"},
     {"diameter",                  1, 0,1,"","Spheroid diameter (um)"},
-    {"volume",                    0, 0,1,"","Spheroid volume (mm3)"},
+    {"volume",                    1, 0,1,"","Spheroid volume (mm3)"},
     {"hypoxicfraction",           1, 0,1,"","Fraction of cells with oxygen level below the specified threshold for hypoxia"},
     {"growthfraction",            1, 0,1,"","Percentage of cells that are growing at a rate less than the specified fraction of the mean growth rate with no nutrient limits"},
     {"necroticfraction",          1, 0,1,"","Percentage of the spheroid that is necrotic = (number of vacant sites)/(number of sites taken up by the spheroid)"},
-    {"platingefficiency",         0, 0,1,"","Percentage of live cells that are viable"},
-    {"cellspermm3",               0, 0,1,"","Number of cells per mm3 in the blob"},
+    {"platingefficiency",         1, 0,1,"","Percentage of live cells that are viable"},
+    {"cellspermm3",               1, 0,1,"","Number of cells per mm3 in the blob"},
     {"mediumoxygen",              1, 0,1,"","Average concentration of oxygen in the medium (far-field)"},
-    {"mediumglucose",             0, 0,1,"","Average concentration of glucose in the medium (far-field)"},
+    {"mediumglucose",             1, 0,1,"","Average concentration of glucose in the medium (far-field)"},
     {"mediumdrugA",               0, 0,1,"","Average concentration of drug A in the medium (far-field)"},
     {"mediumdrugB",               0, 0,1,"","Average concentration of drug B in the medium (far-field)"},
     {"bdryoxygen",                1, 0,1,"","Average concentration of oxygen at the blob boundary"},
-    {"bdryglucose",               0, 0,1,"","Average concentration of glucose at the blob boundary"},
+    {"bdryglucose",               1, 0,1,"","Average concentration of glucose at the blob boundary"},
     {"bdrydrugA",                 0, 0,1,"","Average concentration of drug A at the blob boundary"},
     {"bdrydrugB",                 0, 0,1,"","Average concentration of drug B at the blob boundary"},
 
@@ -560,8 +560,8 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
     {"Drug_B",                    0, 0,1,"","Extracellular drug Bconcentration on a line through the blob centre"},
     {"Drug_B_metab1",             0, 0,1,"","Extracellular drug B metabolite 1 concentration on a line through the blob centre"},
     {"Drug_B_metab2",             0, 0,1,"","Extracellular drug B metabolite 2 concentration on a line through the blob centre"},
-    {"growthrate",                1, 0,1,"","Cell growth rate on a line through the blob centre"},
-    {"cellvolume",                1, 0,1,"","Cell volume fraction on a line through the blob centre"},
+    {"growthrate",                0, 0,1,"","Cell growth rate on a line through the blob centre"},
+    {"cellvolume",                0, 0,1,"","Cell volume fraction on a line through the blob centre"},
     {"O2byvolume",                0, 0,1,"","Cell volume fraction on a line through the blob centre"},
 // Distribution plots
 //    {"Oxygen",                    0, 0,1,"","Probability distribution of extracellular oxygen concentration"},

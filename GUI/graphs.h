@@ -3,7 +3,7 @@
 
 #include "global.h"
 
-#define maxGraphs 12
+#define maxGraphs 16
 #define TS_TYPE 0
 #define PROF_TYPE 1
 #define DIST_TYPE 2

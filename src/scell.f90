@@ -70,7 +70,7 @@ end subroutine
 subroutine ReadCellParams(ok)
 logical :: ok
 integer :: i, idrug, nmetab, im, ichemo
-integer :: Nmm3, itestcase, ictype, ishow_progeny
+integer :: itestcase, ictype, ishow_progeny
 integer :: iuse_oxygen, iuse_glucose, iuse_tracer, iuse_drug, iuse_metab, iV_depend, iV_random, iuse_FD
 integer :: iuse_extra, iuse_relax, iuse_par_relax, iuse_gd_all
 real(REAL_KIND) :: days, percent, fluid_fraction, d_layer, sigma(MAX_CELLTYPES), Vsite_cm3, bdry_conc, spcrad_value, d_n_limit
@@ -92,6 +92,7 @@ else
 endif
 read(nfcell,*) dll_run_version				! DLL run version number
 read(nfcell,*) NX							! size of fine grid
+NX = 33
 read(nfcell,*) initial_count				! initial number of tumour cells
 read(nfcell,*) divide_time_median(1)
 read(nfcell,*) divide_time_shape(1)
@@ -994,7 +995,7 @@ subroutine simulate_step(res) BIND(C)
 use, intrinsic :: iso_c_binding
 integer(c_int) :: res
 integer :: kcell, hour, kpar=0
-real(REAL_KIND) :: radiation_dose, dt
+real(REAL_KIND) :: radiation_dose, dt, volume, maxarea
 integer :: i, k, nit, irepeat, nrepeat, nt_diff, it_diff, ncells0, nhypoxic(3)
 integer :: nshow = 100
 integer :: Nhop, nt_hour, nt_nbr
@@ -1031,6 +1032,8 @@ if (use_dropper .and. .not.is_dropped .and. ncells > ndrop) then
 	call drop_blob
 	is_dropped = .true.
 endif
+
+!call getVolume(volume,maxarea)
 
 t_simulation = (istep-1)*DELTA_T	! seconds
 radiation_dose = 0

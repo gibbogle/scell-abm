@@ -3,6 +3,7 @@ use real_kind_mod
 use omp_lib
 use par_zig_mod
 use winsock
+
 use, intrinsic :: ISO_C_BINDING
 
 implicit none
@@ -240,7 +241,7 @@ character*(1024) :: header
 
 integer :: Mnodes, ncpu_input, ncells, ncells_mphase, nlist, nsteps, nevents
 integer :: Ndrugs_used
-integer :: NX, NY, NZ, NXB, NYB, NZB
+integer :: NX, NY, NZ, NXB, NYB, NZB, Nmm3
 integer :: Ndim(3)
 integer :: nt_saveprofiledata, it_saveprofiledata
 integer :: NT_CONC, NT_GUI_OUT, initial_count, ntries, Ncelltypes, Ncells_type(MAX_CELLTYPES)
@@ -391,18 +392,6 @@ if (logfile_isopen) then
 endif
 if (error /= 0) stop
 end subroutine
-
-!-----------------------------------------------------------------------------------------
-! Estimate blob radius by determining the range in the three axis directions
-! This is clearly inaccurate when the blob shape deviates significantly from a sphere,
-! and especially when cell killing causes the blob to break up.
-!-----------------------------------------------------------------------------------------
-function getRadius() result(R)
-real(REAL_KIND) :: R
-real(REAL_KIND) :: cntr(3), rng(3), diam
-
-call getBlobCentreRange(cntr,rng, R)
-end function
 
 !-----------------------------------------------------------------------------------------
 ! Estimate blob centre, range in each axis direction, and radius.
