@@ -157,7 +157,8 @@ void Field::setFieldConstituentButtons(QGroupBox *gbox, QButtonGroup *bg, QVBoxL
     QRadioButton *rb;
 
     Global::nfieldvars_used = Global::nvars_used - Global::N_EXTRA;
-    LOG_QMSG("setFieldConstituentButtons: " + tag);
+    LOG_QMSG("setFieldConstituentButtons: " + tag + " nfieldvars_used: "
+             + QString::number(Global::nfieldvars_used));
     if (rb_list->length() != 0) {
         LOG_MSG("rb_list not NULL, delete it");
         for (ivar=0; ivar<rb_list->length(); ivar++) {
@@ -208,6 +209,7 @@ void Field::setMaxConcentrations(QGroupBox *gbox)
         for (ivar=0; ivar < line_maxConc_list.length(); ivar++) {
             line_maxConc = line_maxConc_list[ivar];
             vbox_cell_max_concentration->removeWidget(line_maxConc);
+            line_maxConc->setVisible(false);
         }
     }
     line_maxConc_list.clear();
@@ -274,7 +276,7 @@ void Field::setCellConstituent(QAbstractButton *button)
 
     if (cell_constituent != prev_constituent) {
         LOG_MSG("setCellConstituent");
-        displayField(hour,&res);
+//        displayField(hour,&res);
     }
 }
 
@@ -388,7 +390,7 @@ void Field::chooseFieldColor(double c, double cmin, double cmax, bool use_logsca
     } else {
         f = c/cmax;
     }
-    if (cell_constituent == OXYGEN) {
+    if (field_constituent == OXYGEN) {
         rgb_hi[0] =   0; rgb_hi[1] =   0; rgb_hi[2] = 0;
         rgb_lo[0] = 255; rgb_lo[1] =   0; rgb_lo[2] = 0;
         for (i=0; i<3; i++) {
@@ -587,7 +589,7 @@ void Field::displayField(int hr, int *res)
 //    sprintf(msg,"axis: %d valmin: %f",axis,valmin);
 //    LOG_MSG(msg);
 
-    ichemo = Global::GUI_to_DLL_index[cell_constituent];
+//    ichemo = Global::GUI_to_DLL_index[cell_constituent];
 //    LOG_QMSG("displayField: cell: " + QString::number(cell_constituent) + " --> " + QString::number(ichemo));
 //    LOG_QMSG("displayField: nc: " + QString::number(fdata.ncells));
     for (i=0; i<fdata.ncells; i++) {

@@ -496,7 +496,7 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 
     {"SAVE_PROFILE_DATA",0,0,1,
      "Save profile data",
-     "Save data for profile plots as a specified interval"},
+     "Save data for profile plots at a specified interval"},
 
     {"SAVE_PROFILE_DATA_FILE_NAME",0,0,0,
      "profile_data",
@@ -509,6 +509,22 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
     {"SAVE_PROFILE_DATA_NUMBER",1,0,0,
      "Number",
      "Number of times to save profile data"},
+
+    {"SAVE_SLICE_DATA",0,0,1,
+     "Save slice data",
+     "Save data for z-slices at a specified interval"},
+
+    {"SAVE_SLICE_DATA_FILE_NAME",0,0,0,
+     "slice_data",
+     "Base file name for saving slice data"},
+
+    {"SAVE_SLICE_DATA_INTERVAL",0,0,0,
+     "Interval",
+     "Time interval for saving slice data"},
+
+    {"SAVE_SLICE_DATA_NUMBER",1,0,0,
+     "Number",
+     "Number of times to save slice data"},
 
 // This is the end of the parameters that are actually read by the DLL
 // Entries after this point are QMyLabel dummies, to enable display of explanatory info  - no input data is transmitted,
@@ -535,6 +551,7 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
     {"diameter",                  1, 0,1,"","Spheroid diameter (um)"},
     {"volume",                    1, 0,1,"","Spheroid volume (mm3)"},
     {"hypoxicfraction",           1, 0,1,"","Fraction of cells with oxygen level below the specified threshold for hypoxia"},
+    {"clonohypoxicfraction",      1, 0,1,"","Fraction of clonogenic cells with oxygen level below the specified threshold for hypoxia"},
     {"growthfraction",            1, 0,1,"","Percentage of cells that are growing at a rate less than the specified fraction of the mean growth rate with no nutrient limits"},
     {"necroticfraction",          1, 0,1,"","Percentage of the spheroid that is necrotic = (number of vacant sites)/(number of sites taken up by the spheroid)"},
     {"platingefficiency",         1, 0,1,"","Percentage of live cells that are viable"},
@@ -544,7 +561,7 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
     {"mediumdrugA",               0, 0,1,"","Average concentration of drug A in the medium (far-field)"},
     {"mediumdrugB",               0, 0,1,"","Average concentration of drug B in the medium (far-field)"},
     {"bdryoxygen",                1, 0,1,"","Average concentration of oxygen at the blob boundary"},
-    {"bdryglucose",               1, 0,1,"","Average concentration of glucose at the blob boundary"},
+    {"bdryglucose",               0, 0,1,"","Average concentration of glucose at the blob boundary"},
     {"bdrydrugA",                 0, 0,1,"","Average concentration of drug A at the blob boundary"},
     {"bdrydrugB",                 0, 0,1,"","Average concentration of drug B at the blob boundary"},
 

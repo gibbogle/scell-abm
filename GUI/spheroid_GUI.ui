@@ -79,7 +79,7 @@ padding: 8px
            <enum>QTabWidget::West</enum>
           </property>
           <property name="currentIndex">
-           <number>7</number>
+           <number>6</number>
           </property>
           <property name="elideMode">
            <enum>Qt::ElideNone</enum>
@@ -5919,7 +5919,7 @@ padding: 8px
              </rect>
             </property>
             <property name="text">
-             <string>Summary iinterval:</string>
+             <string>Summary interval:</string>
             </property>
            </widget>
            <widget class="QLineEdit" name="lineEdit_summary_interval">
@@ -6001,7 +6001,7 @@ padding: 8px
              <rect>
               <x>730</x>
               <y>70</y>
-              <width>31</width>
+              <width>41</width>
               <height>20</height>
              </rect>
             </property>
@@ -6009,10 +6009,10 @@ padding: 8px
            <widget class="QLabel" name="alabel_mins_2">
             <property name="geometry">
              <rect>
-              <x>770</x>
+              <x>780</x>
               <y>70</y>
               <width>21</width>
-              <height>16</height>
+              <height>21</height>
              </rect>
             </property>
             <property name="text">
@@ -6122,6 +6122,113 @@ padding: 8px
             </property>
             <property name="text">
              <string>Number of histogram bins</string>
+            </property>
+           </widget>
+           <widget class="QMyCheckBox" name="cbox_SAVE_SLICE_DATA">
+            <property name="geometry">
+             <rect>
+              <x>885</x>
+              <y>20</y>
+              <width>111</width>
+              <height>18</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Save slice data?</string>
+            </property>
+           </widget>
+           <widget class="QLineEdit" name="text_SAVE_SLICE_DATA_FILE_NAME">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="geometry">
+             <rect>
+              <x>925</x>
+              <y>40</y>
+              <width>71</width>
+              <height>20</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>slice_data</string>
+            </property>
+           </widget>
+           <widget class="QMyLabel" name="label_SAVE_SLICE_DATA_INTERVAL">
+            <property name="geometry">
+             <rect>
+              <x>875</x>
+              <y>70</y>
+              <width>51</width>
+              <height>21</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Interval</string>
+            </property>
+           </widget>
+           <widget class="QLineEdit" name="line_SAVE_SLICE_DATA_NUMBER">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="geometry">
+             <rect>
+              <x>925</x>
+              <y>100</y>
+              <width>31</width>
+              <height>20</height>
+             </rect>
+            </property>
+           </widget>
+           <widget class="QLineEdit" name="line_SAVE_SLICE_DATA_INTERVAL">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="geometry">
+             <rect>
+              <x>925</x>
+              <y>70</y>
+              <width>41</width>
+              <height>20</height>
+             </rect>
+            </property>
+           </widget>
+           <widget class="QLabel" name="alabel_mins_3">
+            <property name="geometry">
+             <rect>
+              <x>970</x>
+              <y>70</y>
+              <width>21</width>
+              <height>21</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>mins</string>
+            </property>
+           </widget>
+           <widget class="QMyLabel" name="label_SAVE_SLICE_DATA_NUMBER">
+            <property name="geometry">
+             <rect>
+              <x>875</x>
+              <y>100</y>
+              <width>51</width>
+              <height>21</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Number</string>
+            </property>
+           </widget>
+           <widget class="QMyLabel" name="label_SAVE_SLICE_DATA_FILE">
+            <property name="geometry">
+             <rect>
+              <x>850</x>
+              <y>40</y>
+              <width>71</width>
+              <height>20</height>
+             </rect>
+            </property>
+            <property name="text">
+             <string>Base file name</string>
             </property>
            </widget>
           </widget>
@@ -8673,7 +8780,7 @@ padding: 8px
      <x>0</x>
      <y>0</y>
      <width>1671</width>
-     <height>18</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -9011,7 +9118,10 @@ padding: 8px
   </action>
   <action name="action_save_profile_data">
    <property name="text">
-    <string>Save_profile data</string>
+    <string>Save profile data</string>
+   </property>
+   <property name="toolTip">
+    <string>Save profile data</string>
    </property>
   </action>
   <action name="actionStart_recording_Field">
@@ -9022,6 +9132,14 @@ padding: 8px
   <action name="actionStop_recording_Field">
    <property name="text">
     <string>Stop recording 2D field</string>
+   </property>
+  </action>
+  <action name="action_save_slice_data">
+   <property name="text">
+    <string>Save slice data</string>
+   </property>
+   <property name="toolTip">
+    <string>Save slice data</string>
    </property>
   </action>
  </widget>

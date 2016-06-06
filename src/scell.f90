@@ -74,7 +74,7 @@ integer :: itestcase, ictype, ishow_progeny
 integer :: iuse_oxygen, iuse_glucose, iuse_tracer, iuse_drug, iuse_metab, iV_depend, iV_random, iuse_FD
 integer :: iuse_extra, iuse_relax, iuse_par_relax, iuse_gd_all
 real(REAL_KIND) :: days, percent, fluid_fraction, d_layer, sigma(MAX_CELLTYPES), Vsite_cm3, bdry_conc, spcrad_value, d_n_limit
-integer :: iuse_drop, iconstant, isaveprofiledata, iglucosegrowth
+integer :: iuse_drop, iconstant, isaveprofiledata, isaveslicedata, iglucosegrowth
 logical :: use_metabolites
 character*(12) :: drug_name
 character*(1) :: numstr
@@ -214,9 +214,13 @@ read(nfcell,*) Ndrop
 read(nfcell,*) alpha_shape
 read(nfcell,*) beta_shape
 read(nfcell,*) isaveprofiledata
-read(nfcell,*) profiledatafilebase
-read(nfcell,*) dt_saveprofiledata
-read(nfcell,*) nt_saveprofiledata
+read(nfcell,*) saveprofile%filebase
+read(nfcell,*) saveprofile%dt
+read(nfcell,*) saveprofile%nt
+read(nfcell,*) isaveslicedata
+read(nfcell,*) saveslice%filebase
+read(nfcell,*) saveslice%dt
+read(nfcell,*) saveslice%nt
 
 read(nfcell,*) Ndrugs_used
 call ReadDrugData(nfcell)
@@ -277,8 +281,13 @@ write(logmsg,'(a,4e12.4)') 'Median, mean divide time: ',divide_time_median(1:2)/
 call logger(logmsg)
 
 use_V_dependence = (iV_depend == 1)
-saveprofiledata = (isaveprofiledata == 1)
-dt_saveprofiledata = 60*dt_saveprofiledata			! mins -> seconds
+saveprofile%active = (isaveprofiledata == 1)
+saveprofile%it = 1
+saveprofile%dt = 60*saveprofile%dt		! mins -> seconds
+saveslice%active = (isaveslicedata == 1)
+saveslice%it = 1
+saveslice%dt = 60*saveslice%dt			! mins -> seconds
+
 use_dropper = (iuse_drop == 1)
 
 randomise_initial_volume = (iV_random == 1)
@@ -301,7 +310,9 @@ Nanoxia_dead(1) Nanoxia_dead(2) NdrugA_dead(1) NdrugA_dead(2) &
 NdrugB_dead(1) NdrugB_dead(2) Nradiation_dead(1) Nradiation_dead(2) &
 Ntagged_anoxia(1) Ntagged_anoxia(2) Ntagged_drugA(1) Ntagged_drugA(2) &
 Ntagged_drugB(1) Ntagged_drugB(2) Ntagged_radiation(1) Ntagged_radiation(2) &
-f_hypox(1) f_hypox(2) f_hypox(3) f_growth(1) f_growth(2) f_growth(3) &
+f_hypox(1) f_hypox(2) f_hypox(3) &
+f_clonohypox(1) f_clonohypox(2) f_clonohypox(3) &
+f_growth(1) f_growth(2) f_growth(3) &
 f_necrot plating_efficiency(1) plating_efficiency(2) &
 medium_oxygen medium_glucose medium_drugA medium_drugB &
 bdry_oxygen bdry_glucose bdry_drugA bdry_drugB'
@@ -1034,6 +1045,8 @@ if (use_dropper .and. .not.is_dropped .and. ncells > ndrop) then
 endif
 
 !call getVolume(volume,maxarea)
+blobradius = getRadius()
+blobcentre = getCentre()
 
 t_simulation = (istep-1)*DELTA_T	! seconds
 radiation_dose = 0
@@ -1133,12 +1146,21 @@ do it_diff = 1,nt_diff
 	endif
 enddo
 
-if (saveprofiledata) then
-	if (istep*DELTA_T >= it_saveprofiledata*dt_saveprofiledata) then
+if (saveprofile%active) then
+	if (istep*DELTA_T >= saveprofile%it*saveprofile%dt) then
 		call WriteProfileData
-		it_saveprofiledata = it_saveprofiledata + 1
-		if (it_saveprofiledata > nt_saveprofiledata) then
-			saveprofiledata = .false.
+		saveprofile%it = saveprofile%it + 1
+		if (saveprofile%it > saveprofile%nt) then
+			saveprofile%active = .false.
+		endif
+	endif
+endif
+if (saveslice%active) then
+	if (istep*DELTA_T >= saveslice%it*saveslice%dt) then
+		call WriteSliceData
+		saveslice%it = saveslice%it + 1
+		if (saveslice%it > saveslice%nt) then
+			saveslice%active = .false.
 		endif
 	endif
 endif
@@ -1150,6 +1172,7 @@ if (mod(istep,nt_hour) == 0) then
 		call get_concdata(nvars, ns, dxc, ex_conc)
 	!	write(*,'(a,3f8.4)') 'cell #1: ',cell_list(1)%Cex(1),cell_list(1)%Cin(1),cell_list(1)%Cex(1)-cell_list(1)%Cin(1) 
 	endif
+	call set_bdry_conc()
 !	call write_bdryconcs
 endif
 res = 0

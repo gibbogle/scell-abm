@@ -9,13 +9,33 @@ real(REAL_KIND), parameter :: dz = 2*Raverage	! cm
 integer, allocatable :: czlist(:,:)
 integer, allocatable :: nzlist(:)
 real(REAL_KIND), allocatable :: area(:)
+real(REAL_KIND), allocatable :: r_inner(:)
+real(REAL_KIND), allocatable :: r_outer(:)
 
 contains
 
 !-----------------------------------------------------------------------------------------
-! Estimate blob radius by determining the range in the three axis directions
-! This is clearly inaccurate when the blob shape deviates significantly from a sphere,
-! and especially when cell killing causes the blob to break up. 
+!-----------------------------------------------------------------------------------------
+function getCentre() result (C)
+integer :: kcell, k, n
+real(REAL_KIND) :: csum(3), C(3)
+type(cell_type), pointer :: cp
+
+n = 0
+csum = 0
+do kcell = 1,nlist
+	if (cell_list(kcell)%state == DEAD) cycle
+	n = n+1
+	cp => cell_list(kcell)
+	do k = 1,cp%nspheres
+		csum = csum + cp%centre(:,k)
+	enddo
+enddo
+C = csum/n
+end function
+
+!-----------------------------------------------------------------------------------------
+! Estimate blob radius from the volume.
 !-----------------------------------------------------------------------------------------
 function getRadius() result(R)
 real(REAL_KIND) :: R
@@ -28,13 +48,13 @@ R = sqrt(area_cm2/PI)
 end function
 
 !---------------------------------------------------------------------------------------
-! Returns total blob volume in units of cubes with side dz = 2*Raverage
+! Returns total blob volume in units of cm3
 ! The region occupied by the blob is divided into layers dz thick, and the cells in each
 ! layer are identified.
 !---------------------------------------------------------------------------------------
 subroutine getVolume(volume,maxarea)
 real(REAL_KIND) :: volume, maxarea
-real(REAL_KIND) :: z, zmin, zmax, r
+real(REAL_KIND) :: z, zmin, zmax, r, cntr(2)
 integer :: kcell, iz, nzz, nbig, nzlmax
 type(cell_type), pointer :: cp
 
@@ -57,6 +77,7 @@ nbig = 1.5*nbig
 allocate(nzlist(nzz))
 allocate(czlist(nzz,nbig))
 allocate(area(nzz))
+
 nzlist = 0
 do kcell = 1,nlist
 	if (cell_list(kcell)%state == DEAD) cycle
@@ -76,7 +97,7 @@ do iz = 1,nzz
 !	write(*,*) iz,nzlist(iz)
 	nzlmax = max(nzlmax,nzlist(iz))
 	if (nzlist(iz) > 0) then
-		call getArea(iz,area(iz))
+		call getArea(iz,area(iz),cntr)
 	else
 		area(iz) = 0
 	endif
@@ -97,10 +118,111 @@ r = sqrt(maxarea/PI)	! cm
 end subroutine
 
 !---------------------------------------------------------------------------------------
+! nsmax = dimension of rad(:,2)
 !---------------------------------------------------------------------------------------
-subroutine getArea(iz, area)
+subroutine getSlices(nslices,dzslice,nsmax,rad)
+integer :: nslices, nsmax
+real(REAL_KIND) :: dzslice, rad(:,:)
+real(REAL_KIND) :: z, zmin, zmax, r, cntr(2)
+integer :: kcell, iz, nzz, nbig, i, iz1, iz2
+type(cell_type), pointer :: cp
+
+zmin = 1.0e10
+zmax = -1.0e10
+do kcell = 1,nlist
+	if (cell_list(kcell)%state == DEAD) cycle
+	cp => cell_list(kcell)
+	z = cp%centre(3,1)
+	zmin = min(zmin,z)
+	zmax = max(zmax,z)
+enddo
+zmin = zmin - dz
+zmax = zmax + dz
+nzz = (zmax-zmin)/dz + 1
+r = (3*Ncells/(4*PI))**(1./3.)
+nbig = PI*r**2
+nbig = 1.5*nbig
+! We need an array to store the cells indicies
+allocate(nzlist(nzz))
+allocate(czlist(nzz,nbig))
+allocate(area(nzz))
+allocate(r_inner(nzz))
+allocate(r_outer(nzz))
+
+nzlist = 0
+do kcell = 1,nlist
+	if (cell_list(kcell)%state == DEAD) cycle
+	cp => cell_list(kcell)
+	z = cp%centre(3,1)
+	iz = (z-zmin)/dz + 1
+	nzlist(iz) = nzlist(iz) + 1
+	if (nzlist(iz) > nbig) then
+		write(*,*) 'Error: getSlices: nzlist(iz) too big: ',iz,nzlist(iz),nbig
+		stop
+	endif
+	czlist(iz,nzlist(iz)) = kcell
+enddo
+
+do iz = 1,nzz
+	if (nzlist(iz) > 0) then
+		call getArea(iz,area(iz),cntr)
+        r_outer(iz) = sqrt(area(iz)/PI)	! cm
+        call getInnerRadius(iz,cntr,r_inner(iz))
+	else
+		area(iz) = 0
+		r_outer(iz) = 0
+		r_inner(iz) = 0
+	endif
+enddo
+iz1 = 0
+do iz = 1,nzz
+    if (r_outer(iz) > 0) then
+        if (iz1 == 0) iz1 = iz
+        iz2 = iz
+    endif
+enddo
+nslices = iz2 - iz1 + 1
+nslices = min(nslices,nsmax)
+do i = 1,nslices
+    iz = iz1 + i - 1
+    rad(i,1) = r_inner(iz)
+    rad(i,2) = r_outer(iz)
+enddo
+dzslice = dz
+deallocate(nzlist)
+deallocate(czlist)
+deallocate(area)
+deallocate(r_inner)
+deallocate(r_outer)
+
+end subroutine
+
+!---------------------------------------------------------------------------------------
+!---------------------------------------------------------------------------------------
+subroutine getInnerRadius(iz,cntr,r_in)
 integer :: iz
-real(REAL_KIND) :: area
+real(REAL_KIND) :: r_in, cntr(2)
+integer :: i, kcell
+real(REAL_KIND) :: r2, r2min, dx, dy
+type(cell_type), pointer :: cp
+
+r2min = 1.0e10
+do i = 1,nzlist(iz)
+	kcell = czlist(iz,i)
+	cp => cell_list(kcell)
+	dx = cp%centre(1,1) - cntr(1)
+	dy = cp%centre(2,1) - cntr(2)
+	r2 = dx**2 + dy**2
+	r2min = min(r2,r2min)
+enddo
+r_in = sqrt(r2min)
+end subroutine
+
+!---------------------------------------------------------------------------------------
+!---------------------------------------------------------------------------------------
+subroutine getArea(iz, area, cntr)
+integer :: iz
+real(REAL_KIND) :: area, cntr(2)
 real(REAL_KIND), allocatable :: x(:), y(:), xv(:), yv(:)
 real(REAL_KIND) :: ave(2), xc, yc, d2, d2max, dx(4), dy(4), dx_um
 real(REAL_KIND) :: delta = 0.20*dz
@@ -137,7 +259,7 @@ do i = 1,nvert
 	ave(1) = ave(1) + xv(i)
 	ave(2) = ave(2) + yv(i)
 enddo
-ave = ave/nvert	! this is the approximate centre
+cntr = ave/nvert	! this is the approximate centre
 ! Now adjust (xv,yv) to the site corner most remote from the centre
 dx = [-delta, delta, delta, -delta]
 dy = [-delta, -delta, delta, delta]
@@ -146,7 +268,7 @@ do i = 1,nvert
 	do k = 1,4
 		xc = xv(i) + dx(k)
 		yc = yv(i) + dy(k)
-		d2 = (xc - ave(1))**2 + (yc-ave(2))**2
+		d2 = (xc - cntr(1))**2 + (yc-cntr(2))**2
 		if (d2 > d2max) then
 			d2max = d2
 			kmax = k

@@ -522,9 +522,9 @@ endif
 !endif
 dVdt = get_dVdt(cp,metab)
 !write(*,'(a,2e12.3)') 'dVdt: ',dVdt,dVdt_new
-!if (suppress_growth) then	! for checking solvers
-!	dVdt = 0
-!endif
+if (suppress_growth) then	! for checking solvers
+	dVdt = 0
+endif
 Cex_0 = cp%Cex
 cp%dVdt = dVdt
 !cp%growthrate = dVdt

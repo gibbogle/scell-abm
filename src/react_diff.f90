@@ -211,8 +211,11 @@ integer :: ichemo
 real(REAL_KIND) :: a(:), Cave(:,:,:), Fcurr(:,:,:), rhs(:)
 integer :: k, ix, iy, iz, krow, kcol, nc
 integer :: nc_max = 10	! just a wild guess but not a bad one
-real(REAL_KIND) :: Kdiff, Kr, Vex, Cbdry, Kdiff_sum
+real(REAL_KIND) :: Ktissue, Kmedium, Kdiff, alfa, Kr, Vex, Cbdry, Kdiff_sum
 logical, save :: first = .true.
+
+Ktissue = chemo(ichemo)%diff_coef
+Kmedium = chemo(ichemo)%medium_diff_coef
 
 krow = 0
 do k = 1,nnz
@@ -229,8 +232,10 @@ do ix = 2,NX-1
 			krow = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
 			! This is very crude!!!!!!!!!!!!!!! e.g. not centred on the grid pt
 			nc = grid(ix,iy,iz)%nc
-			Kdiff = chemo(ichemo)%medium_diff_coef
-			Kdiff = Kdiff*(1 - chemo(ichemo)%diff_reduction_factor*min(nc,nc_max)/nc_max)
+			alfa = min(nc,nc_max)/nc_max
+!			Kdiff = Kdiff*(1 - chemo(ichemo)%diff_reduction_factor*alfa)
+			! Kdiff should range between Kmedium and Ktissue as nc goes from 0 to nc_max
+			Kdiff = (1-alfa)*Kmedium + alfa*Ktissue
 !			if (nc > 0) then
 !				write(*,'(a,2i4,f8.4)') 'Kdiff reduction: ',nc,nc_max,chemo(ichemo)%diff_reduction_factor*min(nc,nc_max)/nc_max
 !				k = k+1
@@ -248,7 +253,6 @@ do iy = 2,NY-1
 		krow = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
 		Cbdry = Cave(1,iy,iz)
 		rhs(krow) = rhs(krow) + Cbdry
-!		if (ichemo >= 5) write(*,'(a,e12.3)') 'Cbdry: ix=2: ',Cbdry
 	enddo
 enddo
 ix = NX-1
@@ -309,7 +313,7 @@ do k = 1,nnz_b
 	if (k == ia_b(krow+1)) krow = krow+1
 	kcol = ja_b(k)
 	if (amap_b(k,0) == 2*m) then
-		Kr = dxb*dxb/Kdiff
+    	Kr = dxb*dxb/Kdiff
 		a_b(k) = 3*Kr/(2*dt) + 2*m
 	else
 		a_b(k) = amap_b(k,0)
@@ -424,13 +428,14 @@ end subroutine
 subroutine update_Cin_const_SS(ichemo)
 integer :: ichemo
 integer :: kcell, ix, iy, iz
-real(REAL_KIND) :: alfa(3)
+real(REAL_KIND) :: alfa(3), cmax
 type(cell_type), pointer :: cp
 real(REAL_KIND), pointer :: Cextra(:,:,:)
 
 !write(*,*) 'update_Cex_Cin_dCdt_const: ',ichemo
 
 Cextra => Caverage(:,:,:,ichemo)		! currently using the average concentration!
+cmax = 0
 !$omp parallel do private(cp, ix, iy, iz, alfa)
 do kcell = 1,nlist
 	cp => cell_list(kcell)
@@ -448,8 +453,20 @@ do kcell = 1,nlist
         + alfa(1)*alfa(2)*alfa(3)*Cextra(ix+1,iy+1,iz+1)  &
         + alfa(1)*(1-alfa(2))*alfa(3)*Cextra(ix+1,iy,iz+1)
 	cp%Cin(ichemo) = getCin_SS(kcell,ichemo,cp%V,cp%Cex(ichemo))
+!	if (ichemo == OXYGEN) then
+!	    cmax = max(cmax,cp%Cex(ichemo))
+!	endif
+!    if (ichemo == OXYGEN .and. kcell == 4593) then
+!        write(nflog,'(a,3i4)') 'update_Cin_const_SS: O2: kcell=4593: ix,iy,iz: ',ix,iy,iz
+!        write(nflog,'(a,e12.3,2x,3e12.3)') 'Cex, alfa: ',cp%Cex(ichemo),alfa
+!    endif
 enddo
 !$omp end parallel do
+!if (ichemo == OXYGEN) then
+!    write(nflog,*) 'Cextra: ix,iy: ',17,17
+!    write(nflog,'(10f8.4)') Cextra(17,17,:)
+!    write(nflog,'(a,e12.3)') 'cp%Cex max (O2): ',cmax
+!endif
 end subroutine
 
 !-------------------------------------------------------------------------------------------
@@ -588,8 +605,8 @@ end subroutine
 subroutine getF_const(ichemo, Cflux_const)
 integer :: ichemo
 real(REAL_KIND) :: Cflux_const(:,:,:)
-real(REAL_KIND) :: Kin, Kout, total_flux
-integer :: kcell
+real(REAL_KIND) :: Kin, Kout, total_flux, zmax
+integer :: kcell, kcellmax
 type(cell_type), pointer :: cp
 
 !write(*,*) 'getF_const: ',ichemo,nlist
@@ -598,14 +615,29 @@ Kout = chemo(ichemo)%membrane_diff_out
 
 ! Compute cell fluxes cp%dMdt
 total_flux = 0
+zmax = 0
 !!$omp parallel do private(cp)
 do kcell = 1,nlist
 	cp => cell_list(kcell)
 	if (cp%state == DEAD) cycle
+!	if (cp%centre(3,1) > zmax) then
+!    	zmax = cp%centre(3,1)
+!    	kcellmax = kcell
+!    endif
 	cp%dMdt(ichemo) = Kin*cp%Cex(ichemo) - Kout*cp%Cin(ichemo)
+!	if (istep == 35 .and. ichemo == OXYGEN) then
+!	    write(nflog,'(i6,7e12.3)') kcell, cp%centre(:,1), cp%Cin(ichemo), cp%Cex(OXYGEN), &
+!	            cp%Cex(ichemo)-cp%Cin(OXYGEN), cp%dMdt(OXYGEN)
+!	endif
 	total_flux = total_flux + cp%dMdt(ichemo)
 enddo
 !!$omp end parallel do
+!write(nflog,'(a,i6,e12.3)') 'kcellmax, zmax: ',kcellmax,zmax
+
+
+!if (ichemo == OXYGEN) then
+!	write(nflog,'(a,i4,e12.3)') 'O2 total_flux: ',istep,total_flux
+!endif
 
 ! Estimate grid pt flux values F
 call make_grid_flux(ichemo,Cflux_const)
@@ -935,7 +967,7 @@ integer :: ichemo
 real(REAL_KIND) :: Cave(:,:,:), Cave_b(:,:,:)
 integer :: idx, idy, idz, xb0, yb0, idxb, idyb, xb1, xb2, yb1, yb2, zb1, zb2
 integer :: ixb, iyb, izb, ix0, iy0, iz0, ix, iy, iz, nsum, ncsum
-real(REAL_KIND) :: ax, ay, az, asum(2), Cnew, csum
+real(REAL_KIND) :: ax, ay, az, asum(2), Cnew, csum, finegrid_Cbnd
 real(REAL_KIND) :: alpha_conc = 1.0	!0.3
 
 xb0 = (NXB+1)/2			
@@ -1064,7 +1096,10 @@ do ixb = xb1,xb2-1
 		enddo
 	enddo
 enddo
-chemo(ichemo)%medium_cbnd = csum/ncsum		! average concentration on the boundary of the fine grid
+chemo(ichemo)%fine_grid_cbnd = csum/ncsum		! average concentration on the boundary of the fine grid
+!if (ichemo == OXYGEN) then
+!    write(nflog,'(a,e12.3)') 'O2 finegrid_Cbnd (bdry of fine grid): ',finegrid_Cbnd
+!endif
 !write(nflog,'(a,i4)') 'interpolate_Cave: ichemo, Cave: ',ichemo
 !write(nflog,'(10f8.2)') Cave(NX/2,NY/2,:)
 end subroutine
@@ -1097,6 +1132,107 @@ do kcell = 1,nlist
 	mass = mass + cp%V*cp%Cin(ichemo)
 enddo
 
+end subroutine
+
+!--------------------------------------------------------------------------------------
+! Use the solution for Cave to estimate the average blob boundary concentration: %blob_Cbnd
+! by averaging over a sphere with radius = blob radius (cm) centred at the blob centre
+! centre_b -> centre_f on the fine grid. (unless this changes significantly)
+! To generate a random point on the sphere, it is necessary only to generate two random numbers, z between -R and R, phi between 0 and 2 pi, each with a uniform distribution
+! To find the latitude (theta) of this point, note that z=Rsin(theta), so theta=sin-1(z/R); its longitude is (surprise!) phi.
+! In rectilinear coordinates, x=Rcos(theta)cos(phi), y=Rcos(theta)sin(phi), z=Rsin(theta)= (surprise!) z.
+! Needless to say, (x,y,z) are not independent, but are rather constrained by x2+y2+z2=R2.
+!--------------------------------------------------------------------------------------
+subroutine set_bdry_conc
+integer :: kpar = 0
+real(REAL_KIND) :: rad, xb0, yb0, zb0, x, y, z, p(3), phi, theta, c(MAX_CHEMO), csum(MAX_CHEMO)
+real(REAL_KIND) :: xf0, yf0, zf0    ! centre on fine grid
+real(REAL_KIND) :: pmax(3), cmax
+integer :: i, ic, ichemo, n = 100
+
+!call SetRadius(Nsites)
+rad = blobradius
+xf0 = blobcentre(1)
+yf0 = blobcentre(2)
+zf0 = blobcentre(3)
+csum = 0
+cmax = 0
+do i = 1,n
+	z = -rad + 2*rad*par_uni(kpar)
+	phi = 2*PI*par_uni(kpar)
+	theta = asin(z/rad)
+	x = xf0 + rad*cos(theta)*cos(phi)
+	y = yf0 + rad*cos(theta)*sin(phi)
+	z = zf0 + z
+	p = [x, y, z]
+	call getConc_f(p,c)
+	csum = csum + c
+	if (c(1) > cmax) then
+	    cmax = c(1)
+	    pmax = p
+	endif
+enddo
+write(nflog,'(a,e12.3,2x,3e12.3)') 'set_bdry_conc: blob radius, centre: ',blobradius,blobcentre
+do ic = 1,nchemo
+	ichemo = chemomap(ic)
+	chemo(ichemo)%medium_Cbnd = csum(ichemo)/n
+	write(nflog,'(a,i2,f8.4)') 'medium_Cbnd: ',ichemo,chemo(ichemo)%medium_Cbnd
+enddo
+write(nflog,'(a,e12.3,2x,3e12.3)') 'max O2 at: ',cmax,pmax
+end subroutine
+
+!--------------------------------------------------------------------------------------
+! Interpolate to obtain concentrations at p(:) = (x,y,z) from Caverage(:,:,:,:)
+! Copied from spheroid_abm, which uses the coarse grid solution chemo(ichemo)%Cave_b(:,:,:)  
+! Here we want to use the fine grid, which has more resolution.
+!--------------------------------------------------------------------------------------
+subroutine getConc_f(cb,c)
+real(REAL_KIND) :: cb(3), c(:)
+integer :: ix, iy, iz, grid(3), i
+real(REAL_KIND) :: alfa(3)
+real(REAL_KIND), pointer :: Cextra(:,:,:,:)
+
+! changed 31/05/2016 from:
+!ixb = cb(1)/DXB + 1
+!iyb = cb(2)/DXB + 1
+!izb = cb(3)/DXB + 1
+!grid = [ixb, iyb, izb]
+!do i = 1,3
+!	alfa(i) = (cb(i) - (grid(i)-1)*DXB)/DXB
+!enddo
+
+ix = cb(1)/DXF + 1
+iy = cb(2)/DXF + 1
+iz = cb(3)/DXF + 1
+grid = [ix, iy, iz]
+!write(*,'(a,3f8.4)') 'cb:  ',cb
+!write(*,'(a,3i8)') 'grid: ',grid
+do i = 1,3
+	alfa(i) = (cb(i) - (grid(i)-1)*DXF)/DXF
+enddo
+
+! from grid_interp
+!ix = cp%site(1)
+!iy = cp%site(2)
+!iz = cp%site(3)
+!do i = 1,3
+!	alfa(i) = (centre(i) - (cp%site(i)-1)*DELTA_X)/DELTA_X
+!enddo
+
+c = 0
+!do ic = 1,nchemo
+!	ichemo = chemomap(ic)
+!	Cextra => chemo(ichemo)%Cave_b  ! changed 31/05/2016
+    Cextra => Caverage(:,:,:,:)
+	c(:) = (1-alfa(1))*(1-alfa(2))*(1-alfa(3))*Cextra(ix,iy,iz,:)  &
+			+ (1-alfa(1))*alfa(2)*(1-alfa(3))*Cextra(ix,iy+1,iz,:)  &
+			+ (1-alfa(1))*alfa(2)*alfa(3)*Cextra(ix,iy+1,iz+1,:)  &
+			+ (1-alfa(1))*(1-alfa(2))*alfa(3)*Cextra(ix,iy,iz+1,:)  &
+			+ alfa(1)*(1-alfa(2))*(1-alfa(3))*Cextra(ix+1,iy,iz,:)  &
+			+ alfa(1)*alfa(2)*(1-alfa(3))*Cextra(ix+1,iy+1,iz,:)  &
+			+ alfa(1)*alfa(2)*alfa(3)*Cextra(ix+1,iy+1,iz+1,:)  &
+			+ alfa(1)*(1-alfa(2))*alfa(3)*Cextra(ix+1,iy,iz+1,:)
+!enddo
 end subroutine
 
 !--------------------------------------------------------------------------------------
@@ -1371,7 +1507,7 @@ do ic = 1,nfinemap
 		if (use_SS) then
 			call update_Cin_const_SS(ichemo)				! true steady-state
 			call getF_const(ichemo, Fcurr)
-		elseif (use_integration) then
+		elseif (use_integration) then       ! uses SS for O2, glucose
 			call update_Cex(ichemo)
 		else
 			call update_Cex_Cin_dCdt_const(ichemo,dt)		! quasi steady-state

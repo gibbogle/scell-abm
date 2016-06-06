@@ -135,6 +135,7 @@ private slots:
     void on_comboBox_CELLCOLOUR_2_currentIndexChanged(int index);
 
     void on_cbox_SAVE_PROFILE_DATA_toggled(bool checked);
+    void on_cbox_SAVE_SLICE_DATA_toggled(bool checked);
 
     void LoadProtocol(QString);
 //    void SaveProtocol(QString, int);

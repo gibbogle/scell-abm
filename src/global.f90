@@ -227,7 +227,14 @@ type LQ_type
 	real(REAL_KIND) :: growth_delay_N
 end type
 
-integer, parameter :: nflog=10, nfin=11, nfout=12, nfres=13, nfcell=14, nfprofile=15
+type savedata_type
+    logical :: active
+    character*(128) :: filebase
+    real(REAL_KIND) :: dt
+    integer :: nt, it
+end type
+
+integer, parameter :: nflog=10, nfin=11, nfout=12, nfres=13, nfcell=14, nfprofile=15, nfslice=16
 integer, parameter :: MAX_NLIST = 100000
 integer, parameter :: MAX_NBRS = 50
 integer, parameter :: ndt_max = 30
@@ -243,15 +250,14 @@ integer :: Mnodes, ncpu_input, ncells, ncells_mphase, nlist, nsteps, nevents
 integer :: Ndrugs_used
 integer :: NX, NY, NZ, NXB, NYB, NZB, Nmm3
 integer :: Ndim(3)
-integer :: nt_saveprofiledata, it_saveprofiledata
 integer :: NT_CONC, NT_GUI_OUT, initial_count, ntries, Ncelltypes, Ncells_type(MAX_CELLTYPES)
 integer :: istep, ndt, ndtotal, ndtotal_last, ichemo_curr
 integer :: seed(2)
 integer :: jumpvec(3,27)
 integer :: diam_count_limit
 logical :: limit_stop
-real(REAL_KIND) :: DELTA_X, DELTA_T, tnow, t_simulation, dt_saveprofiledata
-real(REAL_KIND) :: blobcentre(3)	! blob centre
+real(REAL_KIND) :: DELTA_X, DELTA_T, tnow, t_simulation
+real(REAL_KIND) :: blobcentre(3), blobradius	! blob centre
 real(REAL_KIND) :: epsilon, es_e, sqr_es_e, shift, Dfactor
 real(REAL_KIND) :: alpha_v, k_detach
 real(REAL_KIND) :: dr_mitosis, mitosis_hours, mitosis_duration
@@ -281,6 +287,7 @@ real(REAL_KIND) :: O2cutoff(3), hypoxia_threshold
 real(REAL_KIND) :: growthcutoff(3)
 logical :: use_radiation_growth_delay_all = .true.
 
+type(savedata_type) :: saveprofile, saveslice
 
 ! From react_diff
 real(REAL_KIND) :: dxf, dxb, dx3, dxb3, Rcell, Vcell
@@ -307,7 +314,6 @@ logical :: stopped, clear_to_send
 
 character*(128) :: logfile
 character*(2048) :: logmsg
-character*(128) :: profiledatafilebase
 
 type(cell_type), allocatable, target :: cell_list(:)
 type(grid_type), allocatable, target :: grid(:,:,:)
@@ -330,7 +336,6 @@ type(LQ_type) :: LQ(MAX_CELLTYPES)
 
 logical :: use_events = .true.
 logical :: use_radiation, use_treatment
-logical :: saveprofiledata
 logical :: use_death = .true.
 logical :: use_extracellular_O2 = .false.
 logical :: use_migration = .false.

@@ -248,7 +248,7 @@ enddo
 	
 ! Remove time tag from the filename for download from NeSI
 write(mintag,'(i6)') int(istep*DELTA_T/60)
-filename = profiledatafilebase
+filename = saveprofile%filebase
 filename = trim(filename)//'_'
 filename = trim(filename)//trim(adjustl(mintag))
 filename = trim(filename)//'min.dat'
@@ -265,6 +265,35 @@ enddo
 close(nfprofile)
 deallocate(ex_conc)
 !write(nflog,*) 'did WriteProfileData: ',filename
+end subroutine
+
+!--------------------------------------------------------------------------------
+!--------------------------------------------------------------------------------
+subroutine WriteSliceData
+character*(128) :: filename
+character*(6) :: mintag
+integer, parameter :: NSMAX = 200
+integer :: iz, nslices
+real(REAL_KIND) :: dzslice
+real(REAL_KIND) :: rad(NSMAX,2)
+
+! Remove time tag from the filename for download from NeSI
+write(mintag,'(i6)') int(istep*DELTA_T/60)
+filename = saveslice%filebase
+filename = trim(filename)//'_'
+filename = trim(filename)//trim(adjustl(mintag))
+filename = trim(filename)//'min.dat'
+open(nfslice,file=filename,status='replace')
+write(nfslice,'(a,a)') 'GUI version: ',gui_run_version
+write(nfslice,'(a,a)') 'DLL version: ',dll_run_version
+write(nfslice,'(i6,a)') int(istep*DELTA_T/60),' minutes'
+call getSlices(nslices,dzslice,NSMAX,rad)
+write(nfslice,'(e12.3,a)') dzslice,'  slice thickness (cm)'
+write(nfslice,'(i4,a)') nslices,'  number of slices'
+do iz = 1,nslices
+    write(nfslice,'(i4,3e12.3)') iz,rad(iz,:),rad(iz,2)-rad(iz,1)
+enddo
+close(nfslice)
 end subroutine
 
 !-----------------------------------------------------------------------------------------
@@ -710,15 +739,17 @@ diam_cm = 2*sqrt(area_cm2/PI)
 end subroutine
 
 !-----------------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------------------
 subroutine get_summary(summaryData,i_hypoxia_cutoff,i_growth_cutoff) BIND(C)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_summary
 use, intrinsic :: iso_c_binding
 integer(c_int) :: summaryData(*), i_hypoxia_cutoff,i_growth_cutoff
 integer :: Nviable(MAX_CELLTYPES), Nlive(MAX_CELLTYPES), plate_eff_10(MAX_CELLTYPES)
-integer :: diam_um, vol_mm3_1000, nhypoxic(3), ngrowth(3), hypoxic_percent_10, growth_percent_10, necrotic_percent_10,  npmm3, &
+integer :: diam_um, vol_mm3_1000, nhypoxic(3), nclonohypoxic(3), ngrowth(3), &
+    hypoxic_percent_10, clonohypoxic_percent_10, growth_percent_10, necrotic_percent_10,  npmm3, &
     medium_oxygen_1000, medium_glucose_1000, medium_drug_1000(2), &
     bdry_oxygen_1000, bdry_glucose_1000, bdry_drug_1000(2)
-integer :: TNanoxia_dead, TNradiation_dead, TNdrug_dead(2),  &
+integer :: TNanoxia_dead, TNradiation_dead, TNdrug_dead(2),  TNviable, &
            Ntagged_anoxia(MAX_CELLTYPES), Ntagged_radiation(MAX_CELLTYPES), Ntagged_drug(2,MAX_CELLTYPES), &
            TNtagged_anoxia, TNtagged_radiation, TNtagged_drug(2)
 integer :: Tplate_eff_10   
@@ -748,17 +779,21 @@ TNradiation_dead = sum(Nradiation_dead(1:Ncelltypes))
 TNdrug_dead(1) = sum(Ndrug_dead(1,1:Ncelltypes))
 TNdrug_dead(2) = sum(Ndrug_dead(2,1:Ncelltypes))
 
+call getNviable(Nviable, Nlive)
+TNviable = sum(Nviable(1:Ncelltypes))
+
 call getHypoxicCount(nhypoxic)
-hypoxic_percent_10 = (1000*nhypoxic(i_hypoxia_cutoff))/Ncells
+hypoxic_percent_10 = (1000.*nhypoxic(i_hypoxia_cutoff))/Ncells
+call getClonoHypoxicCount(nclonohypoxic)
+clonohypoxic_percent_10 = (1000.*nclonohypoxic(i_hypoxia_cutoff))/TNviable
 call getGrowthCount(ngrowth)
-growth_percent_10 = (1000*ngrowth(i_growth_cutoff))/Ncells
+growth_percent_10 = (1000.*ngrowth(i_growth_cutoff))/Ncells
 !if (TNanoxia_dead > 0) then
 	call getNecroticFraction(necrotic_fraction,vol_cm3)
 !else
 !	necrotic_fraction = 0
 !endif
-necrotic_percent_10 = 1000*necrotic_fraction
-call getNviable(Nviable, Nlive)
+necrotic_percent_10 = 1000.*necrotic_fraction
 do ityp = 1,Ncelltypes
 	if (Nlive(ityp) > 0) then
 		plate_eff(ityp) = real(Nviable(ityp))/Nlive(ityp)
@@ -766,33 +801,34 @@ do ityp = 1,Ncelltypes
 		plate_eff(ityp) = 0
 	endif
 enddo
-plate_eff_10 = 1000*plate_eff
+plate_eff_10 = 1000.*plate_eff
 Tplate_eff_10 = 0
 do ityp = 1,Ncelltypes
 	Tplate_eff_10 = Tplate_eff_10 + plate_eff_10(ityp)*celltype_fraction(ityp)
 enddo
 call getMediumConc(cmedium, cbdry)
-medium_oxygen_1000 = cmedium(OXYGEN)*1000
-medium_glucose_1000 = cmedium(GLUCOSE)*1000
-medium_drug_1000(1) = cmedium(DRUG_A)*1000
-medium_drug_1000(2) = cmedium(DRUG_B)*1000
-bdry_oxygen_1000 = cbdry(OXYGEN)*1000
-bdry_glucose_1000 = cbdry(GLUCOSE)*1000
-bdry_drug_1000(1) = cbdry(DRUG_A)*1000
-bdry_drug_1000(2) = cbdry(DRUG_B)*1000
+medium_oxygen_1000 = cmedium(OXYGEN)*1000.
+medium_glucose_1000 = cmedium(GLUCOSE)*1000.
+medium_drug_1000(1) = cmedium(DRUG_A)*1000.
+medium_drug_1000(2) = cmedium(DRUG_B)*1000.
+bdry_oxygen_1000 = cbdry(OXYGEN)*1000.
+bdry_glucose_1000 = cbdry(GLUCOSE)*1000.
+bdry_drug_1000(1) = cbdry(DRUG_A)*1000.
+bdry_drug_1000(2) = cbdry(DRUG_B)*1000.
 
-summaryData(1:25) = [ istep, Ncells, TNanoxia_dead, TNdrug_dead(1), TNdrug_dead(2), TNradiation_dead, &
+summaryData(1:26) = [ istep, Ncells, TNanoxia_dead, TNdrug_dead(1), TNdrug_dead(2), TNradiation_dead, &
     TNtagged_anoxia, TNtagged_drug(1), TNtagged_drug(2), TNtagged_radiation, &
-	diam_um, vol_mm3_1000, hypoxic_percent_10, growth_percent_10, necrotic_percent_10, Tplate_eff_10, npmm3, &
+	diam_um, vol_mm3_1000, hypoxic_percent_10, clonohypoxic_percent_10, growth_percent_10, necrotic_percent_10, &
+	Tplate_eff_10, npmm3, &
 	medium_oxygen_1000, medium_glucose_1000, medium_drug_1000(1), medium_drug_1000(2), &
 	bdry_oxygen_1000, bdry_glucose_1000, bdry_drug_1000(1), bdry_drug_1000(2) ]
-write(nfres,'(2a12,i8,2e12.4,19i7,17e12.4)') gui_run_version, dll_run_version, &
+write(nfres,'(2a12,i8,2e12.4,19i7,20e12.4)') gui_run_version, dll_run_version, &
 	istep, hour, vol_mm3, diam_um, Ncells_type(1:2), &
     Nanoxia_dead(1:2), Ndrug_dead(1,1:2), &
     Ndrug_dead(2,1:2), Nradiation_dead(1:2), &
     Ntagged_anoxia(1:2), Ntagged_drug(1,1:2), &
     Ntagged_drug(2,1:2), Ntagged_radiation(1:2), &
-	nhypoxic(:)/real(Ncells), ngrowth(:)/real(Ncells), &
+	nhypoxic(:)/real(Ncells), nclonohypoxic(:)/real(TNviable), ngrowth(:)/real(Ncells), &
 	necrotic_fraction, plate_eff(1:2), &
 	cmedium(OXYGEN), cmedium(GLUCOSE), cmedium(DRUG_A), cmedium(DRUG_B), &
 	cbdry(OXYGEN), cbdry(GLUCOSE), cbdry(DRUG_A), cbdry(DRUG_B)
@@ -868,6 +904,31 @@ do kcell = 1,nlist
 		if (cell_list(kcell)%Cin(OXYGEN) < O2cutoff(i)) then
 			nhypoxic(i) = nhypoxic(i) + 1
 !			write(*,'(a,i6,2e12.3)') 'hypoxic: ',kcell,cell_list(kcell)%Cin(OXYGEN),O2cutoff(i)
+		endif
+	enddo
+enddo
+end subroutine
+
+!--------------------------------------------------------------------------------
+!--------------------------------------------------------------------------------
+subroutine getClonoHypoxicCount(nclonohypoxic)
+integer :: nclonohypoxic(3)
+integer :: kcell, i, idrug
+logical :: tagged
+
+nclonohypoxic = 0
+do kcell = 1,nlist
+	if (cell_list(kcell)%state == DEAD) cycle
+	if (cell_list(kcell)%anoxia_tag) cycle
+	if (cell_list(kcell)%radiation_tag) cycle
+	tagged = .false.
+	do idrug = 1,MAX_DRUGTYPES
+	    if (cell_list(kcell)%drug_tag(idrug)) tagged = .true.
+	enddo
+	if (tagged) cycle
+	do i = 1,3
+		if (cell_list(kcell)%Cin(OXYGEN) < O2cutoff(i)) then
+			nclonohypoxic(i) = nclonohypoxic(i) + 1
 		endif
 	enddo
 enddo

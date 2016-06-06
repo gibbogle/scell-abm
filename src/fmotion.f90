@@ -188,7 +188,7 @@ fwall_prev = fwall
 fwall = 0
 badforce = .false.
 call omp_set_num_threads(tMnodes)
-!$omp parallel do private(k1,kcell,F,ok)
+!$omp parallel do private(k1,kcell,F,amp,ok)
 !do k1 = 1,ncells
 !	write(*,*) 'Threads, max: ',omp_get_num_threads(),omp_get_max_threads()
 do kpar = 0,tMnodes-1
