@@ -204,7 +204,8 @@ void ExecThread::run()
     sprintf(msg,"exthread: nsteps: %d summary_interval: %d NX: %d DELTA_X: %f nt_VTK: %d N_EXTRA: %d",
             nsteps,summary_interval,Global::NX,Global::DELTA_X,Global::nt_vtk,Global::N_EXTRA);
     LOG_MSG(msg);
-    Global::conc_nc = 0;
+    Global::conc_nc_ex = 0;
+    Global::conc_nc_ic = 0;
     hour = 0;
 
     mutex1.lock();
@@ -243,7 +244,8 @@ void ExecThread::run()
             get_summary(Global::summaryData, &Global::i_hypoxia_cutoff, &Global::i_growth_cutoff);
             get_volprob(&Global::vol_nv, &Global::vol_v0, &Global::vol_dv, Global::volProb);
             get_oxyprob(&Global::oxy_nv, &Global::oxy_v0, &Global::oxy_dv, Global::oxyProb);
-            get_concdata(&Global::conc_nvars, &Global::conc_nc, &Global::conc_dx, Global::concData);
+            get_concdata(&Global::conc_nvars, &Global::conc_nc_ex, &Global::conc_dx_ex, Global::concData);
+            get_ic_concdata(&Global::conc_nvars, &Global::conc_nc_ic, &Global::conc_dx_ic, Global::IC_concData);
             if (Global::showingFACS || Global::recordingFACS) {
                 getFACS();
             }

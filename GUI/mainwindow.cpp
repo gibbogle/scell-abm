@@ -262,7 +262,8 @@ void MainWindow::createActions()
 //    connect(buttonGroup_constituent, SIGNAL(buttonClicked(QAbstractButton*)), field, SLOT(setConstituent(QAbstractButton*)));
 //	  connect(lineEdit_fraction, SIGNAL(textChanged(QString)), this, SLOT(textChanged_fraction(QString)));
 	connect(lineEdit_fraction, SIGNAL(textEdited(QString)), this, SLOT(textEdited_fraction(QString)));
-    connect(action_select_constituent, SIGNAL(triggered()), SLOT(onSelectConstituent()));
+    connect(actionSelect_cell_constituent, SIGNAL(triggered()), SLOT(onSelectCellConstituent()));
+    connect(actionSelect_field_constituent, SIGNAL(triggered()), SLOT(onSelectFieldConstituent()));
     connect(line_CELLPERCENT_1, SIGNAL(textEdited(QString)), this, SLOT(on_line_CELLPERCENT_1_textEdited(QString)));
     connect(line_CELLPERCENT_2, SIGNAL(textEdited(QString)), this, SLOT(on_line_CELLPERCENT_2_textEdited(QString)));
 
@@ -1843,8 +1844,8 @@ void MainWindow::saveProfileData()
         out << "\n";
     }
     out << "\n";
-    for (i=0; i<Global::conc_nc; i++) {
-        x = i*Global::conc_dx*1.0e4;
+    for (i=0; i<Global::conc_nc_ex; i++) {
+        x = i*Global::conc_dx_ex*1.0e4;
         line = QString::number(x,'g',4);
         line += " ";
         for (ichemo=0; ichemo<Global::MAX_CHEMO+1; ichemo++) {
@@ -2282,8 +2283,75 @@ void MainWindow::showSummary(int hr)
     exthread->summary_done.wakeOne();
 }
 
+
 //--------------------------------------------------------------------------------------------------------
 // nvars = 1 + Global::MAX_CHEMO + Global::N_EXTRA;
+// New code
+//--------------------------------------------------------------------------------------------------------
+void MainWindow::updateProfilePlots()
+{
+    if (Global::casename == "") return;
+    int ivar = 0;
+    for (int i=0; i<nGraphs; i++) {
+        if (!grph->isActive(i)) continue;
+        if (Global::conc_nc_ex > 0 && grph->isProfile(i)) {
+            int nc;
+            double x[100], y[100], dx;
+            double xscale, yscale;
+            QString tag = grph->get_tag(i);
+            bool IC = tag.contains("IC_");
+            if (IC) {
+                nc = Global::conc_nc_ex;
+                dx = Global:: conc_dx_ex;
+            } else {
+                nc = Global::conc_nc_ic;
+                dx = Global:: conc_dx_ic;
+            }
+            int k = grph->get_dataIndex(i);
+            if (k == MULTI) {
+                if (IC) {
+                    ivar = field->cell_constituent;
+                } else {
+                    ivar = field->field_constituent;
+                }
+                QString title;
+                field->getTitle(ivar,&title);
+                if (IC) {
+                    title = "IC " + title;
+                }
+                pGraph[i]->setTitle(title);
+                k = Global::GUI_to_DLL_index[ivar];
+            }
+//            int n = Global::conc_nc;
+            int offset = k*nc;
+            for (int j=0; j<nc; j++) {
+                x[j] = j*dx*1.0e4;
+                if (IC) {
+                    y[j] = Global::IC_concData[offset+j];
+                } else {
+                    y[j] = Global::concData[offset+j];
+                }
+
+            }
+            xscale = grph->get_xscale(x[nc-1]);
+            double maxval = 0;
+            for (int j=0; j<nc; j++) {
+                if (y[j] > maxval) maxval = y[j];
+            }
+            yscale = pGraph[i]->calc_yscale(maxval);
+            pGraph[i]->setAxisScale(QwtPlot::xBottom, 0, xscale, 0);
+            pGraph[i]->setAxisScale(QwtPlot::yLeft, 0, yscale, 0);
+            pGraph[i]->setAxisTitle(QwtPlot::xBottom, "Distance (microns)");
+            pGraph[i]->setAxisTitle(QwtPlot::yLeft, grph->get_yAxisTitle(i));
+            pGraph[i]->redraw(x, y, nc, Global::casename, tag, yscale, true);
+        }
+    }
+}
+
+/*
+//--------------------------------------------------------------------------------------------------------
+// nvars = 1 + Global::MAX_CHEMO + Global::N_EXTRA;
+// Old code
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::updateProfilePlots()
 {
@@ -2297,8 +2365,8 @@ void MainWindow::updateProfilePlots()
             QString tag = grph->get_tag(i);
             int k = grph->get_dataIndex(i);
             if (k == MULTI) {
-                ivar = field->cell_constituent;
-//                ivar = field->constituent;    //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+//                ivar = field->cell_constituent;
+                ivar = field->field_constituent;    //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
                 QString title;
                 field->getTitle(ivar,&title);
                 pGraph[i]->setTitle(title);
@@ -2327,6 +2395,7 @@ void MainWindow::updateProfilePlots()
         }
     }
 }
+*/
 
 //--------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------

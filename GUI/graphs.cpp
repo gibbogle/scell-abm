@@ -90,7 +90,7 @@ GRAPH_SET tsGraphSet[] = {
     "Slow-growth Fraction",
     "%",
      "Percentage of cells that are growing at a rate less than the specified fraction of the mean growth rate with no nutrient limits",
-    14, true, 0, 0.1, 0, TS_TYPE},
+    14, false, 0, 0.1, 0, TS_TYPE},
 
     {"necroticfraction",
     "Necrotic Fraction",
@@ -158,18 +158,19 @@ GRAPH_SET tsGraphSet[] = {
      "Average concentration of drug B at the blob boundary",
     25, true, 0, 0.001, 0, TS_TYPE},
 
-// Profiles
+// Extracellular profiles
+
     {"MULTI",
     "Multi-constituent",
     "",
     "MULTI description",
     MULTI, true, 0, 1, 0, PROF_TYPE},
 
-    {"CFSE",
-    "CFSE Concentration",
-    "",
-    "CFSE description",
-    CFSE, false, 0, 1, 0, PROF_TYPE},
+//    {"CFSE",
+//    "CFSE Concentration",
+//    "",
+//    "CFSE description",
+//    CFSE, false, 0, 1, 0, PROF_TYPE},
 
     {"Oxygen",
     "Oxygen Concentration",
@@ -225,23 +226,86 @@ GRAPH_SET tsGraphSet[] = {
     "Drug_B_metab2 description",
     DRUG_B_METAB_2, false, 0, 1, 0, PROF_TYPE},
 
-    {"growthrate",
+// Intracellular profiles
+
+    {"IC_MULTI",
+    "IC Multi-constituent",
+    "",
+    "IC MULTI description",
+    IC_MULTI, true, 0, 1, 0, PROF_TYPE},
+
+    {"IC_Oxygen",
+    "IC Oxygen Concentration",
+    "",
+    "IC Oxygen description",
+    IC_OXYGEN, false, 0, 1, 0, PROF_TYPE},
+
+    {"IC_Glucose",
+    "IC Glucose Concentration",
+    "",
+    "IC Glucose description",
+    IC_GLUCOSE, false, 0, 1, 0, PROF_TYPE},
+
+    {"IC_Drug_A",
+    "IC Drug A Concentration",
+    "",
+    "Drug_A description",
+    IC_DRUG_A_PARENT, false, 0, 1, 0, PROF_TYPE},
+
+    {"IC_Drug_A_metab1",
+    "IC Drug A Metabolite 1 Concentration",
+    "",
+    "Drug_A_metab1 description",
+    IC_DRUG_A_METAB_1, false, 0, 1, 0, PROF_TYPE},
+
+    {"IC_Drug_A_metab2",
+    "IC Drug A Metabolite 2 Concentration",
+    "",
+    "Drug_A_metab2 description",
+    IC_DRUG_A_METAB_2, false, 0, 1, 0, PROF_TYPE},
+
+    {"IC_Drug_B",
+    "IC Drug B Concentration",
+    "",
+    "Drug_B description",
+    IC_DRUG_B_PARENT, false, 0, 1, 0, PROF_TYPE},
+
+    {"Drug_B_metab1",
+    "IC Drug B Metabolite 1 Concentration",
+    "",
+    "Drug_B_metab1 description",
+    IC_DRUG_B_METAB_1, false, 0, 1, 0, PROF_TYPE},
+
+    {"Drug_B_metab2",
+    "IC Drug B Metabolite 2 Concentration",
+    "",
+    "Drug_B_metab2 description",
+    IC_DRUG_B_METAB_2, false, 0, 1, 0, PROF_TYPE},
+
+    {"IC_CFSE",
+    "CFSE Concentration",
+    "",
+    "IC CFSE description",
+    IC_CFSE, false, 0, 1, 0, PROF_TYPE},
+
+    {"IC_growthrate",
     "Growth Rate",
     "",
     "Growth rate description",
-    GROWTH_RATE, false, 0, 1, 0, PROF_TYPE},
+    IC_GROWTH_RATE, false, 0, 1, 0, PROF_TYPE},
 
-    {"cellvolume",
+    {"IC_cellvolume",
     "Cell Volume",
     "",
     "Cell volume description",
-    CELL_VOLUME, false, 0, 1, 0, PROF_TYPE},
+    IC_CELL_VOLUME, false, 0, 1, 0, PROF_TYPE},
 
-    {"O2byvolume",
+    {"IC_O2byvolume",
     "Cell O2xVolume",
     "",
     "Cell volume description",
-    O2_BY_VOL, false, 0, 1, 0, PROF_TYPE},
+    IC_O2_BY_VOL, false, 0, 1, 0, PROF_TYPE},
+
 
 // Distributions
 //    {"Oxygen_dist",

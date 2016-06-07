@@ -42,7 +42,7 @@ padding: 8px
     <item row="0" column="0">
      <widget class="QStackedWidget" name="stackedWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="page_input">
        <layout class="QVBoxLayout" name="verticalLayout">
@@ -79,7 +79,7 @@ padding: 8px
            <enum>QTabWidget::West</enum>
           </property>
           <property name="currentIndex">
-           <number>6</number>
+           <number>7</number>
           </property>
           <property name="elideMode">
            <enum>Qt::ElideNone</enum>
@@ -8856,7 +8856,8 @@ padding: 8px
     <property name="title">
      <string>Constituent</string>
     </property>
-    <addaction name="action_select_constituent"/>
+    <addaction name="actionSelect_cell_constituent"/>
+    <addaction name="actionSelect_field_constituent"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -9083,9 +9084,9 @@ padding: 8px
     <string>Switch to concentration field</string>
    </property>
   </action>
-  <action name="action_select_constituent">
+  <action name="actionSelect_cell_constituent">
    <property name="text">
-    <string>Select constituent</string>
+    <string>Select cell constituent</string>
    </property>
   </action>
   <action name="action_FACS">
@@ -9140,6 +9141,11 @@ padding: 8px
    </property>
    <property name="toolTip">
     <string>Save slice data</string>
+   </property>
+  </action>
+  <action name="actionSelect_field_constituent">
+   <property name="text">
+    <string>Select_field constituent</string>
    </property>
   </action>
  </widget>

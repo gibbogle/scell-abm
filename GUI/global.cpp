@@ -40,9 +40,12 @@ namespace Global
     int i_growth_cutoff;
 
     double concData[4000];
+    double IC_concData[4000];
     int conc_nvars;
-    int conc_nc;
-    double conc_dx;
+    int conc_nc_ex;
+    int conc_nc_ic;
+    double conc_dx_ex;
+    double conc_dx_ic;
     QString casename;
 
     double volProb[100];

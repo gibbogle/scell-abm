@@ -3,7 +3,7 @@
 
 #include <QtGui>
 
-// Note that in the Fortran DLL the constituent numbering starts at 1
+// Note that in the Fortran DLL the chemokine constituent numbering starts at 1
 #define MULTI -1
 #define CFSE 0
 #define OXYGEN 1
@@ -15,14 +15,31 @@
 #define DRUG_B_PARENT 7
 #define DRUG_B_METAB_1 8
 #define DRUG_B_METAB_2 9
-#define GROWTH_RATE 10      // we pretend that these are concentrations
+#define GROWTH_RATE 10      // we pretend that this is a concentration
 #define CELL_VOLUME 11
 #define O2_BY_VOL 12
+
+// The intracellular (IC) dataIndex is the same as extracellular, from the tag determine which
+#define IC_MULTI -1
+#define IC_CFSE 0
+#define IC_OXYGEN 1
+#define IC_GLUCOSE 2
+#define IC_TRACER 3
+#define IC_DRUG_A_PARENT 4
+#define IC_DRUG_A_METAB_1 5
+#define IC_DRUG_A_METAB_2 6
+#define IC_DRUG_B_PARENT 7
+#define IC_DRUG_B_METAB_1 8
+#define IC_DRUG_B_METAB_2 9
+#define IC_GROWTH_RATE 10      // we pretend that this is a concentration
+#define IC_CELL_VOLUME 11
+#define IC_O2_BY_VOL 12
 
 #define DIST_NV 20
 
 #define MAX_CELLS 200000
 #define N_CELLINFO 7
+//#define N_FACS_VARS 3
 
 struct dist_set {
     bool used;
@@ -82,9 +99,12 @@ namespace Global
     extern int i_growth_cutoff;
 
     extern double concData[4000];
+    extern double IC_concData[4000];
     extern int conc_nvars;
-    extern int conc_nc;
-    extern double conc_dx;
+    extern int conc_nc_ex;
+    extern int conc_nc_ic;
+    extern double conc_dx_ex;
+    extern double conc_dx_ic;
     extern QString casename;
 
     extern double volProb[100];
@@ -107,10 +127,6 @@ namespace Global
     extern double blobcentre[3];
     extern double droppedcentre[3];
 
-//    extern double *profile_x[20];
-//    extern double *profile_y[20];
-//    extern int profile_n[20];
-
     extern bool showingVTK;
     extern bool recordingVTK;
     extern bool showingFACS;
@@ -118,6 +134,7 @@ namespace Global
     extern bool showingField;
     extern bool recordingField;
     extern bool dropped;
+
 
 } // namespace Global
 

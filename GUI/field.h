@@ -50,6 +50,7 @@ public:
     bool isOxyPlot();
     void setOxyPlot(bool);
     void selectCellConstituent();
+    void selectFieldConstituent();
     void setExecuting(bool);
     void setSaveImages(bool);
     void setUseLogScale(bool);

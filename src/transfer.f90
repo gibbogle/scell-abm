@@ -984,7 +984,7 @@ real(REAL_KIND) ::  dx, x1, x2, y0, z0, x, y, z
 real(REAL_KIND) :: cntr(3), rng(3), radius
 real(REAL_KIND) :: alfax, alfay, alfaz
 integer :: nxgpts, ix1, ix2, iy0, iz0, kx, ky, kz
-integer :: ix, iy, iz, k, kp, ichemo, kcell, offset
+integer :: ix, iy, iz, k, ks, ichemo, kcell, offset
 integer :: gcell(200)
 integer, allocatable ::  ngc(:)
 real(REAL_KIND), allocatable :: ctemp(:,:,:,:)
@@ -1032,10 +1032,6 @@ do kx = 1,nxgpts
 			endif
 			do ichemo = 1,MAX_CHEMO
 				ctemp(kx,ky,kz,ichemo) = Caverage(ix,iy,iz,ichemo)
-!				if (ichemo == OXYGEN .and. ctemp(kx,ky,kz,ichemo) > 0.18) then
-!					write(*,*) 'bad Caverage: ',kx,ky,kz,ix,iy,iz,ctemp(kx,ky,kz,ichemo)
-!					stop
-!				endif
 			enddo
 		enddo
 	enddo
@@ -1052,19 +1048,19 @@ iy = y/dx + 1
 iz = z/dx + 1
 alfay = (y - (iy-1)*dx)/dx
 alfaz = (z - (iz-1)*dx)/dx
-do kp = 1,ns
-	x = x1 + (kp-1)*dxc
+do ks = 1,ns
+	x = x1 + (ks-1)*dxc
 	ix = x/dx + 1
 	alfax = (x - (ix-1)*dx)/dx
 	kx = ix - ix1 + 1
 !	if (kx >= nxgpts) then
 !		write(*,*) 'bad kx: ',kx,nxgpts
-!		write(*,'(a,i4,4f8.4,2i4)') 'kp,x,x1,x2,dxc,ix,kx: ',kp,x,x1,x2,dxc,ix,kx
+!		write(*,'(a,i4,4f8.4,2i4)') 'ks,x,x1,x2,dxc,ix,kx: ',ks,x,x1,x2,dxc,ix,kx
 !		stop
 !	endif
 	do ichemo = 0, nvars-1
 		offset = ichemo*ns
-		k = offset - 1 + kp
+		k = offset - 1 + ks
 		ex_conc(k) = (1-alfax)*(1-alfay)*(1-alfaz)*ctemp(kx,1,1,ichemo) + &
 					 (1-alfax)*alfay*(1-alfaz)*ctemp(kx,2,1,ichemo) + &
 					 (1-alfax)*(1-alfay)*alfaz*ctemp(kx,1,2,ichemo) + &
@@ -1074,6 +1070,8 @@ do kp = 1,ns
 					 alfax*(1-alfay)*alfaz*ctemp(kx+1,1,2,ichemo) + &
 					 alfax*alfay*alfaz*ctemp(kx+1,2,2,ichemo)
 !		if (ichemo == OXYGEN) then
+!		    write(*,'(a,3i6,f8.3)') 'get_concdata: ',ks,ns,k,ex_conc(k)
+!		endif
 !			if (ex_conc(k) > 0.18) then
 !				write(*,'(2i4,2f8.4)') kp,k,x,ex_conc(k)
 !				 write(*,'(3i4,4f8.4)') kx,1,1,(1-alfax),(1-alfay),(1-alfaz),ctemp(kx,1,1,ichemo)
@@ -1092,6 +1090,76 @@ enddo
 
 deallocate(ctemp)
 deallocate(ngc)
+end subroutine
+
+!--------------------------------------------------------------------------------
+! Returns all the intracellular concentrations along a line through the blob centre.
+! Need to find all cells within a yz-tube about the centreline, then average over
+! blocks of width dx.  A yz-tube has specified radius tube_radius, centred on centreline.
+! Together with CFSE, growth rate (dVdt), cell volume,...
+! Store the constituent profiles one after the other.
+!--------------------------------------------------------------------------------
+subroutine get_IC_concdata(nvars, ns, dxc, ic_conc) BIND(C)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_ic_concdata
+use, intrinsic :: iso_c_binding
+integer(c_int) :: nvars, ns
+real(c_double) :: dxc, ic_conc(0:*)
+integer :: k, ks, ichemo, kcell, offset
+real(REAL_KIND) :: cntr(3), rng(3), radius, tube_radius, tube_radius2
+real(REAL_KIND) :: x1, x2, y0, z0, xdiff, xmin, xmax, r2
+real(REAL_KIND), allocatable :: csum(:,:)
+integer, allocatable :: ncsum(:)
+type(cell_type), pointer :: cp
+
+!call logger('get_IC_concdata')
+nvars = 1 + MAX_CHEMO + N_EXTRA
+tube_radius = DELTA_X
+tube_radius2 = tube_radius*tube_radius
+
+call getBlobCentreRange(cntr,rng,radius)
+
+x1 = cntr(1) - rng(1)/2
+x2 = cntr(1) + rng(1)/2
+y0 = cntr(2)
+z0 = cntr(3)
+
+ns = 20
+dxc = (x2-x1)/ns
+xdiff = (x2-x1) - ns*dxc
+xmin = x1 + xdiff/2
+xmax = x2 - xdiff/2
+! x range for block ks is xmin + ks.dx -> xmin + (ks+1)dx for ks: 0,ns-1
+allocate(csum(ns,0:nvars-1))
+allocate(ncsum(ns))
+csum = 0
+ncsum = 0
+do kcell = 1,nlist
+	if (cell_list(kcell)%state == DEAD) cycle
+	cp => cell_list(kcell)
+	if (cp%centre(1,1) < xmin .or. cp%centre(1,1) > xmax) cycle
+    r2 = (cp%centre(2,1) - y0)**2 + (cp%centre(3,1) - z0)**2
+    if (r2 < tube_radius2) then
+        ks = (cp%centre(1,1) - xmin)/dxc + 1
+        ncsum(ks) = ncsum(ks) + 1
+        csum(ks,CFSE) = csum(ks,CFSE) + cp%CFSE
+        csum(ks,1:MAX_CHEMO) = csum(ks,1:MAX_CHEMO) + cp%Cin
+        csum(ks,GROWTH_RATE) = csum(ks,GROWTH_RATE) + cp%dVdt
+        csum(ks,CELL_VOLUME) = csum(ks,CELL_VOLUME) + Vcell_pL*cp%V
+        csum(ks,O2_BY_VOL) = csum(ks,O2_BY_VOL) + cp%Cin(OXYGEN)*Vcell_pL*cp%V
+    endif
+enddo
+do ks = 1,ns
+	do ichemo = 0, nvars-1
+		offset = ichemo*ns
+		k = offset - 1 + ks
+		if (ncsum(ks) > 0) then
+            ic_conc(k) = csum(ks,ichemo)/ncsum(ks)
+        else
+            ic_conc(k) = 0
+        endif
+    enddo
+enddo
+
 end subroutine
 
 !--------------------------------------------------------------------------------
