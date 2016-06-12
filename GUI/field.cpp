@@ -30,6 +30,7 @@ Field::Field(QWidget *aParent) : QWidget(aParent)
     pGoxy = NULL;
     ifield = 0;
     view = new MyQGraphicsView(field_page);
+    scene = new QGraphicsScene(QRect(0, 0, CANVAS_WIDTH, CANVAS_WIDTH));
     vbox_cell_constituent = NULL;
     vbox_field_constituent = NULL;
     vbox_cell_max_concentration = NULL;
@@ -275,7 +276,7 @@ void Field::selectCellConstituent()
 void Field::setCellConstituent(QAbstractButton *button)
 {
     int res;
-//    LOG_MSG("setCellConstituent");
+    LOG_MSG("setCellConstituent");
     int prev_constituent = cell_constituent;
     QString text = button->text();
     for (int ivar=0; ivar<Global::nvars_used; ivar++) {
@@ -285,8 +286,10 @@ void Field::setCellConstituent(QAbstractButton *button)
     }
 
     if (cell_constituent != prev_constituent) {
-//        LOG_MSG("setCellConstituent");
+        LOG_MSG("setCellConstituent -> displayField");
+        slice_changed = true;
         displayField(hour,&res);
+        LOG_MSG("did displayField");
     }
 }
 
@@ -330,6 +333,7 @@ void Field::setFieldConstituent(QAbstractButton *button)
 
     if (field_constituent != prev_constituent) {
 //        LOG_MSG("setFieldConstituent");
+        slice_changed = true;
         displayField(hour,&res);
     }
 }
@@ -488,7 +492,7 @@ void Field::getTitle(int iconst, QString *title)
 //-----------------------------------------------------------------------------------------
 void Field::displayField(int hr, int *res)
 {
-    QGraphicsScene* scene = new QGraphicsScene(QRect(0, 0, CANVAS_WIDTH, CANVAS_WIDTH));
+//    QGraphicsScene* scene = new QGraphicsScene(QRect(0, 0, CANVAS_WIDTH, CANVAS_WIDTH));
     QBrush brush;
     int i, k, ix, iy, iz, w, rgbcol[3], ichemo, ixyz;
     double xp, yp, x, y, d, C, cmin, cmax, rmax, valmin;
@@ -511,6 +515,8 @@ void Field::displayField(int hr, int *res)
 //        LOG_MSG(msg);
         slice_changed = false;
     }
+
+    scene->clear();
 
     cmin = 1.0e10;
     cmax = 0;
@@ -569,12 +575,10 @@ void Field::displayField(int hr, int *res)
     w = a*dx + 0.5;
     valmin = 1.0e10;
     if (axis == X_AXIS) {           // Y-Z plane
-//        ix = (NX+1)/2 - 1;
         ix = ixyz;
         for (iy=0; iy<NY; iy++) {
             x = iy*dx;
             for (iz=0; iz<NZ; iz++) {
-//                y = iz*dx;
                 y = (NZ-1-iz)*dx;
                 k = (ichemo-1)*NZ*NY*NX + iz*NY*NX + iy*NX + ix;    // index(ix,iy,iz,ichemo);
                 C = fdata.Cave[k];
@@ -591,12 +595,10 @@ void Field::displayField(int hr, int *res)
             }
         }
     } else if (axis == Y_AXIS) {           // X-Z plane
-//        iy = (NY+1)/2 - 1;
         iy = ixyz;
         for (ix=0; ix<NX; ix++) {
             x = ix*dx;
             for (iz=0; iz<NZ; iz++) {
-//                y = iz*dx;
                 y = (NZ-1-iz)*dx;
                 k = (ichemo-1)*NZ*NY*NX + iz*NY*NX + iy*NX + ix;    // index(ix,iy,iz,ichemo);
                 C = fdata.Cave[k];
@@ -610,7 +612,6 @@ void Field::displayField(int hr, int *res)
             }
         }
     } else if (axis == Z_AXIS) {           // X-Y plane
-//        iz = (NZ+1)/2 - 1;
         iz = ixyz;
         for (ix=0; ix<NX; ix++) {
             x = ix*dx;
@@ -618,6 +619,10 @@ void Field::displayField(int hr, int *res)
                 y = iy*dx;
                 k = (ichemo-1)*NZ*NY*NX + iz*NY*NX + iy*NX + ix;    // index(ix,iy,iz,ichemo);
                 C = fdata.Cave[k];
+//                if (ix == NX/2) {
+//                    sprintf(msg,"%d %d %d %d %8.3f",ichemo,ix,iy,iz,C);
+//                    LOG_MSG(msg);
+//                }
                 valmin = MIN(C,valmin);
                 rgbcol[1] = 255*min(C,cmax)/cmax;
                 rgbcol[2] = 255*min(C,cmax)/cmax;
@@ -651,7 +656,7 @@ void Field::displayField(int hr, int *res)
             rgbcol[0] = 50;
             rgbcol[1] = 100;
             rgbcol[2] = 32;
-        } else if (fdata.cell_data[i].status == 2) {
+        } else if (fdata.cell_data[i].status == 2 || fdata.cell_data[i].status == 4) {
             rgbcol[0] = 0;
             rgbcol[1] = 0;
             rgbcol[2] = 255;
@@ -667,6 +672,16 @@ void Field::displayField(int hr, int *res)
         brush.setColor(QColor(rgbcol[0],rgbcol[1],rgbcol[2]));
         scene->addEllipse(xp,yp,d,d,Qt::NoPen, brush);
     }
+
+    double w_scalebar = a*0.01 + b; // 100um = 0.01cm
+    double scalebar0 = a*1*dx + b;
+    QPen pen;
+    QFont font;
+    pen.setBrush(Qt::black);
+    pen.setWidth(3);
+    scene->addLine(scalebar0, scalebar0, scalebar0+w_scalebar, scalebar0, pen);
+    QGraphicsTextItem *scalebar_text = scene->addText("100 um",font);
+    scalebar_text->setPos(scalebar0,1.4*scalebar0);
     view->show();
     return;
 

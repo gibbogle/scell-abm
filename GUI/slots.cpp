@@ -265,6 +265,7 @@ void MainWindow::buttonClick_cell_constituent(QAbstractButton* button)
 {
     LOG_MSG("buttonClick_cell_constituent");
     field->setCellConstituent(button);
+    LOG_MSG("did buttonClick_cell_constituent");
 }
 
 void MainWindow::buttonClick_field_constituent(QAbstractButton* button)
@@ -299,10 +300,13 @@ void MainWindow::textEdited_fraction(QString text)
 void MainWindow::onSelectCellConstituent()
 {
     if (exthread != NULL) {
+        LOG_QMSG("onSelectCellConstituent");
         field->selectCellConstituent();
+        LOG_QMSG("did selectCellConstituent");
         QString rbname = "rb_cell_constituent_cell" + QString::number(field->cell_constituent);
         QRadioButton *rb = groupBox_cell_constituent->findChild<QRadioButton *>(rbname);
         if (rb) {
+            LOG_QMSG("found rb");
             rb->setChecked(true);
         } else {
             LOG_QMSG("onSelectCellConstituent: failed to find rb: " + rbname)

@@ -211,7 +211,7 @@ else
 	R = par_uni(kpar)
 	ccell_list(kcell1)%t_divide_next = tnow + Tdiv0*(1 + (2*dVdivide/Vdivide0)*(2*R-1))
 endif
-ccell_list(kcell1)%t_hypoxic = 0
+ccell_list(kcell1)%t_anoxia = 0
 !ccell_list(kcell1)%conc = ccell_list(kcell0)%conc
 ccell_list(kcell1)%Cex = ccell_list(kcell0)%Cex
 ccell_list(kcell1)%dCdt = ccell_list(kcell0)%dCdt

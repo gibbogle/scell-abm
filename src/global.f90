@@ -130,8 +130,10 @@ type cell_type
 	real(REAL_KIND) :: divide_time
 	real(REAL_KIND) :: t_divide_last
 	real(REAL_KIND) :: t_divide_next
-	real(REAL_KIND) :: t_hypoxic
+	real(REAL_KIND) :: t_anoxia
 	real(REAL_KIND) :: t_anoxia_die
+	real(REAL_KIND) :: t_aglucosia
+	real(REAL_KIND) :: t_aglucosia_die
 	real(REAL_KIND) :: t_start_mitosis
 	real(REAL_KIND) :: mitosis		! level of mitosis (0 - 1)
 	real(REAL_KIND) :: d_divide		! centre separation distance at the end of mitosis
@@ -145,7 +147,7 @@ type cell_type
 	real(REAL_KIND) :: dCdt(NCONST)
 	real(REAL_KIND) :: dMdt(NCONST)	! mumol/s
 	real(REAL_KIND) :: CFSE
-	logical :: radiation_tag, anoxia_tag	!, drugA_tag, drugB_tag
+	logical :: radiation_tag, anoxia_tag, aglucosia_tag
 	logical :: drug_tag(MAX_DRUGTYPES)
 	real(REAL_KIND) :: p_rad_death
 	real(REAL_KIND) :: p_drug_death(MAX_DRUGTYPES)
@@ -263,7 +265,8 @@ real(REAL_KIND) :: alpha_v, k_detach
 real(REAL_KIND) :: dr_mitosis, mitosis_hours, mitosis_duration
 real(REAL_KIND) :: test_growthrate
 real(REAL_KIND) :: Vdivide0, dVdivide, Rdivide0, MM_THRESHOLD, medium_volume0, total_volume
-real(REAL_KIND) :: t_anoxic_limit, anoxia_death_delay, ANOXIA_THRESHOLD, anoxia_tag_hours, anoxia_death_hours
+real(REAL_KIND) :: t_anoxia_limit, anoxia_death_delay, anoxia_threshold
+real(REAL_KIND) :: t_aglucosia_limit, aglucosia_death_delay, aglucosia_threshold
 real(REAL_KIND) :: divide_time_median(MAX_CELLTYPES), divide_time_shape(MAX_CELLTYPES), divide_time_mean(MAX_CELLTYPES), celltype_fraction(MAX_CELLTYPES)
 type(dist_type) :: divide_dist(MAX_CELLTYPES)
 real(REAL_KIND) :: execute_t1
@@ -277,11 +280,9 @@ integer :: zmin     						! drop lower bound at drop time = lower limit of blob 
 logical :: is_dropped
 real(REAL_KIND) :: wall_attraction_factor = 0
 
-integer :: Nradiation_tag(MAX_CELLTYPES), Nanoxia_tag(MAX_CELLTYPES)
-!integer :: NdrugA_tag(MAX_CELLTYPES), NdrugB_tag(MAX_CELLTYPES), Nradiation_tag(MAX_CELLTYPES), Nanoxia_tag(MAX_CELLTYPES)
+integer :: Nradiation_tag(MAX_CELLTYPES), Nanoxia_tag(MAX_CELLTYPES), Naglucosia_tag(MAX_CELLTYPES)
 integer :: Ndrug_tag(MAX_DRUGTYPES,MAX_CELLTYPES)
-!integer :: NdrugA_dead(MAX_CELLTYPES), NdrugB_dead(MAX_CELLTYPES)
-integer :: Nradiation_dead(MAX_CELLTYPES), Nanoxia_dead(MAX_CELLTYPES)
+integer :: Nradiation_dead(MAX_CELLTYPES), Nanoxia_dead(MAX_CELLTYPES), Naglucosia_dead(MAX_CELLTYPES)
 integer :: Ndrug_dead(MAX_DRUGTYPES,MAX_CELLTYPES)
 real(REAL_KIND) :: O2cutoff(3), hypoxia_threshold
 real(REAL_KIND) :: growthcutoff(3)

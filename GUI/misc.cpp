@@ -232,7 +232,9 @@ void ExecThread::run()
             break;
         }
 
+        mutex1.lock();
         simulate_step(&res);
+        mutex1.unlock();
         if (res != 0) {
             LOG_MSG("simulate_step: res != 0");
             exit(1);

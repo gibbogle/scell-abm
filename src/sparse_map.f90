@@ -138,9 +138,10 @@ real(REAL_KIND) :: Kd, Kr, aval(7)
 integer, allocatable :: arow(:)
 logical :: file_exists = .false., upper_bdry
 integer, parameter :: m = 3
+logical :: use_mapfile = .false.    ! it turns out that the cost of creating maps is insignificant
 
 inquire(file=mapfile,exist=file_exists)
-if (file_exists) then
+if (use_mapfile .and. file_exists) then
 	call read_map_file(mapfile,is_fine,ok)
 	return
 endif

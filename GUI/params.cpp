@@ -175,7 +175,7 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 "Fluid fraction",
 "Fraction of non-necrotic tumour that is extracellular fluid."},
 
-{"MEDIUM_VOLUME", 0.074, 0, 0,
+{"MEDIUM_VOLUME", 0.151, 0, 0,
 "Medium volume",
 "Volume of the medium in which the spheroid is growing."},
 
@@ -197,17 +197,29 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 [uM]"},
 
 {"ANOXIA_THRESHOLD", 0.15, 0, 0,
-"Anoxia threshold",
-"A cell begins to experience anoxia leading to cell death at the O2 concentration given by this threshold value."},
+"Tag threshold",
+"A cell begins to experience starvation of oxygen (anoxia) or glucose (aglucosia) leading to cell death at the oxygen/glucose concentration given by this threshold value."},
 
 {"ANOXIA_TAG_TIME", 3.0, 0, 0,
-"Anoxic time limit",
-"Length of time under hypoxia (O2 < anoxic threshold) after which a cell is tagged to die of anoxia.\n\
-[h]"},
+"Tag time limit",
+"Length of time under anoxia (O2 < anoxia threshold) or aglucosia (glucose < aglucosia threshold) after which a cell is tagged to die of anoxia or aglucosia."},
 
 {"ANOXIA_DEATH_TIME", 3.0, 0, 0,
-"Anoxic death delay time",
-"Time taken for a cell to die after it is tagged to die of anoxia.\n\
+"Death delay time",
+"Time taken for a cell to die after it is tagged to die of anoxia or aglucosia."},
+
+{"AGLUCOSIA_THRESHOLD", 0.15, 0, 0,
+"Aglucosia threshold",
+"A cell begins to experience aglucosia leading to cell death at the glucose concentration given by this threshold value."},
+
+{"AGLUCOSIA_TAG_TIME", 3.0, 0, 0,
+"Aglucosia time limit",
+"Length of time under aglucosia (glucose < aglucosia threshold) after which a cell is tagged to die of aglucosia.\n\
+[h]"},
+
+{"AGLUCOSIA_DEATH_TIME", 3.0, 0, 0,
+"Aglucosia death delay time",
+"Time taken for a cell to die after it is tagged to die of aglucosia.\n\
 [h]"},
 
 {"TEST_CASE", 0, 0, 0,
@@ -464,7 +476,7 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 
 {"USE_EXTRA", 0, 0, 1,
 "Use extra conc",
-"Use extracellular O2 concentration to determine cell death"},
+"Use extracellular O2 and glucose concentrations to determine cell death"},
 
 {"USE_RELAX", 1, 0, 1,
 "Use O2 relaxation solver",
@@ -541,10 +553,12 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 // Time-series plots
     {"nlive",                     1, 0,1,"","Number of live cells"},
     {"nanoxiadead",               1, 0,1,"","Total number of cells that have been killed by anoxia"},
+    {"naglucosiadead",            0, 0,1,"","Total number of cells that have been killed by aglucosia"},
     {"ndrugAdead",                0, 0,1,"","Total number of cells that have been killed by drugA"},
     {"ndrugBdead",                0, 0,1,"","Total number of cells that have been killed by drugB"},
     {"nradiationdead",            0, 0,1,"","Total number of cells that have been killed by radiation"},
     {"nanoxiatagged",             1, 0,1,"","Current number of cells tagged to die by anoxia"},
+    {"naglucosiatagged",          0, 0,1,"","Current number of cells tagged to die by aglucosia"},
     {"ndrugAtagged",              0, 0,1,"","Current number of cells tagged to die by drugA"},
     {"ndrugBtagged",              0, 0,1,"","Current number of cells tagged to die by drugB"},
     {"nradiationtagged",          1, 0,1,"","Current number of cells tagged to die by radiation"},

@@ -5,8 +5,8 @@
 #include <QMessageBox>
 #include <QtGui>
 #include <QMouseEvent>
-#include "global.h"
 #include "plot.h"
+#include "global.h"
 #include "myqgraphicsview.h"
 
 struct field_data {
@@ -61,6 +61,7 @@ public:
     bool save_images;
     bool use_log;
     MyQGraphicsView* view;
+    QGraphicsScene* scene;
     int axis;
     double fraction;
     int hour;
@@ -81,18 +82,15 @@ public:
     QButtonGroup *buttonGroup_field_constituent;
     QVBoxLayout *vbox_cell_constituent;
     QVBoxLayout *vbox_field_constituent;
-//    QRadioButton **cell_constituent_rb_list;
-//    QRadioButton **field_constituent_rb_list;
-
     QList<QRadioButton *> cell_constituent_rb_list;
     QList<QRadioButton *> field_constituent_rb_list;
     QList<QLineEdit *> line_maxConc_list;
     QVBoxLayout *vbox_cell_max_concentration;
 
+    void setPlane(QAbstractButton* button);
+    void setFraction(QString text);
     void setCellConstituent(QAbstractButton* button);
     void setFieldConstituent(QAbstractButton* button);
-    void setPlane(QAbstractButton* button);
-	void setFraction(QString text);
     void setMaxConcentrations(QGroupBox *gbox);
 };
 

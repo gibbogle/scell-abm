@@ -33,6 +33,8 @@ LOG_USE();
 Params *parm;	// I don't believe this is the right way, but it works
 Graphs *grph;
 
+bool ON_LATTICE = false;
+
 //--------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------
 MainWindow::MainWindow(QWidget *parent)
@@ -209,9 +211,7 @@ void MainWindow::createActions()
     connect(checkBox_FACS_log_y, SIGNAL(stateChanged(int)), this, SIGNAL(facs_update()));
     connect(buttonGroup_histo, SIGNAL(buttonClicked(QAbstractButton*)), this, SIGNAL(histo_update()));
 
-    connect(line_NXB,SIGNAL(textChanged(QString)),this,SLOT(setFields()));
-    connect(line_NZB,SIGNAL(textChanged(QString)),this,SLOT(setFields()));
-    connect(line_DXF,SIGNAL(textChanged(QString)),this,SLOT(setFields()));
+    connect(line_MEDIUM_VOLUME,SIGNAL(textChanged(QString)),this,SLOT(setFields()));
 
     connect(this,SIGNAL(pause_requested()),SLOT(pauseServer()));
 
@@ -259,8 +259,6 @@ void MainWindow::createActions()
     connect(field->buttonGroup_field_constituent, SIGNAL(buttonClicked(QAbstractButton*)), this, SLOT(buttonClick_field_constituent(QAbstractButton*)));
 
     connect(buttonGroup_plane, SIGNAL(buttonClicked(QAbstractButton*)), this, SLOT(buttonClick_plane(QAbstractButton*)));
-//    connect(buttonGroup_constituent, SIGNAL(buttonClicked(QAbstractButton*)), field, SLOT(setConstituent(QAbstractButton*)));
-//	  connect(lineEdit_fraction, SIGNAL(textChanged(QString)), this, SLOT(textChanged_fraction(QString)));
 	connect(lineEdit_fraction, SIGNAL(textEdited(QString)), this, SLOT(textEdited_fraction(QString)));
     connect(actionSelect_cell_constituent, SIGNAL(triggered()), SLOT(onSelectCellConstituent()));
     connect(actionSelect_field_constituent, SIGNAL(triggered()), SLOT(onSelectFieldConstituent()));
@@ -1111,53 +1109,63 @@ void MainWindow::loadParams()
 
 //--------------------------------------------------------------------------------------------------------
 // This is to disable unused fields (because spheroid_GUI.ui is shared with spheroid_GUI).
-// The MEDIUM_VOLUME field value is computed from the specified DXF, NXB and NZB.
+// DXF and NZB are computed from NXB and MEDIUM_VOLUME, keeping DXF close to 38um.
 // Note that NYB = NXB, and the coarse grid spacing DXB = 4*DXF
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::setFields()
 {
-    tab_force->setEnabled(true);
-    groupBox_force->setEnabled(true);
+    bool specify_volume = true;
+
+    LOG_MSG("setFields");
+    if (ON_LATTICE) {
+        spin_NX->setValue(120);
+        tab_force->setEnabled(false);
+        groupBox_force->setEnabled(false);
+        groupBox_farfield->setEnabled(true);
+    } else {
+        spin_NX->setValue(33);
+        tab_force->setEnabled(true);
+        groupBox_force->setEnabled(true);
+        groupBox_farfield->setEnabled(false);
+    }
     line_NT_CONC->setEnabled(true);
     line_NMM3->setEnabled(true);
-    spin_NX->setValue(33);
+    spin_NX->setEnabled(false);
     line_NXB->setEnabled(false);
     line_NZB->setEnabled(false);
-    groupBox_drop->setEnabled(true);
+    line_DXF->setEnabled(false);
     line_FLUID_FRACTION->setEnabled(true);
-//    if (rbut_FD_SOLVER_1->isChecked()) {
+    groupBox_drop->setEnabled(true);
+    if (rbut_FD_SOLVER_1->isChecked()) {
         int nxb = line_NXB->text().toInt();
-        int nzb = line_NZB->text().toInt();
-        double dx = line_DXF->text().toDouble();
-        double vol_cm3 = nxb*nxb*nzb*pow(4*dx,3)*1.0e-12;
-        QString str = QString::number(vol_cm3,'g',3);
-        line_MEDIUM_VOLUME->setText(str);
-        line_MEDIUM_VOLUME->setEnabled(false);
+        double dxf = 38;
+        if (specify_volume) {
+            line_MEDIUM_VOLUME->setEnabled(true);
+            double vol_cm3 = line_MEDIUM_VOLUME->text().toDouble();
+            int nzb = vol_cm3/(nxb*nxb*pow(4*dxf,3)*1.0e-12);   // need to adjust dxf to make exact
+            double dxb3 = vol_cm3/(nxb*nxb*nzb*1.0e-12);        // = pow(4*dxf,3)
+            dxf = pow(dxb3,1./3)/4;
+            sprintf(msg,"vol_cm3, nzb, dxf: %f %d %f",vol_cm3,nzb,dxf);
+            LOG_MSG(msg);
+            QString str = QString::number(dxf,'g',4);
+            line_DXF->setText(str);
+            line_NZB->setText(QString::number(nzb));
+        } else {
+            int nzb = line_NZB->text().toInt();
+            double vol_cm3 = nxb*nxb*nzb*pow(4*dxf,3)*1.0e-12;
+            QString str = QString::number(vol_cm3,'g',3);
+            line_MEDIUM_VOLUME->setText(str);
+            line_MEDIUM_VOLUME->setEnabled(false);
+        }
         line_UNSTIRRED_LAYER->setEnabled(false);
-        cbox_USE_RELAX->setEnabled(false);
-        cbox_USE_PAR_RELAX->setEnabled(false);
-//    } else {
-//        line_MEDIUM_VOLUME->setEnabled(true);
-//        line_UNSTIRRED_LAYER->setEnabled(true);
-//        line_FLUID_FRACTION->setEnabled(true);
-//        cbox_USE_RELAX->setEnabled(true);
-//        cbox_USE_PAR_RELAX->setEnabled(true);
-//    }
+    } else if (ON_LATTICE) {
+        line_MEDIUM_VOLUME->setEnabled(true);
+        line_UNSTIRRED_LAYER->setEnabled(true);
+        line_FLUID_FRACTION->setEnabled(true);
+        cbox_USE_RELAX->setEnabled(true);
+        cbox_USE_PAR_RELAX->setEnabled(true);
+    }
 }
-
-//--------------------------------------------------------------------------------------------------------
-//--------------------------------------------------------------------------------------------------------
-//QString MainWindow::parse_rbutton(QString wtag, int *rbutton_case)
-//{
-//	// parse wtag into part before '_' and part after '_'
-//	int j = wtag.indexOf('_');
-//	QString suffix = wtag.mid(j+1);
-//	// the prefix becomes wtag, the suffix becomes rbutton_case, an integer 0,1,2,...
-//	wtag = wtag.mid(0,j);
-//	bool ok;
-//	*rbutton_case = suffix.toInt(&ok);
-//	return wtag;
-//}
 
 //--------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------
@@ -2287,10 +2295,15 @@ void MainWindow::showSummary(int hr)
 //--------------------------------------------------------------------------------------------------------
 // nvars = 1 + Global::MAX_CHEMO + Global::N_EXTRA;
 // New code
+// This works only if:
+//      conc_nc_ex = conc_nc_ic
+//      nvars = 1 + Global::MAX_CHEMO + Global::N_EXTRA for both concData and IC_concData
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::updateProfilePlots()
 {
     if (Global::casename == "") return;
+//    LOG_QMSG("updateProfilePlots: conc_nc_ex,conc_nc_ic: " +
+//             QString::number(Global::conc_nc_ex) + QString::number(Global::conc_nc_ic));
     int ivar = 0;
     for (int i=0; i<nGraphs; i++) {
         if (!grph->isActive(i)) continue;
@@ -2322,7 +2335,6 @@ void MainWindow::updateProfilePlots()
                 pGraph[i]->setTitle(title);
                 k = Global::GUI_to_DLL_index[ivar];
             }
-//            int n = Global::conc_nc;
             int offset = k*nc;
             for (int j=0; j<nc; j++) {
                 x[j] = j*dx*1.0e4;
@@ -2331,7 +2343,11 @@ void MainWindow::updateProfilePlots()
                 } else {
                     y[j] = Global::concData[offset+j];
                 }
-
+//                if (k == OXYGEN) {
+//                    sprintf(msg,"Oxygen: IC: %d nc: %2d j: %2d k: %d offset+j: %d x: %6.1f y: %8.3f",
+//                            IC,nc,j,k,offset+j,x[j],y[j]);
+//                    LOG_MSG(msg);
+//                }
             }
             xscale = grph->get_xscale(x[nc-1]);
             double maxval = 0;
@@ -2346,6 +2362,16 @@ void MainWindow::updateProfilePlots()
             pGraph[i]->redraw(x, y, nc, Global::casename, tag, yscale, true);
         }
     }
+//    sprintf(msg,"conc_nvars, conc_nc_ex: %d %d",Global::conc_nvars,Global::conc_nc_ex);
+//    LOG_MSG(msg);
+//    QString line="";
+//    for (int i=0; i<Global::conc_nvars*Global::conc_nc_ex-1;i++) {
+//        line += QString::number(Global::concData[i]) + " ";
+//        if ((i+1)%10 == 0) {
+//            LOG_QMSG(line);
+//            line = "";
+//        }
+//    }
 }
 
 /*

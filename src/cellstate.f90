@@ -57,6 +57,23 @@ endif
 end subroutine
 
 !-----------------------------------------------------------------------------------------
+! The glucose concentration to use with cell kcell is either the intracellular concentration,
+! or if use_extracellular_O2 (!), the corresponding extracellular concentration
+!-----------------------------------------------------------------------------------------
+subroutine getGlucoseconc(kcell, C_glucose)
+integer :: kcell
+real(REAL_KIND) :: C_glucose
+integer :: iv, site(3)
+real(REAL_KIND) :: tnow
+
+if (use_extracellular_O2 .and. istep > 1) then
+	C_glucose = cell_list(kcell)%Cex(GLUCOSE)
+else
+	C_glucose = cell_list(kcell)%Cin(GLUCOSE)
+endif
+end subroutine
+
+!-----------------------------------------------------------------------------------------
 ! Irradiate cells with dose.
 !-----------------------------------------------------------------------------------------
 subroutine Irradiation(dose,ok)
@@ -180,21 +197,19 @@ end subroutine
 
 
 !-----------------------------------------------------------------------------------------
-! Cells can be tagged to die, or finally die of anoxia, or they can be tagged for death 
-! at division time if the drug is effective.
+! Cells can be tagged to die, or finally die of anoxia or glucosia, or they can be tagged 
+! for death at division time if the drug is effective.
 !-----------------------------------------------------------------------------------------
 subroutine CellDeath(dt,changed,ok)
 real(REAL_KIND) :: dt
 logical :: changed, ok
 integer :: kcell, nlist0, site(3), i, ichemo, idrug, im, ityp, killmodel, kpar=0 
-real(REAL_KIND) :: C_O2, kmet, Kd, dMdt, Cdrug, n_O2, kill_prob, dkill_prob, death_prob, tnow
+real(REAL_KIND) :: C_O2, C_glucose, kmet, Kd, dMdt, Cdrug, n_O2, kill_prob, dkill_prob, death_prob, tnow
 !logical :: use_TPZ_DRUG, use_DNB_DRUG
 type(drug_type), pointer :: dp
 
 !call logger('CellDeath')
 ok = .true.
-!use_TPZ_DRUG = chemo(TPZ_DRUG)%used
-!use_DNB_DRUG = chemo(DNB_DRUG)%used
 tnow = istep*DELTA_T	! seconds
 nlist0 = nlist
 do kcell = 1,nlist
@@ -202,34 +217,43 @@ do kcell = 1,nlist
 	ityp = cell_list(kcell)%celltype
 	call getO2conc(kcell,C_O2)
 	if (cell_list(kcell)%anoxia_tag) then
-!		write(logmsg,*) 'anoxia_tag: ',kcell,cell_list(kcell)%state,tnow,cell_list(kcell)%t_anoxia_die
-!		call logger(logmsg)
 		if (tnow >= cell_list(kcell)%t_anoxia_die) then
 !			call logger('cell dies')
 			call CellDies(kcell)
 			changed = .true.
 			Nanoxia_dead(ityp) = Nanoxia_dead(ityp) + 1
-!			Nanoxia_tag(ityp) = Nanoxia_tag(ityp) - 1
-!			do idrug = 1,ndrugs_used
-!				if (cell_list(kcell)%drug_tag(idrug)) then
-!					Ndrug_tag(idrug,ityp) = Ndrug_tag(idrug,ityp) - 1
-!				endif
-!			enddo
-!			if (cell_list(kcell)%radiation_tag) then
-!				Nradiation_tag(ityp) = Nradiation_tag(ityp) - 1
-!			endif
 			cycle
 		endif
 	else
-		if (C_O2 < ANOXIA_THRESHOLD) then
-			cell_list(kcell)%t_hypoxic = cell_list(kcell)%t_hypoxic + dt
-			if (cell_list(kcell)%t_hypoxic > t_anoxic_limit) then
+		if (C_O2 < anoxia_threshold) then
+			cell_list(kcell)%t_anoxia = cell_list(kcell)%t_anoxia + dt
+			if (cell_list(kcell)%t_anoxia > t_anoxia_limit) then
 				cell_list(kcell)%anoxia_tag = .true.						! tagged to die later
 				cell_list(kcell)%t_anoxia_die = tnow + anoxia_death_delay	! time that the cell will die
 				Nanoxia_tag(ityp) = Nanoxia_tag(ityp) + 1
 			endif
 		else
-			cell_list(kcell)%t_hypoxic = 0
+			cell_list(kcell)%t_anoxia = 0
+		endif
+	endif
+	call getGlucoseconc(kcell,C_glucose)
+	if (cell_list(kcell)%aglucosia_tag) then
+		if (tnow >= cell_list(kcell)%t_aglucosia_die) then
+			call CellDies(kcell)
+			changed = .true.
+			Naglucosia_dead(ityp) = Naglucosia_dead(ityp) + 1
+			cycle
+		endif
+	else
+		if (C_O2 < aglucosia_threshold) then
+			cell_list(kcell)%t_aglucosia = cell_list(kcell)%t_aglucosia + dt
+			if (cell_list(kcell)%t_aglucosia > t_aglucosia_limit) then
+				cell_list(kcell)%aglucosia_tag = .true.						    ! tagged to die later
+				cell_list(kcell)%t_aglucosia_die = tnow + aglucosia_death_delay	! time that the cell will die
+				Naglucosia_tag(ityp) = Naglucosia_tag(ityp) + 1
+			endif
+		else
+			cell_list(kcell)%t_aglucosia = 0
 		endif
 	endif
 	
@@ -299,6 +323,9 @@ Ncells = Ncells - 1
 Ncells_type(ityp) = Ncells_type(ityp) - 1
 if (cell_list(kcell)%anoxia_tag) then
 	Nanoxia_tag(ityp) = Nanoxia_tag(ityp) - 1
+endif
+if (cell_list(kcell)%aglucosia_tag) then
+	Naglucosia_tag(ityp) = Naglucosia_tag(ityp) - 1
 endif
 do idrug = 1,ndrugs_used
 	if (cell_list(kcell)%drug_tag(idrug)) then
@@ -648,7 +675,9 @@ cfse1 = cfse0 - cp1%CFSE
 
 cp1%drug_tag = .false.
 cp1%anoxia_tag = .false.
-cp1%t_hypoxic = 0
+cp1%t_anoxia = 0
+cp1%aglucosia_tag = .false.
+cp1%t_aglucosia = 0
 
 if (cp1%growth_delay) then
 	cp1%N_delayed_cycles_left = cp1%N_delayed_cycles_left - 1
@@ -687,11 +716,11 @@ cp2%radiation_tag = cp1%radiation_tag
 if (cp2%radiation_tag) then
 	Nradiation_tag(ityp) = Nradiation_tag(ityp) + 1
 endif
-!cp2%drugA_tag = .false.
-!cp2%drugB_tag = .false.
 cp2%drug_tag = .false.
 cp2%anoxia_tag = .false.
-cp2%t_hypoxic = 0
+cp2%t_anoxia = 0
+cp2%aglucosia_tag = .false.
+cp2%t_aglucosia = 0
 
 cp2%growth_delay = cp1%growth_delay
 if (cp2%growth_delay) then

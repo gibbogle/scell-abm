@@ -74,6 +74,7 @@ integer :: itestcase, ictype, ishow_progeny
 integer :: iuse_oxygen, iuse_glucose, iuse_tracer, iuse_drug, iuse_metab, iV_depend, iV_random, iuse_FD
 integer :: iuse_extra, iuse_relax, iuse_par_relax, iuse_gd_all
 real(REAL_KIND) :: days, percent, fluid_fraction, d_layer, sigma(MAX_CELLTYPES), Vsite_cm3, bdry_conc, spcrad_value, d_n_limit
+real(REAL_KIND) :: anoxia_tag_hours, anoxia_death_hours, aglucosia_tag_hours, aglucosia_death_hours
 integer :: iuse_drop, iconstant, isaveprofiledata, isaveslicedata, iglucosegrowth
 logical :: use_metabolites
 character*(12) :: drug_name
@@ -122,9 +123,12 @@ read(nfcell,*) d_layer						! thickness of the unstirred layer around the sphero
 read(nfcell,*) Vdivide0						! nominal cell volume multiple for division
 read(nfcell,*) dVdivide						! variation about nominal divide volume
 read(nfcell,*) MM_THRESHOLD					! O2 concentration threshold Michaelis-Menten "soft-landing" (uM)
-read(nfcell,*) ANOXIA_THRESHOLD			    ! O2 threshold for anoxia (uM)
-read(nfcell,*) anoxia_tag_hours				! hypoxic time leading to tagging to die by anoxia (h)
+read(nfcell,*) anoxia_threshold			    ! O2 threshold for anoxia (uM)
+read(nfcell,*) anoxia_tag_hours				! anoxia time leading to tagging to die by anoxia (h)
 read(nfcell,*) anoxia_death_hours			! time after tagging to death by anoxia (h)
+read(nfcell,*) aglucosia_threshold			! glucose threshold for aglucosia (uM)
+read(nfcell,*) aglucosia_tag_hours			! aglucosia time leading to tagging to die by aglucosia (h)
+read(nfcell,*) aglucosia_death_hours		! time after tagging to death by aglucosia (h)
 read(nfcell,*) itestcase                    ! test case to simulate
 read(nfcell,*) seed(1)						! seed vector(1) for the RNGs
 read(nfcell,*) seed(2)						! seed vector(2) for the RNGs
@@ -253,7 +257,8 @@ NZ = NX
 NYB = NXB
 Kdrag = 1.0e5*Kdrag
 MM_THRESHOLD = MM_THRESHOLD/1000					! uM -> mM
-ANOXIA_THRESHOLD = ANOXIA_THRESHOLD/1000			! uM -> mM
+anoxia_threshold = anoxia_threshold/1000			! uM -> mM
+aglucosia_threshold = aglucosia_threshold/1000		! uM -> mM
 O2cutoff = O2cutoff/1000							! uM -> mM
 hypoxia_threshold = hypoxia_threshold/1000			! uM -> mM
 chemo(OXYGEN)%used = (iuse_oxygen == 1)
@@ -262,8 +267,10 @@ chemo(TRACER)%used = (iuse_tracer == 1)
 chemo(OXYGEN)%MM_C0 = chemo(OXYGEN)%MM_C0/1000		! uM -> mM
 chemo(GLUCOSE)%MM_C0 = chemo(GLUCOSE)%MM_C0/1000	! uM -> mM
 LQ(:)%growth_delay_factor = 60*60*LQ(:)%growth_delay_factor	! hours -> seconds
-t_anoxic_limit = 60*60*anoxia_tag_hours				! hours -> seconds
+t_anoxia_limit = 60*60*anoxia_tag_hours				! hours -> seconds
 anoxia_death_delay = 60*60*anoxia_death_hours		! hours -> seconds
+t_aglucosia_limit = 60*60*aglucosia_tag_hours		! hours -> seconds
+aglucosia_death_delay = 60*60*aglucosia_death_hours	! hours -> seconds
 nsteps = days*24*3600./DELTA_T
 write(logmsg,*) 'nsteps: ',nsteps
 call logger(logmsg)
@@ -306,9 +313,9 @@ write(nflog,*)
 open(nfres,file='scell_ts.out',status='replace')
 write(nfres,'(a)') 'GUI_version DLL_version &
 istep hour vol_mm3 diam_um Ncells(1) Ncells(2) &
-Nanoxia_dead(1) Nanoxia_dead(2) NdrugA_dead(1) NdrugA_dead(2) &
+Nanoxia_dead(1) Nanoxia_dead(2) Naglucosia_dead(1) Naglucosia_dead(2) NdrugA_dead(1) NdrugA_dead(2) &
 NdrugB_dead(1) NdrugB_dead(2) Nradiation_dead(1) Nradiation_dead(2) &
-Ntagged_anoxia(1) Ntagged_anoxia(2) Ntagged_drugA(1) Ntagged_drugA(2) &
+Ntagged_anoxia(1) Ntagged_anoxia(2) Ntagged_aglucosia(1) Ntagged_aglucosia(2) Ntagged_drugA(1) Ntagged_drugA(2) &
 Ntagged_drugB(1) Ntagged_drugB(2) Ntagged_radiation(1) Ntagged_radiation(2) &
 f_hypox(1) f_hypox(2) f_hypox(3) &
 f_clonohypox(1) f_clonohypox(2) f_clonohypox(3) &
@@ -656,15 +663,13 @@ ndtotal_last = 0
 total_dMdt = 0
 
 Nradiation_tag = 0
-!NdrugA_tag = 0
-!NdrugB_tag = 0
 Ndrug_tag = 0
 Nanoxia_tag = 0
+Naglucosia_tag = 0
 Nradiation_dead = 0
-!NdrugA_dead = 0
-!NdrugB_dead = 0
 Ndrug_dead = 0
 Nanoxia_dead = 0
+Naglucosia_dead = 0
 
 is_dropped = .false.
 
@@ -898,13 +903,14 @@ cp%t_divide_last = 0
 cp%drug_tag = .false.
 cp%radiation_tag = .false.
 cp%anoxia_tag = .false.
-!cell_list(k)%exists = .true.
-!cp%active = .true.
+cp%aglucosia_tag = .false.
 cp%growth_delay = .false.
 cp%G2_M = .false.
 cp%p_rad_death = 0
 
-cp%t_hypoxic = 0
+cp%t_anoxia = 0
+cp%t_aglucosia = 0
+
 call get_random_vector3(r)	! set initial axis direction
 cp%d = 0.1*small_d
 c = cp%centre(:,1)

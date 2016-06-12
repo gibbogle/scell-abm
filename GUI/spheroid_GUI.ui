@@ -42,7 +42,7 @@ padding: 8px
     <item row="0" column="0">
      <widget class="QStackedWidget" name="stackedWidget">
       <property name="currentIndex">
-       <number>3</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="page_input">
        <layout class="QVBoxLayout" name="verticalLayout">
@@ -6257,72 +6257,25 @@ padding: 8px
                <height>131</height>
               </rect>
              </property>
-             <layout class="QGridLayout" name="gridLayout">
-              <item row="0" column="0">
-               <widget class="QMyLabel" name="label_MM_THRESHOLD">
-                <property name="text">
-                 <string>label_MM_THRESHOLD</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="1">
-               <spacer name="horizontalSpacer_41">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>13</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item row="0" column="2">
-               <widget class="QLineEdit" name="line_MM_THRESHOLD">
+             <layout class="QGridLayout" name="gridLayout_anoxia">
+              <item row="1" column="0">
+               <widget class="QMyLabel" name="label_ANOXIA_THRESHOLD">
                 <property name="maximumSize">
                  <size>
-                  <width>50</width>
+                  <width>200</width>
                   <height>16777215</height>
                  </size>
                 </property>
-                <property name="alignment">
-                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="3">
-               <widget class="QLabel" name="units_MM_THRESHOLD">
-                <property name="text">
-                 <string>uM</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0">
-               <widget class="QMyLabel" name="label_ANOXIA_THRESHOLD">
                 <property name="text">
                  <string>label_ANOXIA_THRESHOLD</string>
                 </property>
                </widget>
               </item>
-              <item row="1" column="1">
-               <spacer name="horizontalSpacer">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item row="1" column="2">
+              <item row="1" column="3">
                <widget class="QLineEdit" name="line_ANOXIA_THRESHOLD">
                 <property name="maximumSize">
                  <size>
-                  <width>50</width>
+                  <width>40</width>
                   <height>16777215</height>
                  </size>
                 </property>
@@ -6333,29 +6286,22 @@ padding: 8px
               </item>
               <item row="2" column="0">
                <widget class="QMyLabel" name="label_ANOXIA_TAG_TIME">
+                <property name="maximumSize">
+                 <size>
+                  <width>200</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
                 <property name="text">
                  <string>label_ANOXIA_TAG_TIME</string>
                 </property>
                </widget>
               </item>
-              <item row="2" column="1">
-               <spacer name="horizontalSpacer_42">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>13</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item row="2" column="2">
+              <item row="2" column="3">
                <widget class="QLineEdit" name="line_ANOXIA_TAG_TIME">
                 <property name="maximumSize">
                  <size>
-                  <width>50</width>
+                  <width>40</width>
                   <height>16777215</height>
                  </size>
                 </property>
@@ -6364,7 +6310,7 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="2" column="3">
+              <item row="2" column="4">
                <widget class="QLabel" name="units_T_ANOXIC_LIMIT">
                 <property name="text">
                  <string>hrs</string>
@@ -6373,29 +6319,22 @@ padding: 8px
               </item>
               <item row="3" column="0">
                <widget class="QMyLabel" name="label_ANOXIA_DEATH_TIME">
+                <property name="maximumSize">
+                 <size>
+                  <width>200</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
                 <property name="text">
                  <string>label_ANOXIA_DEATH_TIME</string>
                 </property>
                </widget>
               </item>
-              <item row="3" column="1">
-               <spacer name="horizontalSpacer_44">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>13</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item row="3" column="2">
+              <item row="3" column="3">
                <widget class="QLineEdit" name="line_ANOXIA_DEATH_TIME">
                 <property name="maximumSize">
                  <size>
-                  <width>50</width>
+                  <width>40</width>
                   <height>16777215</height>
                  </size>
                 </property>
@@ -6404,25 +6343,25 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="3" column="3">
+              <item row="3" column="4">
                <widget class="QLabel" name="units_T_ANOXIA_DEATH">
                 <property name="text">
                  <string>hrs</string>
                 </property>
                </widget>
               </item>
-              <item row="4" column="0">
-               <widget class="QMyLabel" name="label_SPCRAD">
+              <item row="1" column="4">
+               <widget class="QLabel" name="units_ANOXIA_THRESHOLD">
                 <property name="text">
-                 <string>label_SPCRAD</string>
+                 <string>uM</string>
                 </property>
                </widget>
               </item>
-              <item row="4" column="2">
-               <widget class="QLineEdit" name="line_SPCRAD">
+              <item row="1" column="2">
+               <widget class="QLineEdit" name="line_AGLUCOSIA_THRESHOLD">
                 <property name="maximumSize">
                  <size>
-                  <width>50</width>
+                  <width>40</width>
                   <height>16777215</height>
                  </size>
                 </property>
@@ -6431,23 +6370,68 @@ padding: 8px
                 </property>
                </widget>
               </item>
-              <item row="4" column="1">
-               <spacer name="horizontalSpacer_45">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
+              <item row="2" column="2">
+               <widget class="QLineEdit" name="line_AGLUCOSIA_TAG_TIME">
+                <property name="maximumSize">
                  <size>
                   <width>40</width>
-                  <height>13</height>
+                  <height>16777215</height>
                  </size>
                 </property>
-               </spacer>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
+               </widget>
               </item>
-              <item row="1" column="3">
-               <widget class="QLabel" name="units_ANOXIA_THRESHOLD">
+              <item row="3" column="2">
+               <widget class="QLineEdit" name="line_AGLUCOSIA_DEATH_TIME">
+                <property name="maximumSize">
+                 <size>
+                  <width>40</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="2">
+               <widget class="QLabel" name="alabel_glucose">
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>20</height>
+                 </size>
+                </property>
                 <property name="text">
-                 <string>uM</string>
+                 <string>Glucose</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="3">
+               <widget class="QLabel" name="alabel_oxygen">
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Oxygen</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="0">
+               <widget class="QLabel" name="alabel_starvation">
+                <property name="font">
+                 <font>
+                  <weight>75</weight>
+                  <bold>true</bold>
+                 </font>
+                </property>
+                <property name="text">
+                 <string>Death by starvation</string>
                 </property>
                </widget>
               </item>
@@ -7524,9 +7508,9 @@ padding: 8px
             <property name="geometry">
              <rect>
               <x>290</x>
-              <y>300</y>
+              <y>340</y>
               <width>261</width>
-              <height>141</height>
+              <height>101</height>
              </rect>
             </property>
             <property name="title">
@@ -7552,7 +7536,7 @@ padding: 8px
              <property name="geometry">
               <rect>
                <x>40</x>
-               <y>40</y>
+               <y>30</y>
                <width>41</width>
                <height>20</height>
               </rect>
@@ -7562,9 +7546,9 @@ padding: 8px
              <property name="geometry">
               <rect>
                <x>90</x>
-               <y>40</y>
+               <y>30</y>
                <width>121</width>
-               <height>16</height>
+               <height>21</height>
               </rect>
              </property>
              <property name="text">
@@ -7575,7 +7559,7 @@ padding: 8px
              <property name="geometry">
               <rect>
                <x>40</x>
-               <y>70</y>
+               <y>50</y>
                <width>41</width>
                <height>20</height>
               </rect>
@@ -7585,7 +7569,7 @@ padding: 8px
              <property name="geometry">
               <rect>
                <x>90</x>
-               <y>70</y>
+               <y>50</y>
                <width>141</width>
                <height>21</height>
               </rect>
@@ -7598,7 +7582,7 @@ padding: 8px
              <property name="geometry">
               <rect>
                <x>40</x>
-               <y>100</y>
+               <y>70</y>
                <width>41</width>
                <height>20</height>
               </rect>
@@ -7608,9 +7592,9 @@ padding: 8px
              <property name="geometry">
               <rect>
                <x>90</x>
-               <y>100</y>
+               <y>70</y>
                <width>131</width>
-               <height>16</height>
+               <height>21</height>
               </rect>
              </property>
              <property name="text">
@@ -7778,7 +7762,7 @@ padding: 8px
             <property name="geometry">
              <rect>
               <x>290</x>
-              <y>170</y>
+              <y>240</y>
               <width>261</width>
               <height>61</height>
              </rect>
@@ -7842,9 +7826,9 @@ padding: 8px
             <property name="geometry">
              <rect>
               <x>290</x>
-              <y>230</y>
+              <y>300</y>
               <width>261</width>
-              <height>71</height>
+              <height>41</height>
              </rect>
             </property>
             <property name="title">
@@ -7853,8 +7837,8 @@ padding: 8px
             <widget class="QLabel" name="alabel_ff">
              <property name="geometry">
               <rect>
-               <x>70</x>
-               <y>6</y>
+               <x>80</x>
+               <y>0</y>
                <width>81</width>
                <height>20</height>
               </rect>
@@ -7866,8 +7850,8 @@ padding: 8px
             <widget class="QRadioButton" name="rbut_FD_SOLVER_0">
              <property name="geometry">
               <rect>
-               <x>70</x>
-               <y>30</y>
+               <x>160</x>
+               <y>20</y>
                <width>82</width>
                <height>18</height>
               </rect>
@@ -7885,8 +7869,8 @@ padding: 8px
             <widget class="QRadioButton" name="rbut_FD_SOLVER_1">
              <property name="geometry">
               <rect>
-               <x>70</x>
-               <y>50</y>
+               <x>20</x>
+               <y>20</y>
                <width>111</width>
                <height>18</height>
               </rect>
@@ -7900,6 +7884,104 @@ padding: 8px
              <attribute name="buttonGroup">
               <string>buttonGroup_farfield</string>
              </attribute>
+            </widget>
+           </widget>
+           <widget class="QGroupBox" name="groupBox_run3">
+            <property name="geometry">
+             <rect>
+              <x>290</x>
+              <y>170</y>
+              <width>261</width>
+              <height>71</height>
+             </rect>
+            </property>
+            <property name="title">
+             <string/>
+            </property>
+            <widget class="QWidget" name="gridLayoutWidget_4">
+             <property name="geometry">
+              <rect>
+               <x>10</x>
+               <y>0</y>
+               <width>241</width>
+               <height>71</height>
+              </rect>
+             </property>
+             <layout class="QGridLayout" name="gridLayout_misc">
+              <item row="0" column="0">
+               <widget class="QMyLabel" name="label_MM_THRESHOLD">
+                <property name="text">
+                 <string>label_MM_THRESHOLD</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <spacer name="horizontalSpacer_41">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>13</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item row="0" column="2">
+               <widget class="QLineEdit" name="line_MM_THRESHOLD">
+                <property name="maximumSize">
+                 <size>
+                  <width>50</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="3">
+               <widget class="QLabel" name="units_MM_THRESHOLD">
+                <property name="text">
+                 <string>uM</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QMyLabel" name="label_SPCRAD">
+                <property name="text">
+                 <string>label_SPCRAD</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <spacer name="horizontalSpacer_45">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>13</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item row="1" column="2">
+               <widget class="QLineEdit" name="line_SPCRAD">
+                <property name="maximumSize">
+                 <size>
+                  <width>50</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+             </layout>
             </widget>
            </widget>
           </widget>
