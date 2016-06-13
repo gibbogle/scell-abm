@@ -311,7 +311,7 @@ write(nflog,'(a,a)') 'DLL version: ',dll_run_version
 write(nflog,*)
 
 open(nfres,file='scell_ts.out',status='replace')
-write(nfres,'(a)') 'GUI_version DLL_version &
+write(nfres,'(a)') 'data info GUI_version DLL_version &
 istep hour vol_mm3 diam_um Ncells(1) Ncells(2) &
 Nanoxia_dead(1) Nanoxia_dead(2) Naglucosia_dead(1) Naglucosia_dead(2) NdrugA_dead(1) NdrugA_dead(2) &
 NdrugB_dead(1) NdrugB_dead(2) Nradiation_dead(1) Nradiation_dead(2) &

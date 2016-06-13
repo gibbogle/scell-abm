@@ -824,7 +824,7 @@ summaryData(1:28) = [ istep, Ncells, TNanoxia_dead, TNaglucosia_dead, TNdrug_dea
 	Tplate_eff_10, npmm3, &
 	medium_oxygen_1000, medium_glucose_1000, medium_drug_1000(1), medium_drug_1000(2), &
 	bdry_oxygen_1000, bdry_glucose_1000, bdry_drug_1000(1), bdry_drug_1000(2) ]
-write(nfres,'(2a12,i8,2e12.4,23i7,20e12.4)') gui_run_version, dll_run_version, &
+write(nfres,'(a,a,2a12,i8,2e12.4,23i7,20e12.4)') trim(header),' ',gui_run_version, dll_run_version, &
 	istep, hour, vol_mm3, diam_um, Ncells_type(1:2), &
     Nanoxia_dead(1:2), Naglucosia_dead(1:2), Ndrug_dead(1,1:2), &
     Ndrug_dead(2,1:2), Nradiation_dead(1:2), &
