@@ -628,7 +628,7 @@ end function
 ! 2. Use the divide time log-normal distribution
 !    (a) use_V_dependence = true
 !    (b) use_V_dependence = false
-! NOTE: %volume and %divide_volume are normalised.
+! NOTE: %volume and %divide_volume are NOT normalised in this version.
 !-----------------------------------------------------------------------------------------
 function get_divide_volume(ityp,V0,Tdiv) result(Vdiv)
 integer :: ityp

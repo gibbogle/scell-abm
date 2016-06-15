@@ -12,6 +12,7 @@ type chemokine_type
 	logical :: present
 	logical :: constant
 	logical :: controls_growth
+	logical :: controls_death
 	real(REAL_KIND) :: bdry_rate
 	real(REAL_KIND) :: bdry_conc
 	real(REAL_KIND) :: diff_coef

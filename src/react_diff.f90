@@ -172,11 +172,8 @@ Fsum_b = 0
 F_b = 0
 do ixb = xb0-idxb,xb0+idxb
 	ix0 = (ixb - xb0)*NRF + (NX+1)/2
-!	write(*,*) 'ix0: ',ix0
 	do iyb = yb0-idyb,yb0+idyb
-!		write(*,*) 'iyb: ',iyb
 		iy0 = (iyb - yb0)*NRF + (NY+1)/2
-!		write(*,*) 'iy0: ',iy0
 		do izb = 1,zb1
 			iz0 = (izb - 1)*NRF + 1
 			do idx = -dN,dN
@@ -198,7 +195,6 @@ do ixb = xb0-idxb,xb0+idxb
 	enddo
 enddo
 zero = (Fsum_b == 0)	
-!if (ichemo_curr == DRUG_A) write(*,'(a,2i6,e12.3)') 'makeF_b: ',ichemo_curr,istep,Fsum_b
 end subroutine
 
 !-------------------------------------------------------------------------------------------
@@ -236,6 +232,7 @@ do ix = 2,NX-1
 !			Kdiff = Kdiff*(1 - chemo(ichemo)%diff_reduction_factor*alfa)
 			! Kdiff should range between Kmedium and Ktissue as nc goes from 0 to nc_max
 			Kdiff = (1-alfa)*Kmedium + alfa*Ktissue
+!			Kdiff = Kmedium
 !			if (nc > 0) then
 !				write(*,'(a,2i4,f8.4)') 'Kdiff reduction: ',nc,nc_max,chemo(ichemo)%diff_reduction_factor*min(nc,nc_max)/nc_max
 !				k = k+1
@@ -302,13 +299,16 @@ integer :: ichemo
 real(REAL_KIND) :: dt, a_b(:), Cave_b(:,:,:), Cprev_b(:,:,:), Fcurr_b(:,:,:), Fprev_b(:,:,:), rhs(:)
 logical :: zero
 integer :: ixb, iyb, izb, k, i, krow, kcol, nc
-real(REAL_KIND) :: Kdiff, Kr, Cbdry, Fsum
+real(REAL_KIND) :: Kdiff, Ktissue, Kmedium, Kr, Cbdry, Fsum
 integer, parameter :: m = 3
 
 zero = .true.
-Kdiff = chemo(ichemo)%medium_diff_coef
+!Kdiff = chemo(ichemo)%medium_diff_coef
+Ktissue = chemo(ichemo)%diff_coef
+Kmedium = chemo(ichemo)%medium_diff_coef
 Fsum = 0
 krow = 0
+Kdiff = Kmedium
 do k = 1,nnz_b
 	if (k == ia_b(krow+1)) krow = krow+1
 	kcol = ja_b(k)
@@ -333,6 +333,11 @@ do izb = 1,NZB
 	do iyb = 1,NYB
 		do ixb = 1,NXB
 			krow = (ixb-1)*NYB*NZB + (iyb-1)*NZB + izb
+			if (Fcurr_b(ixb,iyb,izb) > 0) then
+			    Kdiff = Ktissue
+			else
+			    Kdiff = Kmedium
+			endif
 			Kr = dxb*dxb/Kdiff
 			rhs(krow) = Kr*((-2*Fcurr_b(ixb,iyb,izb) + Fprev_b(ixb,iyb,izb))/dxb3 + (1./(2*dt))*(4*Cave_b(ixb,iyb,izb) - Cprev_b(ixb,iyb,izb)))
 			if (rhs(krow) /= 0) zero = .false.
@@ -1135,13 +1140,14 @@ enddo
 end subroutine
 
 !--------------------------------------------------------------------------------------
-! Use the solution for Cave to estimate the average blob boundary concentration: %blob_Cbnd
+! Use the solution for Cave to estimate the average blob boundary concentration: %medium_Cbnd
 ! by averaging over a sphere with radius = blob radius (cm) centred at the blob centre
 ! centre_b -> centre_f on the fine grid. (unless this changes significantly)
 ! To generate a random point on the sphere, it is necessary only to generate two random numbers, z between -R and R, phi between 0 and 2 pi, each with a uniform distribution
 ! To find the latitude (theta) of this point, note that z=Rsin(theta), so theta=sin-1(z/R); its longitude is (surprise!) phi.
 ! In rectilinear coordinates, x=Rcos(theta)cos(phi), y=Rcos(theta)sin(phi), z=Rsin(theta)= (surprise!) z.
 ! Needless to say, (x,y,z) are not independent, but are rather constrained by x2+y2+z2=R2.
+! medium_cbnd is not used anywhere, just for info.
 !--------------------------------------------------------------------------------------
 subroutine set_bdry_conc
 integer :: kpar = 0
@@ -1253,7 +1259,7 @@ subroutine diff_solver(dt,ok)
 real(REAL_KIND) :: dt
 logical :: ok
 integer :: i, k, k1, ix, iy, iz, irow, icol, kc, ic, icc, it
-integer :: ixb, iyb, izb
+integer :: ixb, iyb, izb, izb0
 integer :: ichemo, ierr, nfill, iters, maxits, im_krylov
 real(REAL_KIND) :: R, tol, tol_b, asum, t, Vex_curr, Vex_next, Vin_curr, Vin_next, fdecay
 real(REAL_KIND) :: Csum, dCsum, msum, mass(MAX_CHEMO), Cmin
@@ -1324,10 +1330,17 @@ do ic = 1,nchemo
 	Fprev_b => chemo(ichemo)%Fprev_b
 	Fcurr_b => chemo(ichemo)%Fcurr_b
 	Cave => Caverage(:,:,:,ichemo)
-!	write(*,*) 'Cave_b:'
-!	write(*,'(5e15.6)') Cave_b(NXB/2,NYB/2,:)		
 	Fprev_b = Fcurr_b
 	call makeF_b(Fcurr_b, Fcurr, dt,zeroF(ichemo))
+	if (ichemo == OXYGEN) then
+	    izb0 = 5    ! as in spheroid-abm
+	    write(nflog,*) 'total flux_f: O2: ',sum(Fcurr(:,:,:))
+	    write(nflog,*) 'total flux_b: O2: ',sum(Fcurr_b(:,:,:))
+	    write(nflog,*) 'Cave_b: O2:'
+	    write(nflog,'(10e12.3)') Cave_b(NXB/2,:,izb0)
+	    write(nflog,*) 'Cave_f: O2:'
+	    write(nflog,'(10e12.3)') Cave(NX/2,:,NX/2)
+	endif
 	call make_csr_b(a_b, ichemo, dt, Cave_b, Cprev_b, Fcurr_b, Fprev_b, rhs, zeroC(ichemo))		! coarse grid
 
 	! Solve Cave_b(t+dt) on coarse grid

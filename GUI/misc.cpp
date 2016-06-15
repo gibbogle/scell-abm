@@ -212,11 +212,8 @@ void ExecThread::run()
     emit setupC();
     mutex1.unlock();
 
-//    mutex1.lock();
-//    get_summary(Global::summaryData, &Global::i_hypoxia_cutoff, &Global::i_growth_cutoff);
-//    mutex1.unlock();
-//    emit summary(hour);		// Emit signal to initialise summary plots
-//    summary_done.wait(&mutex3);
+    get_summary(Global::summaryData, &Global::i_hypoxia_cutoff, &Global::i_growth_cutoff);
+    emit summary(hour);		// Emit signal to initialise summary plots
 
     for (int i=1; i <= nsteps+1; i++) {
 		bool updated = false;
@@ -257,8 +254,9 @@ void ExecThread::run()
                 emit histo_update();
             }
             hour++;
+            mutex1.lock();
             emit summary(hour);		// Emit signal to update summary plots, at hourly intervals
-            summary_done.wait(&mutex3);
+//            summary_done.wait(&mutex3);
         }
 
         if (stopped) {

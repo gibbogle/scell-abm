@@ -206,11 +206,14 @@ logical :: changed, ok
 integer :: kcell, nlist0, site(3), i, ichemo, idrug, im, ityp, killmodel, kpar=0 
 real(REAL_KIND) :: C_O2, C_glucose, kmet, Kd, dMdt, Cdrug, n_O2, kill_prob, dkill_prob, death_prob, tnow
 !logical :: use_TPZ_DRUG, use_DNB_DRUG
+logical :: anoxia_death, aglucosia_death
 type(drug_type), pointer :: dp
 
 !call logger('CellDeath')
 ok = .true.
 tnow = istep*DELTA_T	! seconds
+anoxia_death = chemo(OXYGEN)%controls_death
+aglucosia_death = chemo(GLUCOSE)%controls_death
 nlist0 = nlist
 do kcell = 1,nlist
 	if (cell_list(kcell)%state == DEAD) cycle
@@ -225,7 +228,7 @@ do kcell = 1,nlist
 			cycle
 		endif
 	else
-		if (C_O2 < anoxia_threshold) then
+		if (anoxia_death .and. C_O2 < anoxia_threshold) then
 			cell_list(kcell)%t_anoxia = cell_list(kcell)%t_anoxia + dt
 			if (cell_list(kcell)%t_anoxia > t_anoxia_limit) then
 				cell_list(kcell)%anoxia_tag = .true.						! tagged to die later
@@ -245,7 +248,7 @@ do kcell = 1,nlist
 			cycle
 		endif
 	else
-		if (C_O2 < aglucosia_threshold) then
+		if (aglucosia_death .and. C_O2 < aglucosia_threshold) then
 			cell_list(kcell)%t_aglucosia = cell_list(kcell)%t_aglucosia + dt
 			if (cell_list(kcell)%t_aglucosia > t_aglucosia_limit) then
 				cell_list(kcell)%aglucosia_tag = .true.						    ! tagged to die later
@@ -399,7 +402,8 @@ do k = 1,ncells
 !		write(nflog,'(a,i4,3f8.3)') 'V,d,rad: ',kcell,cp%V,cp%d,rad
 !	elseif (MITOSIS_MODE == TERMINAL_MITOSIS) then
 	if (cp%Iphase) then
-		call growcell(cp,dt,c_rate(ityp),r_mean(ityp))
+!		call growcell(cp,dt,c_rate(ityp),r_mean(ityp))
+		call growcell(cp,dt)
 		cp%radius(1) = (3*cp%V/(4*PI))**(1./3.)
 !		write(*,*) 'grower: V: ',cp%V
 		if (cp%V > cp%divide_volume) then	! time to divide
@@ -523,7 +527,7 @@ end subroutine
 
 !-----------------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------------
-subroutine growcell(cp, dt, c_rate, r_mean)
+subroutine old_growcell(cp, dt, c_rate, r_mean)
 type(cell_type), pointer :: cp
 real(REAL_KIND) :: dt, c_rate, r_mean
 real(REAL_KIND) :: Cin_0(NCONST), Cex_0(NCONST)		! at some point NCONST -> MAX_CHEMO
@@ -569,6 +573,47 @@ end subroutine
 
 !-----------------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------------
+subroutine growcell(cp, dt)
+type(cell_type), pointer :: cp
+real(REAL_KIND) :: dt
+real(REAL_KIND) :: Cin_0(NCONST), Cex_0(NCONST)		! at some point NCONST -> MAX_CHEMO
+real(REAL_KIND) :: dVdt,  Vin_0, dV, metab_O2, metab_glucose, metab, dVdt_new
+logical :: glucose_growth
+integer :: C_option = 1	! we must use this
+
+glucose_growth = chemo(GLUCOSE)%controls_growth
+Cin_0 = cp%Cin
+metab_O2 = O2_metab(Cin_0(OXYGEN))	! Note that currently growth depends only on O2
+metab_glucose = glucose_metab(Cin_0(GLUCOSE))
+if (glucose_growth) then
+	metab = metab_O2*metab_glucose
+else
+	metab = metab_O2
+endif
+dVdt = get_dVdt(cp,metab)
+!write(*,'(a,2e12.3)') 'dVdt: ',dVdt,dVdt_new
+if (suppress_growth) then	! for checking solvers
+	dVdt = 0
+endif
+Cex_0 = cp%Cex
+cp%dVdt = dVdt
+Vin_0 = cp%V
+dV = dVdt*dt
+cp%V = Vin_0 + dV
+if (C_option == 1) then
+	! Calculation based on transfer of an extracellular volume dV with constituents, i.e. holding extracellular concentrations constant
+	cp%Cin = (Vin_0*Cin_0 + dV*Cex_0)/(Vin_0 + dV)
+elseif (C_option == 2) then
+	! Calculation based on change in volumes without mass transfer of constituents
+	cp%Cin = Vin_0*Cin_0/(Vin_0 + dV)
+endif
+end subroutine
+
+!-----------------------------------------------------------------------------------------
+! Need to account for time spent in mitosis.  Because there is no growth during mitosis,
+! the effective divide_time must be reduced by mitosis_duration.
+! Note that TERMINAL_MITOSIS is the only option.
+!-----------------------------------------------------------------------------------------
 function get_dVdt(cp, metab) result(dVdt)
 type(cell_type), pointer :: cp
 real(REAL_KIND) :: metab, dVdt
@@ -577,18 +622,18 @@ real(REAL_KIND) :: r_mean, c_rate
 
 if (use_V_dependence) then
 	if (use_constant_divide_volume) then
-		dVdt = metab*log(2.0)*cp%V/cp%divide_time
+		dVdt = metab*log(2.0)*cp%V/(cp%divide_time - mitosis_duration)
 	else
 		ityp = cp%celltype
-		c_rate = log(2.0)/divide_time_mean(ityp)
+		c_rate = log(2.0)/(divide_time_mean(ityp) - mitosis_duration)
 		dVdt = c_rate*cp%V*metab
 	endif
 else
 	if (use_constant_divide_volume) then
-		dVdt = metab*Vdivide0/(2*cp%divide_time)
+		dVdt = 0.5*metab*Vdivide0/(cp%divide_time  - mitosis_duration)
 	else
 		ityp = cp%celltype
-		r_mean = Vdivide0/(2*divide_time_mean(ityp))
+		r_mean = 0.5*Vdivide0/(divide_time_mean(ityp) - mitosis_duration)
 		dVdt = r_mean*metab
 	endif
 endif

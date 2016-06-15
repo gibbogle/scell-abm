@@ -75,7 +75,8 @@ integer :: iuse_oxygen, iuse_glucose, iuse_tracer, iuse_drug, iuse_metab, iV_dep
 integer :: iuse_extra, iuse_relax, iuse_par_relax, iuse_gd_all
 real(REAL_KIND) :: days, percent, fluid_fraction, d_layer, sigma(MAX_CELLTYPES), Vsite_cm3, bdry_conc, spcrad_value, d_n_limit
 real(REAL_KIND) :: anoxia_tag_hours, anoxia_death_hours, aglucosia_tag_hours, aglucosia_death_hours
-integer :: iuse_drop, iconstant, isaveprofiledata, isaveslicedata, iglucosegrowth
+integer :: iuse_drop, isaveprofiledata, isaveslicedata
+integer :: iconstant, ioxygengrowth, iglucosegrowth, ioxygendeath, iglucosedeath
 logical :: use_metabolites
 character*(12) :: drug_name
 character*(1) :: numstr
@@ -142,6 +143,10 @@ read(nfcell,*) NT_GUI_OUT					! interval between GUI outputs (timesteps)
 read(nfcell,*) show_progeny                 ! if != 0, the number of the cell to show descendents of
 
 read(nfcell,*) iuse_oxygen		! chemo(OXYGEN)%used
+read(nfcell,*) ioxygengrowth
+chemo(OXYGEN)%controls_growth = (ioxygengrowth == 1)
+read(nfcell,*) ioxygendeath
+chemo(OXYGEN)%controls_death = (ioxygendeath == 1)
 read(nfcell,*) chemo(OXYGEN)%diff_coef
 read(nfcell,*) chemo(OXYGEN)%medium_diff_coef
 read(nfcell,*) chemo(OXYGEN)%membrane_diff_in
@@ -156,6 +161,10 @@ chemo(OXYGEN)%max_cell_rate = chemo(OXYGEN)%max_cell_rate*1.0e6					! mol/cell/s
 read(nfcell,*) chemo(OXYGEN)%MM_C0
 read(nfcell,*) chemo(OXYGEN)%Hill_N
 read(nfcell,*) iuse_glucose		!chemo(GLUCOSE)%used
+read(nfcell,*) iglucosegrowth
+chemo(GLUCOSE)%controls_growth = (iglucosegrowth == 1)
+read(nfcell,*) iglucosedeath
+chemo(GLUCOSE)%controls_death = (iglucosedeath == 1)
 read(nfcell,*) chemo(GLUCOSE)%diff_coef
 read(nfcell,*) chemo(GLUCOSE)%medium_diff_coef
 read(nfcell,*) chemo(GLUCOSE)%membrane_diff_in
@@ -168,8 +177,6 @@ read(nfcell,*) chemo(GLUCOSE)%max_cell_rate
 chemo(GLUCOSE)%max_cell_rate = chemo(GLUCOSE)%max_cell_rate*1.0e6					! mol/cell/s -> mumol/cell/s
 read(nfcell,*) chemo(GLUCOSE)%MM_C0
 read(nfcell,*) chemo(GLUCOSE)%Hill_N
-read(nfcell,*) iglucosegrowth
-chemo(GLUCOSE)%controls_growth = (iglucosegrowth == 1)
 read(nfcell,*) iuse_tracer		!chemo(TRACER)%used
 read(nfcell,*) chemo(TRACER)%diff_coef
 read(nfcell,*) chemo(TRACER)%medium_diff_coef
@@ -887,7 +894,12 @@ cp%divide_time = Tdiv
 if (initial_count == 1) then
 	cp%V = 0.9*cp%divide_volume
 else
-	cp%V = (0.5 + 0.49*par_uni(kpar))*cp%divide_volume
+!	cp%V = (0.5 + 0.49*par_uni(kpar))*cp%divide_volume
+    if (randomise_initial_volume) then
+	    cp%V = cp%divide_volume*0.5*(1 + par_uni(kpar))
+    else
+	    cp%V = cp%divide_volume/1.6
+    endif
 endif
 cp%radius(1) = (3*cp%V/(4*PI))**(1./3.)
 cp%centre(:,1) = rsite
@@ -1026,7 +1038,6 @@ logical :: dbug
 Nhop = 1
 nt_hour = 3600/DELTA_T
 nt_nbr = nt_hour*FULL_NBRLIST_UPDATE_HOURS
-istep = istep + 1
 dbug = .false.
 if (Ncells == 0) then
 	call logger('Ncells = 0')
@@ -1054,6 +1065,7 @@ endif
 blobradius = getRadius()
 blobcentre = getCentre()
 
+istep = istep + 1
 t_simulation = (istep-1)*DELTA_T	! seconds
 radiation_dose = 0
 if (use_events) then
@@ -1180,8 +1192,52 @@ if (mod(istep,nt_hour) == 0) then
 	endif
 	call set_bdry_conc()
 !	call write_bdryconcs
+    call showcells
 endif
 res = 0
+end subroutine
+
+!-----------------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------------------
+subroutine showcell(kcell)
+integer :: kcell
+real(REAL_KIND) :: Vn   ! to normalise volumes
+type(cell_type), pointer :: cp
+
+Vn = Vdivide0/1.6
+cp => cell_list(kcell)
+write(nflog,'(a,i6,4e12.3)') 'kcell, volume, divide_volume, dVdt, divide_time: ', &
+                kcell, cp%V/Vn, cp%divide_volume/Vn, cp%dVdt/Vn, cp%divide_time
+!write(*,'(a,i6,4e12.3)') 'kcell, volume, divide_volume, dVdt, divide_time: ', &
+!                kcell, cp%V/Vn, cp%divide_volume/Vn, cp%dVdt/Vn, cp%divide_time
+end subroutine
+
+!-----------------------------------------------------------------------------------------
+! Average volumes etc
+!-----------------------------------------------------------------------------------------
+subroutine showcells
+integer :: kcell, n
+real(REAL_KIND) :: Vsum,divVsum,dVdtsum,divtsum
+real(REAL_KIND) :: Vn   ! to normalise volumes
+type(cell_type), pointer :: cp
+
+Vn = Vdivide0/1.6
+Vsum=0
+divVsum=0
+dVdtsum=0
+divtsum=0
+n=0
+do kcell = 1,nlist
+    cp => cell_list(kcell)
+    if (cp%state == DEAD) cycle
+    n = n+1
+    Vsum = Vsum + cp%V/Vn
+    divVsum = divVsum + cp%divide_volume/Vn
+    dVdtsum = dVdtsum + cp%dVdt/Vn
+    divtsum = divtsum + cp%divide_time
+enddo
+write(nflog,'(a,4e12.3)') 'ave volume, divide_volume, dVdt, divide_time: ', Vsum/n,divVsum/n,dVdtsum/n,divtsum/n
+!write(*,'(a,4e12.3)') 'ave volume, divide_volume, dVdt, divide_time: ', Vsum/n,divVsum/n,dVdtsum/n,divtsum/n
 end subroutine
 
 !----------------------------------------------------------------------------------

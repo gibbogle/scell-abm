@@ -262,6 +262,14 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 "Use Oxygen?",
 "Oxygen is simulated"},
 
+{"OXYGEN_CONTROLS_GROWTH", 1, 0, 1,
+"Oxygen growth?",
+"The rate of growth of a cell is the maximum rate multiplied by the fractional rates of metabolism of both O2 and glucose"},
+
+{"OXYGEN_CONTROLS_DEATH", 1, 0, 1,
+"Anoxia death?",
+"Oxygen controls death by anoxia"},
+
 {"OXYGEN_DIFF_COEF", 2.0e-5, 0, 0,
  "Spheroid diffusion coeff",
  "Constituent diffusion coefficient in the spheroid"},
@@ -298,6 +306,14 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 "Use Glucose?",
 "Glucose is simulated"},
 
+{"GLUCOSE_CONTROLS_GROWTH", 1, 0, 1,
+"Glucose growth?",
+"The rate of growth of a cell is the maximum rate multiplied by the fractional rates of metabolism of both O2 and glucose"},
+
+{"GLUCOSE_CONTROLS_DEATH", 1, 0, 1,
+"Aglucosia death?",
+"Glucose controls death by aglucosia"},
+
 {"GLUCOSE_DIFF_COEF", 3.0e-7, 0, 0,
  "Spheroid diffusion coeff",
  "GLUCOSE diffusion coefficient"},
@@ -329,10 +345,6 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 {"GLUCOSE_HILL_N", 1, 1, 2,
  "Hill function N",
  "Glucose uptake rate Hill function N"},
-
-{"GLUCOSE_GROWTH", 1, 0, 1,
- "Glucose controls growth",
- "The rate of growth of a cell is the maximum rate multiplied by the fractional rates of metabolism of both O2 and glucose"},
 
 {"USE_TRACER", 0, 0, 1,
 "Use Tracer?",
