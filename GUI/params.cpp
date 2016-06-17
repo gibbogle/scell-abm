@@ -262,11 +262,11 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 "Use Oxygen?",
 "Oxygen is simulated"},
 
-{"OXYGEN_CONTROLS_GROWTH", 1, 0, 1,
+{"OXYGEN_GROWTH", 1, 0, 1,
 "Oxygen growth?",
 "The rate of growth of a cell is the maximum rate multiplied by the fractional rates of metabolism of both O2 and glucose"},
 
-{"OXYGEN_CONTROLS_DEATH", 1, 0, 1,
+{"OXYGEN_DEATH", 1, 0, 1,
 "Anoxia death?",
 "Oxygen controls death by anoxia"},
 
@@ -306,11 +306,11 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 "Use Glucose?",
 "Glucose is simulated"},
 
-{"GLUCOSE_CONTROLS_GROWTH", 1, 0, 1,
+{"GLUCOSE_GROWTH", 1, 0, 1,
 "Glucose growth?",
 "The rate of growth of a cell is the maximum rate multiplied by the fractional rates of metabolism of both O2 and glucose"},
 
-{"GLUCOSE_CONTROLS_DEATH", 1, 0, 1,
+{"GLUCOSE_DEATH", 1, 0, 1,
 "Aglucosia death?",
 "Glucose controls death by aglucosia"},
 

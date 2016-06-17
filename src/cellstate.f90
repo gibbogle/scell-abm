@@ -552,7 +552,6 @@ endif
 !!	write(*,'(a,3e12.3)') 'r_mean, metab, dVdt: ',r_mean, metab, dVdt
 !endif
 dVdt = get_dVdt(cp,metab)
-!write(*,'(a,2e12.3)') 'dVdt: ',dVdt,dVdt_new
 if (suppress_growth) then	! for checking solvers
 	dVdt = 0
 endif
@@ -591,7 +590,6 @@ else
 	metab = metab_O2
 endif
 dVdt = get_dVdt(cp,metab)
-!write(*,'(a,2e12.3)') 'dVdt: ',dVdt,dVdt_new
 if (suppress_growth) then	! for checking solvers
 	dVdt = 0
 endif

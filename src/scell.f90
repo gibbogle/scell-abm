@@ -273,6 +273,14 @@ chemo(GLUCOSE)%used = (iuse_glucose == 1)
 chemo(TRACER)%used = (iuse_tracer == 1)
 chemo(OXYGEN)%MM_C0 = chemo(OXYGEN)%MM_C0/1000		! uM -> mM
 chemo(GLUCOSE)%MM_C0 = chemo(GLUCOSE)%MM_C0/1000	! uM -> mM
+if (.not.chemo(OXYGEN)%used) then
+    chemo(OXYGEN)%controls_growth = .false.
+    chemo(OXYGEN)%controls_death = .false.
+endif
+if (.not.chemo(GLUCOSE)%used) then
+    chemo(GLUCOSE)%controls_growth = .false.
+    chemo(GLUCOSE)%controls_death = .false.
+endif
 LQ(:)%growth_delay_factor = 60*60*LQ(:)%growth_delay_factor	! hours -> seconds
 t_anoxia_limit = 60*60*anoxia_tag_hours				! hours -> seconds
 anoxia_death_delay = 60*60*anoxia_death_hours		! hours -> seconds
