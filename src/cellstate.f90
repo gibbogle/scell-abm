@@ -577,17 +577,20 @@ type(cell_type), pointer :: cp
 real(REAL_KIND) :: dt
 real(REAL_KIND) :: Cin_0(NCONST), Cex_0(NCONST)		! at some point NCONST -> MAX_CHEMO
 real(REAL_KIND) :: dVdt,  Vin_0, dV, metab_O2, metab_glucose, metab, dVdt_new
-logical :: glucose_growth
+logical :: oxygen_growth, glucose_growth
 integer :: C_option = 1	! we must use this
 
+oxygen_growth = chemo(OXYGEN)%controls_growth
 glucose_growth = chemo(GLUCOSE)%controls_growth
 Cin_0 = cp%Cin
 metab_O2 = O2_metab(Cin_0(OXYGEN))	! Note that currently growth depends only on O2
 metab_glucose = glucose_metab(Cin_0(GLUCOSE))
-if (glucose_growth) then
+if (oxygen_growth .and. glucose_growth) then
 	metab = metab_O2*metab_glucose
-else
+elseif (oxygen_growth) then
 	metab = metab_O2
+elseif (glucose_growth) then
+	metab = metab_glucose
 endif
 dVdt = get_dVdt(cp,metab)
 if (suppress_growth) then	! for checking solvers
@@ -642,21 +645,26 @@ end function
 subroutine SetInitialGrowthRate
 integer :: kcell, ityp
 real(REAL_KIND) :: C_O2, C_glucose, metab, metab_O2, metab_glucose, dVdt
-logical :: glucose_growth
+logical :: oxygen_growth, glucose_growth
 type(cell_type), pointer :: cp
 
+oxygen_growth = chemo(OXYGEN)%controls_growth
 glucose_growth = chemo(GLUCOSE)%controls_growth
 do kcell = 1,nlist
 	cp => cell_list(kcell)
 	if (cp%state == DEAD) cycle
 	C_O2 = chemo(OXYGEN)%bdry_conc
 	C_glucose = cp%Cin(GLUCOSE)
-	metab_O2 = O2_metab(C_O2)
-	metab_glucose = glucose_metab(C_glucose)
-	if (glucose_growth) then
+	if (oxygen_growth .and. glucose_growth) then
+	    metab_O2 = O2_metab(C_O2)
+		metab_glucose = glucose_metab(C_glucose)
 		metab = metab_O2*metab_glucose
-	else
+	elseif (oxygen_growth) then
+	    metab_O2 = O2_metab(C_O2)
 		metab = metab_O2
+	elseif (glucose_growth) then
+		metab_glucose = glucose_metab(C_glucose)
+		metab = metab_glucose
 	endif
 	dVdt = get_dVdt(cp,metab)
 	if (suppress_growth) then	! for checking solvers
