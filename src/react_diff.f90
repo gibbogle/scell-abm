@@ -333,11 +333,12 @@ do izb = 1,NZB
 	do iyb = 1,NYB
 		do ixb = 1,NXB
 			krow = (ixb-1)*NYB*NZB + (iyb-1)*NZB + izb
-			if (Fcurr_b(ixb,iyb,izb) > 0) then
-			    Kdiff = Ktissue
-			else
-			    Kdiff = Kmedium
-			endif
+!			if (Fcurr_b(ixb,iyb,izb) > 0) then
+!			    Kdiff = Ktissue
+!			else
+!			    Kdiff = Kmedium
+!			endif
+		    Fsum = Fsum + Fcurr_b(ixb,iyb,izb)
 			Kr = dxb*dxb/Kdiff
 			rhs(krow) = Kr*((-2*Fcurr_b(ixb,iyb,izb) + Fprev_b(ixb,iyb,izb))/dxb3 + (1./(2*dt))*(4*Cave_b(ixb,iyb,izb) - Cprev_b(ixb,iyb,izb)))
 			if (rhs(krow) /= 0) zero = .false.
@@ -355,6 +356,7 @@ if (ichemo == OXYGEN) then
 		enddo
 	enddo
 endif
+write(nflog,*) 'make_csr_b: Fsum: ',ichemo,Fsum
 end subroutine
 
 !-------------------------------------------------------------------------------------------
@@ -986,6 +988,8 @@ yb2 = yb0 + idyb
 zb1 = 1
 zb2 = (NZ-1)/NRF + 1
 
+write(nflog,'(a,6i4)') 'interpolate_Cave: xb1,xb2,...: ',xb1,xb2,yb1,yb2,zb1,zb2
+write(nflog,*) 'Cave_b(14,14,9): ',Cave_b(14,14,9)
 csum = 0
 ncsum = 0
 
@@ -1332,14 +1336,18 @@ do ic = 1,nchemo
 	Cave => Caverage(:,:,:,ichemo)
 	Fprev_b = Fcurr_b
 	call makeF_b(Fcurr_b, Fcurr, dt,zeroF(ichemo))
-	if (ichemo == OXYGEN) then
-	    izb0 = 5    ! as in spheroid-abm
-	    write(nflog,*) 'total flux_f: O2: ',sum(Fcurr(:,:,:))
-	    write(nflog,*) 'total flux_b: O2: ',sum(Fcurr_b(:,:,:))
-	    write(nflog,*) 'Cave_b: O2:'
+!	if (ichemo == OXYGEN) then
+!	    izb0 = 5    ! as in spheroid-abm
+!	    write(nflog,*) 'total flux_f: O2: ',sum(Fcurr(:,:,:))
+!	    write(nflog,*) 'total flux_b: O2: ',sum(Fcurr_b(:,:,:))
+!	    write(nflog,*) 'Cave_b: O2:'
+!	    write(nflog,'(10e12.3)') Cave_b(NXB/2,:,izb0)
+!	    write(nflog,*) 'Cave_f: O2:'
+!	    write(nflog,'(10e12.3)') Cave(NX/2,:,NX/2)
+!	endif
+	if (ichemo == GLUCOSE) then
+	    write(nflog,*) 'Cave_b: glucose: ixb,..,izb: ',NXB/2,izb0
 	    write(nflog,'(10e12.3)') Cave_b(NXB/2,:,izb0)
-	    write(nflog,*) 'Cave_f: O2:'
-	    write(nflog,'(10e12.3)') Cave(NX/2,:,NX/2)
 	endif
 	call make_csr_b(a_b, ichemo, dt, Cave_b, Cprev_b, Fcurr_b, Fprev_b, rhs, zeroC(ichemo))		! coarse grid
 

@@ -175,7 +175,7 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 "Fluid fraction",
 "Fraction of non-necrotic tumour that is extracellular fluid."},
 
-{"MEDIUM_VOLUME", 0.151, 0, 0,
+{"MEDIUM_VOLUME", 0.2, 0, 0,
 "Medium volume",
 "Volume of the medium in which the spheroid is growing."},
 

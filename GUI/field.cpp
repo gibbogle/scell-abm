@@ -28,6 +28,7 @@ Field::Field(QWidget *aParent) : QWidget(aParent)
     pGconc = NULL;
     pGvol = NULL;
     pGoxy = NULL;
+    show_cells = true;
     ifield = 0;
     view = new MyQGraphicsView(field_page);
     scene = new QGraphicsScene(QRect(0, 0, CANVAS_WIDTH, CANVAS_WIDTH));
@@ -636,6 +637,7 @@ void Field::displayField(int hr, int *res)
 //    sprintf(msg,"axis: %d valmin: %f",axis,valmin);
 //    LOG_MSG(msg);
 
+    if (!show_cells) return;
 //    ichemo = Global::GUI_to_DLL_index[cell_constituent];
 //    LOG_QMSG("displayField: cell: " + QString::number(cell_constituent) + " --> " + QString::number(ichemo));
 //    LOG_QMSG("displayField: nc: " + QString::number(fdata.ncells));

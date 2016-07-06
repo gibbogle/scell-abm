@@ -1138,7 +1138,7 @@ void MainWindow::setFields()
     groupBox_drop->setEnabled(true);
     if (rbut_FD_SOLVER_1->isChecked()) {
         int nxb = line_NXB->text().toInt();
-        double dxf = 38;
+        double dxf = 41;
         if (specify_volume) {
             line_MEDIUM_VOLUME->setEnabled(true);
             double vol_cm3 = line_MEDIUM_VOLUME->text().toDouble();
@@ -2977,6 +2977,13 @@ void MainWindow::enableUseOxygen()
             w->setEnabled(true);
         }
     }
+    for (int i=0; i<checkbox_list.length(); i++) {
+        QCheckBox *w = checkbox_list[i];
+        QString wname = w->objectName();
+        if (wname.contains("cbox_OXYGEN")) {
+            w->setEnabled(true);
+        }
+    }
 }
 
 //--------------------------------------------------------------------------------------------------------
@@ -2987,6 +2994,13 @@ void MainWindow::disableUseOxygen()
         QLineEdit *w = lineEdit_list[i];
         QString wname = w->objectName();
         if (wname.contains("line_OXYGEN")) {
+            w->setEnabled(false);
+        }
+    }
+    for (int i=0; i<checkbox_list.length(); i++) {
+        QCheckBox *w = checkbox_list[i];
+        QString wname = w->objectName();
+        if (wname.contains("cbox_OXYGEN")) {
             w->setEnabled(false);
         }
     }
@@ -3003,6 +3017,13 @@ void MainWindow::enableUseGlucose()
             w->setEnabled(true);
         }
     }
+    for (int i=0; i<checkbox_list.length(); i++) {
+        QCheckBox *w = checkbox_list[i];
+        QString wname = w->objectName();
+        if (wname.contains("cbox_GLUCOSE")) {
+            w->setEnabled(true);
+        }
+    }
 }
 
 //--------------------------------------------------------------------------------------------------------
@@ -3013,6 +3034,13 @@ void MainWindow::disableUseGlucose()
         QLineEdit *w = lineEdit_list[i];
         QString wname = w->objectName();
         if (wname.contains("line_GLUCOSE")) {
+            w->setEnabled(false);
+        }
+    }
+    for (int i=0; i<checkbox_list.length(); i++) {
+        QCheckBox *w = checkbox_list[i];
+        QString wname = w->objectName();
+        if (wname.contains("cbox_GLUCOSE")) {
             w->setEnabled(false);
         }
     }

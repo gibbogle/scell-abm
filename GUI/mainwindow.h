@@ -185,6 +185,8 @@ public slots:
     void on_checkBox_histo_logscale_toggled();
     void on_buttonGroup_drug_buttonClicked(QAbstractButton* button);
 
+    void on_checkBox_show_cells_toggled();
+
     void pushButton_clicked();
     void makeSFPlot(QString, double, double, QVector<double> *x, QVector<double> *y);
     void makeGlucosePlot(double *ndays, QVector<double> *x, QVector<double> *y);

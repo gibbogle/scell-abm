@@ -42,7 +42,7 @@ padding: 8px
     <item row="0" column="0">
      <widget class="QStackedWidget" name="stackedWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="page_input">
        <layout class="QVBoxLayout" name="verticalLayout">
@@ -8465,19 +8465,6 @@ padding: 8px
          <string>Fraction</string>
         </property>
        </widget>
-       <widget class="QGroupBox" name="groupBox_constituent">
-        <property name="geometry">
-         <rect>
-          <x>1150</x>
-          <y>520</y>
-          <width>141</width>
-          <height>80</height>
-         </rect>
-        </property>
-        <property name="title">
-         <string>Constituent</string>
-        </property>
-       </widget>
        <widget class="QGroupBox" name="groupBox_maxconc">
         <property name="geometry">
          <rect>
@@ -8536,7 +8523,7 @@ padding: 8px
         <property name="geometry">
          <rect>
           <x>1110</x>
-          <y>170</y>
+          <y>200</y>
           <width>41</width>
           <height>20</height>
          </rect>
@@ -8549,13 +8536,29 @@ padding: 8px
         <property name="geometry">
          <rect>
           <x>1160</x>
-          <y>170</y>
+          <y>200</y>
           <width>111</width>
           <height>21</height>
          </rect>
         </property>
         <property name="text">
          <string>label_HYPOXIA_THRESHOLD</string>
+        </property>
+       </widget>
+       <widget class="QCheckBox" name="checkBox_show_cells">
+        <property name="geometry">
+         <rect>
+          <x>1110</x>
+          <y>160</y>
+          <width>81</width>
+          <height>17</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Show cells?</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
         </property>
        </widget>
       </widget>

@@ -70,6 +70,7 @@ public:
     int cell_constituent;
     int field_constituent;
     bool slice_changed;
+    bool show_cells;
     bool useConcPlot;
     bool useVolPlot;
     bool useOxyPlot;
