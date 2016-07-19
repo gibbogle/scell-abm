@@ -434,9 +434,16 @@ function get_force(R1,R2,d,incontact,ok) result(F)
 real(REAL_KIND) :: R1, R2, d
 logical :: incontact, ok
 real(REAL_KIND) :: F
-real(REAL_KIND) :: x
+real(REAL_KIND) :: x, dx0, e
+logical :: allow_penetration = .true.
 
 ok = .true.
+if (allow_penetration) then
+    dx0 = 0.1*x0_force 
+    e = (x0_force + dx0)*(a_force/(dx0*(x1_force - x0_force + dx0)) + b_force)
+else
+    dx0 = 0
+endif
 x = d/(R1+R2)
 !write(*,'(a,4e12.3)') 'get_force: ',R1,R2,d,x
 if (use_hysteresis) then
@@ -445,13 +452,16 @@ if (use_hysteresis) then
 		F = 0
 		return
 	endif
-	if (x < x0_force) then
-		write(logmsg,'(a,3e12.3,2f8.3,a,L2)') 'Error: get_force: x < x0: ',R1,R2,d,x,x0_force,' incontact: ',incontact
-		call logger(logmsg)
-		F = 0
-		ok = .false.
-		return
-	!	stop
+	if (x < x0_force + dx0) then
+	    if (allow_penetration) then
+	        F = e/x
+	    else
+		    write(logmsg,'(a,3e12.3,2f8.3,a,L2)') 'Error: get_force: x < x0: ',R1,R2,d,x,x0_force,' incontact: ',incontact
+		    call logger(logmsg)
+		    F = 0
+		    ok = .false.
+		    return
+	    endif
 	else
 		F = a_force/((x-x0_force)*(x1_force-x)) + b_force
 	endif
