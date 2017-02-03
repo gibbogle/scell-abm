@@ -647,7 +647,7 @@ Rdivide0 = Raverage*(2.0/1.5)**(1./3.)
 d_nbr_limit = 1.5*2*Rdivide0	! 1.5 is an arbitrary choice - was 1.2
 
 if (MITOSIS_MODE == TERMINAL_MITOSIS) then
-	mitosis_duration = 2*3600
+	mitosis_duration = 0.5*3600       ! 0.5h, was 2h
 	test_growthrate = Vdivide0/(2*(divide_time_median(1) - mitosis_duration))	! um3/sec
 else
 	mitosis_duration = 0
