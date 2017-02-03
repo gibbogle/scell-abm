@@ -140,35 +140,83 @@ GRAPH_SET tsGraphSet[] = {
      "Average concentration of drug A in the medium (far-field)",
     22, true, 0, 0.001, 0, TS_TYPE},
 
+    {"mediumdrugAmet1",
+    "Ave Medium Drug A metab1",
+    "Concentration",
+     "Average concentration of drug A metabolite 1 in the medium (far-field)",
+    23, true, 0, 0.001, 0, TS_TYPE},
+
+    {"mediumdrugAmet2",
+    "Ave Medium Drug A metab2",
+    "Concentration",
+     "Average concentration of drug A metabolite 2 in the medium (far-field)",
+    24, true, 0, 0.001, 0, TS_TYPE},
+
     {"mediumdrugB",
     "Ave Medium Drug B",
     "Concentration",
      "Average concentration of drug B in the medium (far-field)",
-    23, true, 0, 0.001, 0, TS_TYPE},
+    25, true, 0, 0.001, 0, TS_TYPE},
+
+    {"mediumdrugBmet1",
+    "Ave Medium Drug B metab1",
+    "Concentration",
+     "Average concentration of drug B metabolite 1 in the medium (far-field)",
+    26, true, 0, 0.001, 0, TS_TYPE},
+
+    {"mediumdrugBmet2",
+    "Ave Medium Drug B metab2",
+    "Concentration",
+     "Average concentration of drug B metabolite 2 in the medium (far-field)",
+    27, true, 0, 0.001, 0, TS_TYPE},
 
     {"bdryoxygen",
     "Blob Boundary Oxygen",
     "Concentration",
      "Average concentration of oxygen at the blob boundary",
-    24, true, 0, 0.001, 0, TS_TYPE},
+    28, true, 0, 0.001, 0, TS_TYPE},
 
     {"bdryglucose",
     "Blob Boundary Glucose",
     "Concentration",
      "Average concentration of glucose at the blob boundary",
-    25, true, 0, 0.001, 0, TS_TYPE},
+    29, true, 0, 0.001, 0, TS_TYPE},
 
     {"bdrydrugA",
     "Blob Boundary Drug A",
     "Concentration",
      "Average concentration of drug A at the blob boundary",
-    26, true, 0, 0.001, 0, TS_TYPE},
+    30, true, 0, 0.001, 0, TS_TYPE},
+
+    {"bdrydrugAmet1",
+    "Blob Boundary Drug A metab1",
+    "Concentration",
+     "Average concentration of drug A metabolite 1 on the blob boundary",
+    31, true, 0, 0.001, 0, TS_TYPE},
+
+    {"bdrydrugAmet2",
+    "Blob Boundary Drug A metab2",
+    "Concentration",
+     "Average concentration of drug A metabolite 2 on the blob boundary",
+    32, true, 0, 0.001, 0, TS_TYPE},
 
     {"bdrydrugB",
     "Blob Boundary Drug B",
     "Concentration",
      "Average concentration of drug B at the blob boundary",
-    27, true, 0, 0.001, 0, TS_TYPE},
+    33, true, 0, 0.001, 0, TS_TYPE},
+
+    {"bdrydrugBmet1",
+    "Blob Boundary Drug B metab1",
+    "Concentration",
+     "Average concentration of drug B metabolite 1 on the blob boundary",
+    34, true, 0, 0.001, 0, TS_TYPE},
+
+    {"bdrydrugBmet2",
+    "Blob Boundary Drug B metab2",
+    "Concentration",
+     "Average concentration of drug B metabolite 2 on the blob boundary",
+    35, true, 0, 0.001, 0, TS_TYPE},
 
 // Extracellular profiles
 

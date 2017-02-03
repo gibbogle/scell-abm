@@ -1186,7 +1186,7 @@ write(nflog,'(a,e12.3,2x,3e12.3)') 'set_bdry_conc: blob radius, centre: ',blobra
 do ic = 1,nchemo
 	ichemo = chemomap(ic)
 	chemo(ichemo)%medium_Cbnd = csum(ichemo)/n
-	write(nflog,'(a,i2,f8.4)') 'medium_Cbnd: ',ichemo,chemo(ichemo)%medium_Cbnd
+	write(nflog,'(a,i2,f8.4)') 'set_bdry_conc: medium_Cbnd: ',ichemo,chemo(ichemo)%medium_Cbnd
 enddo
 write(nflog,'(a,e12.3,2x,3e12.3)') 'max O2 at: ',cmax,pmax
 end subroutine
@@ -1246,6 +1246,7 @@ c = 0
 end subroutine
 
 !--------------------------------------------------------------------------------------
+! http://www-users.cs.umn.edu/~saad/software/ITSOL/index.html
 ! See D:\ITSOL\tests\input
 !
 ! Time for 20 iterations with NX=1000
@@ -1255,7 +1256,7 @@ end subroutine
 ! ILUtype=4 197 sec
 !
 ! Note: Solving for each constituent in parallel with OpenMP like this is possible
-!       only if the constituent reactions are independent
+!       only if the constituent reactions are independent, as they are in the medium.
 ! For drugs, the three related constituents are solved for sequentially in the fine grid.
 ! First drug, then metab1 (using drug results), then metab2 (using metab1 results).
 !-------------------------------------------------------------------------------------- 

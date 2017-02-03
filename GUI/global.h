@@ -94,7 +94,7 @@ namespace Global
     extern double histo_vmax_log[3*32];
     extern int histo_celltype;
 
-    extern int summaryData[100];
+    extern double summaryData[100];
     extern int i_hypoxia_cutoff;
     extern int i_growth_cutoff;
 

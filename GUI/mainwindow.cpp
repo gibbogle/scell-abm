@@ -2267,7 +2267,8 @@ void MainWindow::showSummary(int hr)
         if (!grph->isActive(i)) continue;
 		int k = grph->get_dataIndex(i);
         val = Global::summaryData[k];
-        newR->pData[i][step] = val*grph->get_scaling(i);
+//        newR->pData[i][step] = val*grph->get_scaling(i);
+        newR->pData[i][step] = val;
         tag = grph->get_tag(i);
         double yscale = grph->get_yscale(i);
         pGraph[i]->redraw(newR->tnow, newR->pData[i], step+1, Global::casename, tag, yscale, false);

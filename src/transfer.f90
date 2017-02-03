@@ -742,7 +742,123 @@ end subroutine
 
 !-----------------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------------
+function rint(i) result(r)
+integer :: i
+real(REAL_KIND) :: r
+r = i
+end function
+
+!-----------------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------------------
 subroutine get_summary(summaryData,i_hypoxia_cutoff,i_growth_cutoff) BIND(C)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_summary
+use, intrinsic :: iso_c_binding
+integer(c_int) :: i_hypoxia_cutoff,i_growth_cutoff
+real(c_double) :: summaryData(*)
+integer :: Nviable(MAX_CELLTYPES), Nlive(MAX_CELLTYPES)	!, plate_eff_10(MAX_CELLTYPES)
+integer :: nhypoxic(3), nclonohypoxic(3), ngrowth(3)
+!    hypoxic_percent_10, clonohypoxic_percent_10, growth_percent_10, necrotic_percent_10,  npmm3, &
+!    medium_oxygen_1000, medium_glucose_1000, medium_drug_1000(2), &
+!    bdry_oxygen_1000, bdry_glucose_1000, bdry_drug_1000(2)
+integer :: TNanoxia_dead, TNaglucosia_dead, TNradiation_dead, TNdrug_dead(2),  TNviable, &
+           Ntagged_anoxia(MAX_CELLTYPES), Ntagged_aglucosia(MAX_CELLTYPES), Ntagged_radiation(MAX_CELLTYPES), &
+           Ntagged_drug(2,MAX_CELLTYPES), &
+           TNtagged_anoxia, TNtagged_aglucosia, TNtagged_radiation, TNtagged_drug(2)
+integer :: ityp
+real(REAL_KIND) :: diam_um, diam_cm, vol_cm3, vol_mm3, npmm3, hour, plate_eff(MAX_CELLTYPES), Tplate_eff, necrotic_fraction
+real(REAL_KIND) :: cmedium(MAX_CHEMO), cbdry(MAX_CHEMO)
+real(REAL_KIND) :: hypoxic_percent, clonohypoxic_percent, growth_percent, necrotic_percent
+!    medium_oxygen, medium_glucose, medium_drug(2), &
+!    bdry_oxygen, bdry_glucose, bdry_drug(2)
+
+hour = istep*DELTA_T/3600.
+call getDiamVol(diam_cm,vol_cm3)
+vol_mm3 = vol_cm3*1000				! volume in mm^3
+diam_um = diam_cm*10000
+npmm3 = Ncells/vol_mm3
+
+Ntagged_anoxia(:) = Nanoxia_tag(:)			! number currently tagged by anoxia
+Ntagged_aglucosia(:) = Naglucosia_tag(:)	! number currently tagged by aglucosia
+Ntagged_radiation(:) = Nradiation_tag(:)	! number currently tagged by radiation
+Ntagged_drug(1,:) = Ndrug_tag(1,:)			! number currently tagged by drugA
+Ntagged_drug(2,:) = Ndrug_tag(2,:)			! number currently tagged by drugA
+
+TNtagged_anoxia = sum(Ntagged_anoxia(1:Ncelltypes))
+TNtagged_aglucosia = sum(Ntagged_aglucosia(1:Ncelltypes))
+TNtagged_radiation = sum(Ntagged_radiation(1:Ncelltypes))
+TNtagged_drug(1) = sum(Ntagged_drug(1,1:Ncelltypes))
+TNtagged_drug(2) = sum(Ntagged_drug(2,1:Ncelltypes))
+
+TNanoxia_dead = sum(Nanoxia_dead(1:Ncelltypes))
+TNaglucosia_dead = sum(Naglucosia_dead(1:Ncelltypes))
+TNradiation_dead = sum(Nradiation_dead(1:Ncelltypes))
+TNdrug_dead(1) = sum(Ndrug_dead(1,1:Ncelltypes))
+TNdrug_dead(2) = sum(Ndrug_dead(2,1:Ncelltypes))
+
+call getNviable(Nviable, Nlive)
+TNviable = sum(Nviable(1:Ncelltypes))
+
+call getHypoxicCount(nhypoxic)
+hypoxic_percent = (100.*nhypoxic(i_hypoxia_cutoff))/Ncells
+call getClonoHypoxicCount(nclonohypoxic)
+clonohypoxic_percent = (100.*nclonohypoxic(i_hypoxia_cutoff))/TNviable
+call getGrowthCount(ngrowth)
+growth_percent = (100.*ngrowth(i_growth_cutoff))/Ncells
+call getNecroticFraction(necrotic_fraction,vol_cm3)
+necrotic_percent = 100.*necrotic_fraction
+do ityp = 1,Ncelltypes
+	if (Nlive(ityp) > 0) then
+		plate_eff(ityp) = real(Nviable(ityp))/Nlive(ityp)
+	else
+		plate_eff(ityp) = 0
+	endif
+enddo
+plate_eff = 100.*plate_eff
+Tplate_eff = 0
+do ityp = 1,Ncelltypes
+	Tplate_eff = Tplate_eff + plate_eff(ityp)*celltype_fraction(ityp)
+enddo
+call getMediumConc(cmedium, cbdry)
+!medium_oxygen_1000 = cmedium(OXYGEN)*1000.
+!medium_glucose_1000 = cmedium(GLUCOSE)*1000.
+!medium_drug_1000(1) = cmedium(DRUG_A)*1000.
+!medium_drug_1000(2) = cmedium(DRUG_B)*1000.
+!bdry_oxygen_1000 = cbdry(OXYGEN)*1000.
+!bdry_glucose_1000 = cbdry(GLUCOSE)*1000.
+!bdry_drug_1000(1) = cbdry(DRUG_A)*1000.
+!bdry_drug_1000(2) = cbdry(DRUG_B)*1000.
+
+summaryData(1:36) = [ rint(istep), rint(Ncells), rint(TNanoxia_dead), rint(TNaglucosia_dead), rint(TNdrug_dead(1)), rint(TNdrug_dead(2)), rint(TNradiation_dead), &
+    rint(TNtagged_anoxia), rint(TNtagged_aglucosia), rint(TNtagged_drug(1)), rint(TNtagged_drug(2)), rint(TNtagged_radiation), &
+	diam_um, vol_mm3, hypoxic_percent, clonohypoxic_percent, growth_percent, necrotic_percent, Tplate_eff, npmm3, &
+	cmedium(OXYGEN), cmedium(GLUCOSE), cmedium(DRUG_A:DRUG_A+2), cmedium(DRUG_B:DRUG_B+2), &
+	cbdry(OXYGEN), cbdry(GLUCOSE), cbdry(DRUG_A:DRUG_A+2), cbdry(DRUG_B:DRUG_B+2) ]
+!	medium_oxygen_1000, medium_glucose_1000, medium_drug_1000(1), medium_drug_1000(2), &
+!	bdry_oxygen_1000, bdry_glucose_1000, bdry_drug_1000(1), bdry_drug_1000(2) ]
+write(nfres,'(a,a,2a12,i8,2e12.4,23i7,28e12.4)') trim(header),' ',gui_run_version, dll_run_version, &
+	istep, hour, vol_mm3, diam_um, Ncells_type(1:2), &
+    Nanoxia_dead(1:2), Naglucosia_dead(1:2), Ndrug_dead(1,1:2), &
+    Ndrug_dead(2,1:2), Nradiation_dead(1:2), &
+    Ntagged_anoxia(1:2), Ntagged_aglucosia(1:2), Ntagged_drug(1,1:2), &
+    Ntagged_drug(2,1:2), Ntagged_radiation(1:2), &
+	nhypoxic(:)/real(Ncells), nclonohypoxic(:)/real(TNviable), ngrowth(:)/real(Ncells), &
+	necrotic_fraction, plate_eff(1:2), &
+	cmedium(OXYGEN), cmedium(GLUCOSE), cmedium(DRUG_A:DRUG_A+2), cmedium(DRUG_B:DRUG_B+2), &
+	cbdry(OXYGEN), cbdry(GLUCOSE), cbdry(DRUG_A:DRUG_A+2), cbdry(DRUG_B:DRUG_B+2)
+		
+call sum_dMdt(GLUCOSE)
+
+if (diam_count_limit > LIMIT_THRESHOLD) then
+	if (Ncells > diam_count_limit) limit_stop = .true.
+elseif (diam_count_limit > 0) then
+	if (diam_um > diam_count_limit) limit_stop = .true.
+endif
+
+end subroutine
+
+!-----------------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------------------
+subroutine get_summary2(summaryData,i_hypoxia_cutoff,i_growth_cutoff) BIND(C)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_summary
 use, intrinsic :: iso_c_binding
 integer(c_int) :: summaryData(*), i_hypoxia_cutoff,i_growth_cutoff
@@ -1516,191 +1632,9 @@ enddo
 end subroutine
 
 !-----------------------------------------------------------------------------------------
-! Estimate necrotic volume by determining the range in the three axis directions
-! Try to improve the method so as to handle "no-hit" cases.
-! The idea is to use a sheaf of chords in each axis direction instead of a single one,
-! e.g. a 5x5 = 25 sheaf.
+! Estimate necrotic volume by determining the range in the three axis directions 
 !-----------------------------------------------------------------------------------------
 subroutine getNecroticVolume(vol)
-real(REAL_KIND) :: vol
-real(REAL_KIND) :: rmin(3), rmax(3), cblob(3), cb(3), c(3), r, smin, smax, R3, Rn(3), Rdiv, Rsum
-integer :: kcell, i, j, k, js, ix0, iy0, iz0
-integer :: ixx, iyy, izz, axis, axis1, axis2, ixyz, rng(3,2), dx, dy, dz, dxm, dym, dzm, n
-logical :: overlap, hit1, hit2
-type(cell_type), pointer :: cp
-real(REAL_KIND) :: fac = 1.2
-integer :: rsheaf = 2
-
-! First estimate blob centre location
-rmin = 1.0e10
-rmax = 0
-do kcell = 1,nlist
-	if (cell_list(kcell)%state == DEAD) cycle
-	cp => cell_list(kcell)
-	do k = 1,cp%nspheres
-		rmin = min(rmin,cp%centre(:,k)-cp%radius(k))
-		rmax = max(rmax,cp%centre(:,k)+cp%radius(k))
-	enddo
-enddo
-cblob(:) = (rmin(:) + rmax(:))/2	! approximate blob centre
-!write(*,'(a,3f8.4,a,3f8.4)') 'cblob: ',cblob,'  size: ',rmax-rmin
-ix0 = cblob(1)/DELTA_X + 1
-iy0 = cblob(2)/DELTA_X + 1
-iz0 = cblob(3)/DELTA_X + 1
-!write(*,*) 'getNecroticVolume:'
-!write(*,'(a,3f8.4)') 'centre: ',cblob
-!write(*,'(a,3i4)') 'centre gridsite: ',ix,iy,iz
-! Check if any cells in this gridcell overlap with C(:)
-! A cell is treated here as a cube with side = cell diameter
-overlap = .false.
-do k = 1,grid(ix0,iy0,iz0)%nc
-	kcell = grid(ix0,iy0,iz0)%cell(k)
-	cp => cell_list(kcell)
-	do js = 1,cp%nspheres
-		r = fac*cp%radius(js)
-		c = cp%centre(:,js)
-!		write(*,'(a,i6,3(2f8.4,2x))') 'kcell,bnds: ',kcell,c(1)-r,c(1)+r,c(2)-r,c(2)+r,c(3)-r,c(3)+r
-		if ((cblob(1) >= c(1)-r .and. cblob(1) <= c(1)+r) .and. &
-			(cblob(2) >= c(2)-r .and. cblob(2) <= c(2)+r) .and. &
-			(cblob(3) >= c(3)-r .and. cblob(3) <= c(3)+r)) then
-			overlap = .true.
-			exit
-		endif
-	enddo
-	if (overlap) exit
-enddo
-if (overlap) then
-	vol = 0
-	return
-endif
-! There is a gap in the centre, find the gap extent in each axis direction
-
-do axis = 1,3
-	rng(1,:) = [ix0, ix0]
-	rng(2,:) = [iy0, iy0]
-	rng(3,:) = [iz0, iz0]
-	if (axis == 1) then
-		rng(1,1) = 1
-		rng(1,2) = NX-1
-		axis1 = 2
-		axis2 = 3
-		dxm = 0
-		dym = rsheaf
-		dzm = rsheaf
-	elseif (axis == 2) then
-		rng(2,1) = 1
-		rng(2,2) = NY-1
-		axis1 = 1
-		axis2 = 3
-		dxm = rsheaf
-		dym = 0
-		dzm = rsheaf
-	elseif (axis == 3) then
-		rng(3,1) = 1
-		rng(3,2) = NZ-1
-		axis1 = 1
-		axis2 = 2
-		dxm = rsheaf
-		dym = rsheaf
-		dzm = 0
-	endif
-!	write(*,'(a,i2,3(2i3,2x))') 'axis: ',axis,((rng(i,j),j=1,2),i=1,3)
-	! X direction.  
-	!write(*,*) 'seeking rmin, rmax in X direction'
-	
-	Rsum = 0
-	n = 0
-	do dx = -dxm,dxm
-	do dy = -dym,dym
-	do dz = -dzm,dzm
-	
-	cb(1) = cblob(1) + 0.5*dx*Raverage
-	cb(2) = cblob(2) + 0.5*dy*Raverage
-	cb(3) = cblob(3) + 0.5*dz*Raverage
-
-	smin = 1.0e10
-	smax = -1.0e10
-	hit1 = .false.
-	hit2 = .false.
-	do ixx = rng(1,1),rng(1,2)
-	do iyy = rng(2,1),rng(2,2)
-	do izz = rng(3,1),rng(3,2)
-!		write(*,*) 'ixx,iyy,izz,nc: ',ixx,iyy,izz,grid(ixx,iyy,izz)%nc
-		do k = 1,grid(ixx,iyy,izz)%nc
-			kcell = grid(ixx,iyy,izz)%cell(k)
-			cp => cell_list(kcell)
-!			write(*,'(a,2i6,3f8.4)') 'k,kcell,cp%centre: ',k,kcell,cp%centre(:,1)
-			do js = 1,cp%nspheres
-!				r = fac*cp%radius(js)
-				r = fac*Raverage
-				c = cp%centre(:,js)
-				if ((cb(axis1) > c(axis1)-r .and. cb(axis1) < c(axis1)+r) .and. &	! chord passes through the cube enclosing the cell
-					(cb(axis2) > c(axis2)-r .and. cb(axis2) < c(axis2)+r)) then
-	!				write(*,'(3(2f8.4,2x))') c(1)-r,c(1)+r,c(2)-r,c(2)+r,c(3)-r,c(3)+r
-					if (smax < c(axis)+r .and. cb(axis) > c(axis)+r) then
-						smax = c(axis)+r
-	!					write(*,'(a,f8.4)') 'smax: ',smax
-						hit1 = .true.
-					endif
-					if (smin > c(axis)-r .and. cb(axis) < c(axis)-r) then
-						smin = c(axis)-r
-	!					write(*,'(a,f8.4)') 'smin: ',smin
-						hit2 = .true.
-					endif
-				endif
-			enddo
-		enddo
-	enddo
-	enddo
-	enddo
-	if (hit1 .and. hit2 .and. smax < smin) then
-		n = n + 1
-		Rsum = Rsum + smin - smax
-!		write(*,'(a,2i4,3f8.4)') 'axis,n,smin,smax,Rsum: ',axis,n,smin,smax,Rsum
-	endif
-	
-	enddo
-	enddo
-	enddo
-	
-	if (Rsum == 0) then
-		vol = 0
-		return
-	endif
-	Rn(axis) = Rsum/(2*n)
-!	write(*,'(a,2i4,2f8.4)') 'axis done: ',axis,n,Rsum,Rn(axis)
-enddo
-	
-R3 = (1./3.)*(Rn(1)**3 + Rn(2)**3 + Rn(3)**3)
-Rdiv = (3*Vdivide0/(4*PI))**(1./3.)
-!write(*,'(a,e12.3)') 'Rdiv: ',Rdiv
-!write(*,'(a,3e12.3)') 'Rn: ',Rn
-if (Rn(1) < 0 .or. Rn(2) < 0 .or. Rn(3) < 0) then
-	write(logmsg,*) 'Rn < 0'
-	call logger(logmsg)
-	stop
-endif
-if (R3 > 0) then
-	R = R3**(1./3)
-	if (R < 4*Rdiv) then
-		R3 = 0
-		vol = 0
-	endif
-elseif (R3 == 0) then
-	R = 0
-else
-	write(logmsg,*) 'Error: getNecroticVolume: R3 < 0: ',R3
-	call logger(logmsg)
-	stop
-endif
-vol = (4./3.)*PI*R3 
-!write(*,'(a,e12.3)') 'vol: ',vol
-end subroutine
-
-!-----------------------------------------------------------------------------------------
-! Estimate necrotic volume by determining the range in the three axis directions
-!-----------------------------------------------------------------------------------------
-subroutine getNecroticVolume1(vol)
 real(REAL_KIND) :: vol
 real(REAL_KIND) :: rmin(3), rmax(3), rng(3), cblob(3), c(3), r, smin, smax, R3, Rn(3), Rdiv
 integer :: kcell, k, js, ix, iy, iz, ixx, iyy, izz

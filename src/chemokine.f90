@@ -86,6 +86,7 @@ do ichemo = 1,MAX_CHEMO
 	if (chemo(ichemo)%used) then
 		if (ichemo == OXYGEN .or. ichemo == GLUCOSE .or. ichemo == TRACER) then
 			chemo(ichemo)%present = .true.
+			chemo(ichemo)%medium_Cbnd = chemo(ichemo)%bdry_conc
 		endif
 	endif
 enddo

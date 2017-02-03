@@ -35,7 +35,7 @@ namespace Global
     double histo_vmax_log[3*32];
     int histo_celltype=0;
 
-    int summaryData[100];
+    double summaryData[100];
     int i_hypoxia_cutoff;
     int i_growth_cutoff;
 
