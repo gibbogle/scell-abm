@@ -2,7 +2,8 @@ program main
 use scell
 use global
 implicit none
-integer :: ncpu, res, summarydata(100)
+integer :: ncpu, res
+real(REAL_KIND) :: summarydata(100)
 character*(128) :: infile, outfile, runfile
 integer :: status, nlen, cnt, i, inbuflen, outbuflen
 integer :: jstep, hour, ntot, ncog, inflow, irun, i_hypoxia_cutoff,i_growth_cutoff, nsumm_interval
