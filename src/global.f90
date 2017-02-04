@@ -253,7 +253,7 @@ integer :: Ndrugs_used
 integer :: NX, NY, NZ, NXB, NYB, NZB, Nmm3
 integer :: Ndim(3)
 integer :: NT_CONC, NT_GUI_OUT, initial_count, ntries, Ncelltypes, Ncells_type(MAX_CELLTYPES)
-integer :: istep, ndt, ndtotal, ndtotal_last, ichemo_curr
+integer :: istep, ndt, ndtotal, ndtotal_last, ichemo_curr, n_substeps = 10
 integer :: seed(2)
 integer :: jumpvec(3,27)
 integer :: diam_count_limit
@@ -347,8 +347,9 @@ logical :: use_hysteresis = .false.
 logical :: use_permute = .false.
 logical :: use_gaplist = .true.
 logical :: use_SS = .true.
-logical :: use_integration = .false.
+logical :: use_integration = .true.
 logical :: use_packer = .true.
+logical :: medium_change_step
 logical :: dbug = .false.
 
 integer :: kcell_now

@@ -2002,4 +2002,98 @@ enddo
 	
 end subroutine
 
+!-----------------------------------------------------------------------------------------
+! EC values should be average in the medium.
+! DRUG_A = TPZ_DRUG e.g. SN30000
+! DRUG_B = DNB_DRUG e.g. PR104A 
+!-----------------------------------------------------------------------------------------
+subroutine get_values(nvars,varID,ysim)
+!DEC$ ATTRIBUTES DLLEXPORT :: get_values
+integer :: nvars
+character*(24) :: varID(nvars)
+real(REAL_KIND) :: ysim(nvars)
+integer :: ivar, ityp
+integer :: Nviable(MAX_CELLTYPES), Nlive(MAX_CELLTYPES)
+real(REAL_KIND) :: plate_eff(MAX_CELLTYPES)
+
+call MakeMediumCave
+do ivar = 1,nvars
+	if (varID(ivar) == 'OXYGEN_EC') then
+		ysim(ivar) = chemo(OXYGEN)%medium_Cave
+	elseif (varID(ivar) == 'GLUCOSE_EC') then
+		ysim(ivar) = chemo(GLUCOSE)%medium_Cave
+!	elseif (varID(ivar) == 'LACTATE_EC') then
+!		ysim(ivar) = chemo(LACTATE)%medium_Cave
+	elseif (varID(ivar) == 'SN30000_EC') then
+		ysim(ivar) = chemo(DRUG_A)%medium_Cave
+	elseif (varID(ivar) == 'SN30000_METAB1_EC') then
+		ysim(ivar) = chemo(DRUG_A+1)%medium_Cave
+	elseif (varID(ivar) == 'SN30000_METAB2_EC') then
+		ysim(ivar) = chemo(DRUG_A+2)%medium_Cave
+	elseif (varID(ivar) == 'PR104A_EC') then
+		ysim(ivar) = chemo(DRUG_B)%medium_Cave
+	elseif (varID(ivar) == 'PR104A_METAB1_EC') then
+		ysim(ivar) = chemo(DRUG_B+1)%medium_Cave
+	elseif (varID(ivar) == 'PR104A_METAB2_EC') then
+		ysim(ivar) = chemo(DRUG_B+2)%medium_Cave
+	elseif (varID(ivar) == 'OXYGEN_IC') then
+!		ysim(ivar) = Caverage(MAX_CHEMO+OXYGEN)
+		ysim(ivar) = 0
+	elseif (varID(ivar) == 'GLUCOSE_IC') then
+!		ysim(ivar) = Caverage(MAX_CHEMO+GLUCOSE)
+		ysim(ivar) = 0
+!	elseif (varID(ivar) == 'LACTATE_IC') then
+!!		ysim(ivar) = Caverage(MAX_CHEMO+LACTATE)
+!		ysim(ivar) = 0
+	elseif (varID(ivar) == 'SN30000_IC') then
+!		ysim(ivar) = Caverage(MAX_CHEMO+DRUG_A)
+		ysim(ivar) = 0
+	elseif (varID(ivar) == 'SN30000_METAB1_IC') then
+!		ysim(ivar) = Caverage(MAX_CHEMO+DRUG_A+1)
+		ysim(ivar) = 0
+	elseif (varID(ivar) == 'SN30000_METAB2_IC') then
+!		ysim(ivar) = Caverage(MAX_CHEMO+DRUG_A+2)
+		ysim(ivar) = 0
+	elseif (varID(ivar) == 'PR104A_IC') then
+!		ysim(ivar) = Caverage(MAX_CHEMO+DRUG_A)
+		ysim(ivar) = 0
+	elseif (varID(ivar) == 'PR104A_METAB1_IC') then
+!		ysim(ivar) = Caverage(MAX_CHEMO+DRUG_A+1)
+		ysim(ivar) = 0
+	elseif (varID(ivar) == 'PR104A_METAB2_IC') then
+!		ysim(ivar) = Caverage(MAX_CHEMO+DRUG_A+2)
+		ysim(ivar) = 0
+	elseif (varID(ivar) == 'NCELLS') then
+		ysim(ivar) = Ncells			! for now, total live cells
+	elseif (varID(ivar) == 'PE') then
+		call getNviable(Nviable, Nlive)
+		do ityp = 1,Ncelltypes
+			if (Nlive(ityp) > 0) then
+				plate_eff(ityp) = real(Nviable(ityp))/Nlive(ityp)
+			else
+				plate_eff(ityp) = 0
+			endif
+		enddo
+		ysim(ivar) = plate_eff(1)	! for now, just type 1 cells
+	elseif (varID(ivar) == 'RADIATION') then
+		ysim(ivar) = -1
+	else
+		write(*,*) 'varID is not in the list of possible IDs: ',varID(ivar)
+		stop
+	endif
+enddo
+end subroutine
+
+!-----------------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------------------
+subroutine MakeMediumCave
+integer :: ichemo
+
+do ichemo = 1,MAX_CHEMO
+	if (chemo(ichemo)%used) then
+		chemo(ichemo)%medium_Cave = sum(chemo(ichemo)%Cave_b)/(NXB*NYB*NZB)
+	endif
+enddo
+end subroutine
+
 end module

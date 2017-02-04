@@ -205,7 +205,7 @@ end subroutine
 subroutine make_csr_SS(a, ichemo, Cave, Fcurr, rhs)
 integer :: ichemo
 real(REAL_KIND) :: a(:), Cave(:,:,:), Fcurr(:,:,:), rhs(:)
-integer :: k, ix, iy, iz, krow, kcol, nc
+integer :: k, ix, iy, iz, krow, kcol, nc, idx, idy, idz, ixx, iyy, izz, n, ncsum
 integer :: nc_max = 10	! just a wild guess but not a bad one
 real(REAL_KIND) :: Ktissue, Kmedium, Kdiff, alfa, Kr, Vex, Cbdry, Kdiff_sum
 logical, save :: first = .true.
@@ -226,8 +226,27 @@ do ix = 2,NX-1
 	do iy = 2,NY-1
 		do iz = 1,NZ-1
 			krow = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
-			! This is very crude!!!!!!!!!!!!!!! e.g. not centred on the grid pt
-			nc = grid(ix,iy,iz)%nc
+
+			! This is very crude!!!!!!!!!!!!!!! 
+			! nc = # of cells in the gridcell with LL corner = (ix,iy,iz), not centred on the grid pt
+			! nc = grid(ix,iy,iz)%nc
+			! Try making it symmetrical about the grid pt
+			ncsum = 0
+			n = 0
+			do idx = -1,0
+				ixx = ix + idx
+				do idy = -1,0
+					iyy = iy + idy
+					do idz = -1,0
+						izz = iz + idz
+						if (izz == 0) cycle
+						ncsum = ncsum + grid(ixx,iyy,izz)%nc
+						n = n+1
+					enddo
+				enddo
+			enddo
+			nc = ncsum/n
+
 			alfa = min(nc,nc_max)/nc_max
 !			Kdiff = Kdiff*(1 - chemo(ichemo)%diff_reduction_factor*alfa)
 			! Kdiff should range between Kmedium and Ktissue as nc goes from 0 to nc_max
@@ -1545,7 +1564,9 @@ enddo
 
 if (use_integration) then
 	! solve for Cin for drug + metabolites by integrating them together
-	call integrate_Cin(dt)
+	if (chemo(DRUG_A)%present .or. chemo(DRUG_B)%present) then
+		call integrate_Cin(dt)
+	endif
 	do ic = 1,nchemo
 		ichemo = chemomap(ic)
 		Fcurr => Cflux(:,:,:,ichemo)

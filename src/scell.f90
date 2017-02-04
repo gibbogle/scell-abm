@@ -702,6 +702,7 @@ call setup_react_diff(ok)
 call logger('did setup_react_diff')
 call SetInitialGrowthRate
 limit_stop = .false.
+medium_change_step = .false.		! for startup 
 call logger('completed Setup')
 end subroutine
 
@@ -1155,22 +1156,22 @@ if (ngaps > 2000 .or. mod(istep,nt_nbr) == 0) then
 endif
 
 ! Reaction-diffusion system
-nt_diff = 1
+if (medium_change_step .or. chemo(DRUG_A)%present) then
+	nt_diff = n_substeps
+else
+	nt_diff = 1
+endif
 dt = DELTA_T/nt_diff
+call setup_grid_cells
+call update_all_nbrlists
 do it_diff = 1,nt_diff
-	call setup_grid_cells
-!	if (ncells >= nshow) write(nflog,*) 'start setup_nbrlists'
-	call update_all_nbrlists
-!	if (Ncells > 0) then
-!		write(logmsg,'(a,5i8)') 'istep,Ncells,Nsteps,Nit,ndt: ',istep,Ncells,Nsteps,Nit,ndt 
-!		call logger(logmsg)
-!	endif
 	call diff_solver(dt,ok)
 	if (.not.ok) then
 		res = 7
 		return
 	endif
 enddo
+medium_change_step = .false.
 
 if (saveprofile%active) then
 	if (istep*DELTA_T >= saveprofile%it*saveprofile%dt) then
@@ -1434,12 +1435,14 @@ do ichemo = 1,MAX_CHEMO
 	write(nflog,*) 'Setting Cave_b: ',ichemo,exconc(ichemo)
 	chemo(ichemo)%Cave_b(:,:,:) = exconc(ichemo)
 	chemo(ichemo)%Cprev_b(:,:,:) = exconc(ichemo)
+	chemo(ichemo)%medium_Cbnd = exconc(ichemo)
 	Caverage(:,:,:,ichemo) = exconc(ichemo)		! This is approximately OK, because themedium volume is so much greater than the blob volume
 	! Try this
 	Cflux(:,:,:,ichemo) = 0
 	chemo(ichemo)%Fcurr_b = 0
 	call update_Cex(ichemo)
 enddo
+medium_change_step = .true.
 
 do ic = 1,nchemo
 	ichemo = chemomap(ic)

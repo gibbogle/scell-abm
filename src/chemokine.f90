@@ -26,7 +26,8 @@ type chemokine_type
 	real(REAL_KIND) :: Hill_N
 	real(REAL_KIND) :: medium_diff_coef	! diffusion coefficient in the medium
 	real(REAL_KIND) :: diff_reduction_factor
-	real(REAL_KIND) :: medium_Cext		! far-field concentration - not used here
+!	real(REAL_KIND) :: medium_Cext		! far-field concentration - not used here
+	real(REAL_KIND) :: medium_Cave		! average medium concentration
 	real(REAL_KIND) :: medium_Cbnd		! blob boundary average concentration
 	real(REAL_KIND) :: fine_grid_Cbnd	! fine grid boundary average concentration
 !	Fine grid
