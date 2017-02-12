@@ -577,9 +577,14 @@ type(cell_type), pointer :: cp
 real(REAL_KIND) :: dt
 real(REAL_KIND) :: Cin_0(NCONST), Cex_0(NCONST)		! at some point NCONST -> MAX_CHEMO
 real(REAL_KIND) :: dVdt,  Vin_0, dV, metab_O2, metab_glucose, metab, dVdt_new
-logical :: oxygen_growth, glucose_growth
+logical :: oxygen_growth, glucose_growth, tagged
 integer :: C_option = 1	! we must use this
 
+tagged = cp%anoxia_tag .or. cp%aglucosia_tag
+if (tagged) then
+	cp%dVdt = 0
+	return		! cells tagged to die of anoxia or aglucosia do not metabolise
+endif
 oxygen_growth = chemo(OXYGEN)%controls_growth
 glucose_growth = chemo(GLUCOSE)%controls_growth
 Cin_0 = cp%Cin
