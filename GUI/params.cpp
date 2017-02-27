@@ -550,6 +550,22 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
      "Number",
      "Number of times to save slice data"},
 
+    {"SAVE_FACS_DATA",0,0,1,
+     "Save FACS data",
+     "Save data for FACS at a specified interval"},
+
+    {"SAVE_FACS_DATA_FILE_NAME",0,0,0,
+     "facs_data",
+     "Base file name for saving FACS data"},
+
+    {"SAVE_FACS_DATA_INTERVAL",0,0,0,
+     "Interval",
+     "Time interval for saving FACS data"},
+
+    {"SAVE_FACS_DATA_NUMBER",1,0,0,
+     "Number",
+     "Number of times to save FACS data"},
+
 // This is the end of the parameters that are actually read by the DLL
 // Entries after this point are QMyLabel dummies, to enable display of explanatory info  - no input data is transmitted,
 // followed by the list of time-series and profile plots selected for this run.

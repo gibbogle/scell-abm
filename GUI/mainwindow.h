@@ -134,6 +134,7 @@ private slots:
 
     void on_cbox_SAVE_PROFILE_DATA_toggled(bool checked);
     void on_cbox_SAVE_SLICE_DATA_toggled(bool checked);
+    void on_cbox_SAVE_FACS_DATA_toggled(bool checked);
 
     void LoadProtocol(QString);
 //    void SaveProtocol(QString, int);

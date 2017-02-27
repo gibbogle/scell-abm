@@ -102,7 +102,9 @@ do kcell = 1,nlist
 	do i = 1,nbrs
 		t(i) = i
 	enddo
-	call qqsort(nbr_d,nbrs,t)     ! sort in increasing order
+	if (nbrs > 0) then
+		call qqsort(nbr_d,nbrs,t)     ! sort in increasing order
+	endif
 	! Now the ith nearest is nbrlist(t(i))
 	! set cp1%nbrlist(:) as the closest #
 	cp1%nbrs = min(nbrs,100)

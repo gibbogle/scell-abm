@@ -75,7 +75,7 @@ integer :: iuse_oxygen, iuse_glucose, iuse_tracer, iuse_drug, iuse_metab, iV_dep
 integer :: iuse_extra, iuse_relax, iuse_par_relax, iuse_gd_all
 real(REAL_KIND) :: days, percent, fluid_fraction, d_layer, sigma(MAX_CELLTYPES), Vsite_cm3, bdry_conc, spcrad_value, d_n_limit
 real(REAL_KIND) :: anoxia_tag_hours, anoxia_death_hours, aglucosia_tag_hours, aglucosia_death_hours
-integer :: iuse_drop, isaveprofiledata, isaveslicedata
+integer :: iuse_drop, isaveprofiledata, isaveslicedata, isaveFACSdata
 integer :: iconstant, ioxygengrowth, iglucosegrowth, ioxygendeath, iglucosedeath
 logical :: use_metabolites
 character*(12) :: drug_name
@@ -232,6 +232,10 @@ read(nfcell,*) isaveslicedata
 read(nfcell,*) saveslice%filebase
 read(nfcell,*) saveslice%dt
 read(nfcell,*) saveslice%nt
+read(nfcell,*) isaveFACSdata
+read(nfcell,*) saveFACS%filebase
+read(nfcell,*) saveFACS%dt
+read(nfcell,*) saveFACS%nt
 
 read(nfcell,*) Ndrugs_used
 call ReadDrugData(nfcell)
@@ -309,6 +313,9 @@ saveprofile%dt = 60*saveprofile%dt		! mins -> seconds
 saveslice%active = (isaveslicedata == 1)
 saveslice%it = 1
 saveslice%dt = 60*saveslice%dt			! mins -> seconds
+saveFACS%active = (isaveFACSdata == 1)
+saveFACS%it = 1
+saveFACS%dt = 60*saveFACS%dt			! mins -> seconds
 
 use_dropper = (iuse_drop == 1)
 
@@ -800,6 +807,7 @@ logical, allocatable :: occup(:,:,:)
 !blobcentre = DELTA_X*[(NX+1)/2,(NY+1)/2,(NZ+1)/2]
 blobcentre = DELTA_X*[(NX-1)/2,(NY-1)/2,(NZ-1)/2]
 write(nflog,'(a,3f8.4)') 'PlaceCells: blobcentre: ',blobcentre
+ncells_type = 0
 if (use_packer) then
 	nblob = initial_count
 	cellradius = Raverage
@@ -1142,7 +1150,11 @@ call update_all_nbrlists
 !	endif
 !endif
 
-call make_grid_flux_weights
+call make_grid_flux_weights(ok)
+if (.not.ok) then
+	res = 8
+	return
+endif
 
 if (ngaps > 2000 .or. mod(istep,nt_nbr) == 0) then
 	if (ngaps > 2000) then
@@ -1188,6 +1200,16 @@ if (saveslice%active) then
 		saveslice%it = saveslice%it + 1
 		if (saveslice%it > saveslice%nt) then
 			saveslice%active = .false.
+		endif
+	endif
+endif
+
+if (saveFACS%active) then
+	if (istep*DELTA_T >= saveFACS%it*saveFACS%dt) then
+		call WriteFACSData
+		saveFACS%it = saveFACS%it + 1
+		if (saveFACS%it > saveFACS%nt) then
+			saveFACS%active = .false.
 		endif
 	endif
 endif

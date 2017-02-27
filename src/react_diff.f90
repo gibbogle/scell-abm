@@ -92,7 +92,7 @@ call make_sparse_map(bmapfile,.false.,ok)
 if (.not.ok) return
 write(nflog,*) 'made bmapfile: ',bmapfile
 
-call make_grid_flux_weights
+call make_grid_flux_weights(ok)
 do ichemo = 1,MAX_CHEMO
 	if (.not.chemo(ichemo)%used) cycle
 	if (ichemo > TRACER) then
@@ -677,15 +677,24 @@ integer :: ichemo
 real(REAL_KIND) :: Cflux_const(:,:,:)
 integer :: kcell, k, cnr(3,8)
 type(cell_type), pointer :: cp
-real(REAL_KIND) :: alpha_flux = 0.3
+real(REAL_KIND) :: tnow, factor, dMdt
+real(REAL_KIND) :: alpha_flux = 0.2		! was 0.3
 
+tnow = istep*DELTA_T
 Cflux_const = 0
 do kcell = 1,nlist
 	cp => cell_list(kcell)
 	if (cp%state == DEAD) cycle
+	factor = 1
+	! Try removing this change, #4
+!	if (cp%anoxia_tag) then
+!		factor = (tnow - cp%t_anoxia_tag)/anoxia_death_delay
+!		factor = max(factor,0.d0)
+!	endif
 	cnr = cp%cnr
+	dMdt = factor*cp%dMdt(ichemo)
 	do k = 1,8
-		Cflux_const(cnr(1,k),cnr(2,k),cnr(3,k)) = Cflux_const(cnr(1,k),cnr(2,k),cnr(3,k)) + cp%dMdt(ichemo)*cp%wt(k)
+		Cflux_const(cnr(1,k),cnr(2,k),cnr(3,k)) = Cflux_const(cnr(1,k),cnr(2,k),cnr(3,k)) + dMdt*cp%wt(k)
 	enddo
 enddo
 Cflux_const(:,:,:) = alpha_flux*Cflux_const(:,:,:) + (1-alpha_flux)*Cflux_prev(:,:,:,ichemo)
@@ -693,16 +702,24 @@ end subroutine
 
 !-------------------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------------------
-subroutine make_grid_flux_weights
+subroutine make_grid_flux_weights(ok)
+logical :: ok
 integer :: ic, ix, iy, iz, kcell
 type(cell_type), pointer :: cp
 
+ok = .true.
 do kcell = 1,nlist
 	cp => cell_list(kcell)
 	if (cp%state == DEAD) cycle
 	ix = cp%site(1)
 	iy = cp%site(2)
 	iz = cp%site(3)
+	if (ix < 1 .or. ix > NX-1 .or. iy < 1 .or. iy > NY-1 .or. iz < 1 .or. iz > NZ-1) then
+		write(logmsg,*) 'make_grid_flux_weights: blob too big, cell outside grid: ',kcell,ix,iy,iz
+		call logger(logmsg)
+		ok = .false.
+		return
+	endif
 	cp%cnr(:,1) = [ix, iy, iz]
 	cp%cnr(:,2) = [ix, iy+1, iz]
 	cp%cnr(:,3) = [ix, iy, iz+1]
@@ -1007,8 +1024,7 @@ yb2 = yb0 + idyb
 zb1 = 1
 zb2 = (NZ-1)/NRF + 1
 
-write(nflog,'(a,6i4)') 'interpolate_Cave: xb1,xb2,...: ',xb1,xb2,yb1,yb2,zb1,zb2
-write(nflog,*) 'Cave_b(14,14,9): ',Cave_b(14,14,9)
+!write(nflog,*) 'Cave_b(14,14,9): ',Cave_b(14,14,9)
 csum = 0
 ncsum = 0
 
@@ -1177,7 +1193,7 @@ integer :: kpar = 0
 real(REAL_KIND) :: rad, xb0, yb0, zb0, x, y, z, p(3), phi, theta, c(MAX_CHEMO), csum(MAX_CHEMO)
 real(REAL_KIND) :: xf0, yf0, zf0    ! centre on fine grid
 real(REAL_KIND) :: pmax(3), cmax
-integer :: i, ic, ichemo, n = 100
+integer :: i, ic, ichemo, ix, iy, iz, k, n = 100
 
 !call SetRadius(Nsites)
 rad = blobradius
@@ -1186,13 +1202,21 @@ yf0 = blobcentre(2)
 zf0 = blobcentre(3)
 csum = 0
 cmax = 0
-do i = 1,n
+k = 0
+do
 	z = -rad + 2*rad*par_uni(kpar)
 	phi = 2*PI*par_uni(kpar)
 	theta = asin(z/rad)
 	x = xf0 + rad*cos(theta)*cos(phi)
 	y = yf0 + rad*cos(theta)*sin(phi)
 	z = zf0 + z
+	ix = x/DXF + 1
+	iy = y/DXF + 1
+	iz = z/DXF + 1
+	if (ix < 1 .or. ix+1 > NX) cycle
+	if (iy < 1 .or. iy+1 > NY) cycle
+	if (iz < 1 .or. iz+1 > NZ) cycle
+	k = k+1
 	p = [x, y, z]
 	call getConc_f(p,c)
 	csum = csum + c
@@ -1200,6 +1224,7 @@ do i = 1,n
 	    cmax = c(1)
 	    pmax = p
 	endif
+	if (k == n) exit
 enddo
 write(nflog,'(a,e12.3,2x,3e12.3)') 'set_bdry_conc: blob radius, centre: ',blobradius,blobcentre
 do ic = 1,nchemo
@@ -1207,7 +1232,7 @@ do ic = 1,nchemo
 	chemo(ichemo)%medium_Cbnd = csum(ichemo)/n
 	write(nflog,'(a,i2,f8.4)') 'set_bdry_conc: medium_Cbnd: ',ichemo,chemo(ichemo)%medium_Cbnd
 enddo
-write(nflog,'(a,e12.3,2x,3e12.3)') 'max O2 at: ',cmax,pmax
+write(nflog,'(a,e12.3,2x,3e12.3)') 'max blob bdry O2 at: ',cmax,pmax
 end subroutine
 
 !--------------------------------------------------------------------------------------
@@ -1365,10 +1390,10 @@ do ic = 1,nchemo
 !	    write(nflog,*) 'Cave_f: O2:'
 !	    write(nflog,'(10e12.3)') Cave(NX/2,:,NX/2)
 !	endif
-	if (ichemo == GLUCOSE) then
-	    write(nflog,*) 'Cave_b: glucose: ixb,..,izb: ',NXB/2,izb0
-	    write(nflog,'(10e12.3)') Cave_b(NXB/2,:,izb0)
-	endif
+!	if (ichemo == GLUCOSE) then
+!	    write(nflog,*) 'Cave_b: glucose: ixb,..,izb: ',NXB/2,izb0
+!	    write(nflog,'(10e12.3)') Cave_b(NXB/2,:,izb0)
+!	endif
 	call make_csr_b(a_b, ichemo, dt, Cave_b, Cprev_b, Fcurr_b, Fprev_b, rhs, zeroC(ichemo))		! coarse grid
 
 	! Solve Cave_b(t+dt) on coarse grid
@@ -1545,6 +1570,7 @@ do ic = 1,nfinemap
 		
 		Cflux_prev(:,:,:,ichemo) = Fcurr
 		
+		! Now always use_integration
 		if (use_SS) then
 			call update_Cin_const_SS(ichemo)				! true steady-state
 			call getF_const(ichemo, Fcurr)

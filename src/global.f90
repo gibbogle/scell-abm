@@ -131,6 +131,7 @@ type cell_type
 	real(REAL_KIND) :: t_divide_last
 	real(REAL_KIND) :: t_divide_next
 	real(REAL_KIND) :: t_anoxia
+	real(REAL_KIND) :: t_anoxia_tag
 	real(REAL_KIND) :: t_anoxia_die
 	real(REAL_KIND) :: t_aglucosia
 	real(REAL_KIND) :: t_aglucosia_die
@@ -236,7 +237,7 @@ type savedata_type
     integer :: nt, it
 end type
 
-integer, parameter :: nflog=10, nfin=11, nfout=12, nfres=13, nfcell=14, nfprofile=15, nfslice=16
+integer, parameter :: nflog=10, nfin=11, nfout=12, nfres=13, nfcell=14, nfprofile=15, nfslice=16, nfFACS=17
 integer, parameter :: MAX_NLIST = 200000
 integer, parameter :: MAX_NBRS = 50
 integer, parameter :: ndt_max = 30
@@ -288,7 +289,7 @@ real(REAL_KIND) :: O2cutoff(3), hypoxia_threshold
 real(REAL_KIND) :: growthcutoff(3)
 logical :: use_radiation_growth_delay_all = .true.
 
-type(savedata_type) :: saveprofile, saveslice
+type(savedata_type) :: saveprofile, saveslice, saveFACS
 
 ! From react_diff
 real(REAL_KIND) :: dxf, dxb, dx3, dxb3, Rcell, Vcell
@@ -346,13 +347,13 @@ logical :: suppress_growth = .false.
 logical :: use_hysteresis = .false.
 logical :: use_permute = .false.
 logical :: use_gaplist = .true.
-logical :: use_SS = .true.
+logical :: use_SS = .false.
 logical :: use_integration = .true.
 logical :: use_packer = .true.
 logical :: medium_change_step
 logical :: dbug = .false.
 
-integer :: kcell_now
+integer :: kcell_now, nlt_threshold
 
 !dec$ attributes dllexport :: nsteps, DELTA_T
 

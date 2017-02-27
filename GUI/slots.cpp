@@ -337,3 +337,30 @@ void MainWindow::on_checkBox_show_cells_toggled()
     field->show_cells = checkBox_show_cells->isChecked();
     field->displayField(field->hour,&res);
 }
+
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
+void MainWindow:: on_cbox_SAVE_PROFILE_DATA_toggled(bool checked)
+{
+    text_SAVE_PROFILE_DATA_FILE_NAME->setEnabled(checked);
+    line_SAVE_PROFILE_DATA_INTERVAL->setEnabled(checked);
+    line_SAVE_PROFILE_DATA_NUMBER->setEnabled(checked);
+}
+
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
+void MainWindow:: on_cbox_SAVE_SLICE_DATA_toggled(bool checked)
+{
+    text_SAVE_SLICE_DATA_FILE_NAME->setEnabled(checked);
+    line_SAVE_SLICE_DATA_INTERVAL->setEnabled(checked);
+    line_SAVE_SLICE_DATA_NUMBER->setEnabled(checked);
+}
+
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
+void MainWindow:: on_cbox_SAVE_FACS_DATA_toggled(bool checked)
+{
+    text_SAVE_FACS_DATA_FILE_NAME->setEnabled(checked);
+    line_SAVE_FACS_DATA_INTERVAL->setEnabled(checked);
+    line_SAVE_FACS_DATA_NUMBER->setEnabled(checked);
+}

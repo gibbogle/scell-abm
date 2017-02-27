@@ -205,8 +205,8 @@ real(REAL_KIND) :: dt
 logical :: changed, ok
 integer :: kcell, nlist0, site(3), i, ichemo, idrug, im, ityp, killmodel, kpar=0 
 real(REAL_KIND) :: C_O2, C_glucose, kmet, Kd, dMdt, Cdrug, n_O2, kill_prob, dkill_prob, death_prob, tnow
-!logical :: use_TPZ_DRUG, use_DNB_DRUG
 logical :: anoxia_death, aglucosia_death
+real(REAL_KIND) :: p_tag = 0.3
 type(drug_type), pointer :: dp
 
 !call logger('CellDeath')
@@ -215,25 +215,29 @@ tnow = istep*DELTA_T	! seconds
 anoxia_death = chemo(OXYGEN)%controls_death
 aglucosia_death = chemo(GLUCOSE)%controls_death
 nlist0 = nlist
+nlt_threshold = 0
 do kcell = 1,nlist
 	if (cell_list(kcell)%state == DEAD) cycle
 	ityp = cell_list(kcell)%celltype
 	call getO2conc(kcell,C_O2)
 	if (cell_list(kcell)%anoxia_tag) then
-		if (tnow >= cell_list(kcell)%t_anoxia_die) then
-!			call logger('cell dies')
+		if (tnow >= cell_list(kcell)%t_anoxia_die .and. par_uni(kpar) < p_tag*dt/DELTA_T) then
 			call CellDies(kcell)
 			changed = .true.
 			Nanoxia_dead(ityp) = Nanoxia_dead(ityp) + 1
+!			write(nflog,*) 'death from anoxia: Nanoxia_tag, Nanoxia_dead: ',Nanoxia_tag(ityp),Nanoxia_dead(ityp)
 			cycle
 		endif
 	else
 		if (anoxia_death .and. C_O2 < anoxia_threshold) then
+			nlt_threshold = nlt_threshold + 1
 			cell_list(kcell)%t_anoxia = cell_list(kcell)%t_anoxia + dt
 			if (cell_list(kcell)%t_anoxia > t_anoxia_limit) then
 				cell_list(kcell)%anoxia_tag = .true.						! tagged to die later
+				cell_list(kcell)%t_anoxia_tag = tnow
 				cell_list(kcell)%t_anoxia_die = tnow + anoxia_death_delay	! time that the cell will die
 				Nanoxia_tag(ityp) = Nanoxia_tag(ityp) + 1
+!				write(nflog,*) 'Tagged for anoxia: kcell, Nanoxia_tag: ',kcell,Nanoxia_tag(ityp)
 			endif
 		else
 			cell_list(kcell)%t_anoxia = 0
@@ -259,7 +263,6 @@ do kcell = 1,nlist
 			cell_list(kcell)%t_aglucosia = 0
 		endif
 	endif
-	
 	do idrug = 1,ndrugs_used	
 		dp => drug(idrug)
 		ichemo = TRACER + 1 + 3*(idrug-1)	
@@ -284,6 +287,7 @@ do kcell = 1,nlist
 		endif
 	enddo
 enddo
+!write(nflog,'(a,i6,2e12.3)') '# with C_O2 < anoxia_threshold: ',nlt,anoxia_threshold,t_anoxia_limit
 end subroutine
 
 !-----------------------------------------------------------------------------------------
@@ -588,7 +592,7 @@ endif
 oxygen_growth = chemo(OXYGEN)%controls_growth
 glucose_growth = chemo(GLUCOSE)%controls_growth
 Cin_0 = cp%Cin
-metab_O2 = O2_metab(Cin_0(OXYGEN))	! Note that currently growth depends only on O2
+metab_O2 = O2_metab(Cin_0(OXYGEN))	! Note that currently growth depends only on O2 
 metab_glucose = glucose_metab(Cin_0(GLUCOSE))
 if (oxygen_growth .and. glucose_growth) then
 	metab = metab_O2*metab_glucose
