@@ -265,7 +265,7 @@ do kcell = 1,nlist
 	endif
 	do idrug = 1,ndrugs_used	
 		dp => drug(idrug)
-		ichemo = TRACER + 1 + 3*(idrug-1)	
+		ichemo = DRUG_A + 3*(idrug-1)	
 		kill_prob = 0
 		death_prob = 0
 		do im = 0,2

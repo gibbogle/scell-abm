@@ -447,7 +447,7 @@ type(event_type) :: E
 
 write(logmsg,*) 'ReadProtocol'
 call logger(logmsg)
-chemo(TRACER+1:)%used = .false.
+chemo(DRUG_A:)%used = .false.
 do
 	read(nf,'(a)') line
 	if (trim(line) == 'PROTOCOL') exit
@@ -1092,7 +1092,10 @@ if (radiation_dose > 0) then
 	write(logmsg,'(a,f6.1)') 'Radiation dose: ',radiation_dose
 	call logger(logmsg)
 endif
-call SetupChemomap
+
+call DrugChecks
+!call SetupChemomap
+
 !dt = DELTA_T/NT_CONC
 ! the idea is to accumulate time steps until DELTA_T is reached  
 call make_perm_index(ok)
@@ -1227,6 +1230,30 @@ if (mod(istep,nt_hour) == 0) then
 endif
 res = 0
 end subroutine
+
+!-----------------------------------------------------------------------------------------
+!-----------------------------------------------------------------------------------------
+subroutine DrugChecks
+integer :: idrug, iparent, im, ichemo, kcell
+type(cell_type), pointer :: cp
+
+drug_gt_cthreshold = .false.
+do idrug = 1,2
+	iparent = DRUG_A + 3*(idrug-1)
+	if (chemo(iparent)%present) then		! simulation with this drug has started
+	    do im = 0,2
+	        ichemo = iparent + im
+!	        if (chemo(ichemo)%medium_Cext > Cthreshold) drug_gt_cthreshold(idrug) = .true.
+	        if (chemo(ichemo)%medium_Cbnd > Cthreshold) drug_gt_cthreshold(idrug) = .true.
+	    enddo
+	endif
+enddo
+
+call CheckDrugConcs
+call CheckDrugPresence
+call SetupChemomap
+end subroutine
+
 
 !-----------------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------------

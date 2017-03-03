@@ -118,6 +118,7 @@ do ichemo = 1,MAX_CHEMO
 	Cprev_b = C0
 	Cprev = C0
 	Fprev = Cflux(:,:,:,ichemo)
+	ichemo_curr = ichemo
 	call makeF_b(Fprev_b,Fprev,DELTA_T,zero)
 	Fcurr_b = Fprev_b
 enddo
@@ -194,6 +195,15 @@ do ixb = xb0-idxb,xb0+idxb
 		enddo
 	enddo
 enddo
+!if (ichemo_curr == DRUG_A+1) then
+!	do ixb = 1,NXB
+!		do iyb = 1,NYB
+!			do izb = 1,NZB
+!				if (F_b(ixb,iyb,izb) /= 0) write(nflog,*) 'makeF_b: ',ixb,iyb,izb,F_b(ixb,iyb,izb)
+!			enddo
+!		enddo
+!	enddo
+!endif
 zero = (Fsum_b == 0)	
 end subroutine
 
@@ -375,7 +385,7 @@ if (ichemo == OXYGEN) then
 		enddo
 	enddo
 endif
-write(nflog,*) 'make_csr_b: Fsum: ',ichemo,Fsum
+!if (ichemo == DRUG_A+1) write(nflog,'(a,i3,e12.3)') 'make_csr_b: Fsum: ',ichemo,Fsum
 end subroutine
 
 !-------------------------------------------------------------------------------------------
@@ -570,7 +580,7 @@ cp => cell_list(kcell)
 ictyp = cp%celltype
 Vin = cp%V
 CO2 = cp%Cin(OXYGEN)
-idrug = (ichemo_parent - TRACER - 1)/3 + 1
+idrug = (ichemo_parent - DRUG_A)/3 + 1
 dp => drug(idrug)
 do im = 0,2
 	ichemo = ichemo_parent + im
@@ -607,6 +617,7 @@ enddo
 do im = 0,2
 	cp%Cin(ichemo_parent+im) = Cin(im)
 	cp%dMdt(ichemo_parent+im) = Kin(im)*Cex(im) - Kout(im)*Cin(im)	!dMdt(im)/nt
+!	if (kcell <= 10) write(nflog,'(a,i6,i2,e12.3)') 'integrate_cell_Cin: kcell,im,dMdt: ',kcell,im,cp%dMdt(ichemo_parent+im)
 enddo
 
 end subroutine
@@ -675,7 +686,7 @@ end subroutine
 subroutine make_grid_flux(ichemo,Cflux_const)
 integer :: ichemo
 real(REAL_KIND) :: Cflux_const(:,:,:)
-integer :: kcell, k, cnr(3,8)
+integer :: kcell, k, cnr(3,8), ix, iy, iz
 type(cell_type), pointer :: cp
 real(REAL_KIND) :: tnow, factor, dMdt
 real(REAL_KIND) :: alpha_flux = 0.2		! was 0.3
@@ -698,6 +709,15 @@ do kcell = 1,nlist
 	enddo
 enddo
 Cflux_const(:,:,:) = alpha_flux*Cflux_const(:,:,:) + (1-alpha_flux)*Cflux_prev(:,:,:,ichemo)
+!if (ichemo == DRUG_A+1) then
+!	do ix = 1,NX
+!		do iy = 1,NY
+!			do iz = 1,NZ
+!				if (Cflux_const(ix,iy,iz) /= 0) write(nflog,*) 'make_grid_flux: ',ix,iy,iz,Cflux_const(ix,iy,iz)
+!			enddo
+!		enddo
+!	enddo
+!endif
 end subroutine
 
 !-------------------------------------------------------------------------------------------
@@ -792,9 +812,9 @@ if (ichemo <= GLUCOSE) then
 elseif (ichemo == TRACER) then
 	
 else	! parent drug or drug metabolite
-	idrug = (ichemo - TRACER - 1)/3 + 1
+	idrug = (ichemo - DRUG_A)/3 + 1
 	dp => drug(idrug)
-	im = ichemo - TRACER - 1 - 3*(idrug-1)
+	im = ichemo - DRUG_A - 3*(idrug-1)
 	Kmet0(im) = dp%Kmet0(ictyp,im)
 	C2(im) = dp%C2(ictyp,im)
 	KO2(im) = dp%KO2(ictyp,im)
@@ -891,9 +911,9 @@ if (ichemo <= GLUCOSE) then
 elseif (ichemo == TRACER) then
 	stop
 else	! parent drug or drug metabolite
-	idrug = (ichemo - TRACER - 1)/3 + 1
+	idrug = (ichemo - DRUG_A)/3 + 1
 	dp => drug(idrug)
-	im = ichemo - TRACER - 1 - 3*(idrug-1)
+	im = ichemo - DRUG_A - 3*(idrug-1)
 	Kmet0(im) = dp%Kmet0(ictyp,im)
 	C2(im) = dp%C2(ictyp,im)
 	KO2(im) = dp%KO2(ictyp,im)
@@ -1141,8 +1161,8 @@ do ixb = xb1,xb2-1
 	enddo
 enddo
 chemo(ichemo)%fine_grid_cbnd = csum/ncsum		! average concentration on the boundary of the fine grid
-!if (ichemo == OXYGEN) then
-!    write(nflog,'(a,e12.3)') 'O2 finegrid_Cbnd (bdry of fine grid): ',finegrid_Cbnd
+!if (ichemo == DRUG_A+1) then
+!    write(nflog,'(a,e12.3)') '(bdry of fine grid): ',chemo(ichemo)%fine_grid_Cbnd
 !endif
 !write(nflog,'(a,i4)') 'interpolate_Cave: ichemo, Cave: ',ichemo
 !write(nflog,'(10f8.2)') Cave(NX/2,NY/2,:)
@@ -1226,13 +1246,13 @@ do
 	endif
 	if (k == n) exit
 enddo
-write(nflog,'(a,e12.3,2x,3e12.3)') 'set_bdry_conc: blob radius, centre: ',blobradius,blobcentre
+!write(nflog,'(a,e12.3,2x,3e12.3)') 'set_bdry_conc: blob radius, centre: ',blobradius,blobcentre
 do ic = 1,nchemo
 	ichemo = chemomap(ic)
 	chemo(ichemo)%medium_Cbnd = csum(ichemo)/n
-	write(nflog,'(a,i2,f8.4)') 'set_bdry_conc: medium_Cbnd: ',ichemo,chemo(ichemo)%medium_Cbnd
+	write(nflog,'(a,i2,e12.3)') 'set_bdry_conc: medium_Cbnd: ',ichemo,chemo(ichemo)%medium_Cbnd
 enddo
-write(nflog,'(a,e12.3,2x,3e12.3)') 'max blob bdry O2 at: ',cmax,pmax
+!write(nflog,'(a,e12.3,2x,3e12.3)') 'max blob bdry O2 at: ',cmax,pmax
 end subroutine
 
 !--------------------------------------------------------------------------------------
@@ -1318,7 +1338,7 @@ real(REAL_KIND), pointer :: Cave_b(:,:,:), Cprev_b(:,:,:), Fprev_b(:,:,:), Fcurr
 real(REAL_KIND), allocatable :: a(:), a_b(:)
 real(REAL_KIND) :: alpha_cave = 0.3
 real(REAL_KIND) :: dCtol = 1.0e-4
-real(REAL_KIND) :: massmin = 1.0e-8
+real(REAL_KIND) :: massmin = 1.0e-10		! don't use this now
 integer :: ILUtype = 1
 integer :: nfinemap, finemap(MAX_CHEMO)
 integer :: im, im1, im2, ichemof
@@ -1328,20 +1348,24 @@ logical :: do_fine = .true.
 logical :: use_const = .true.
 
 ok = .true.
-do ichemo = 1,MAX_CHEMO
-	if (.not.chemo(ichemo)%used) cycle
-	call getMass(ichemo,mass(ichemo))
-	if (chemo(ichemo)%present) then
-		if (mass(ichemo) < 1.0e-12) then
-			chemo(ichemo)%present = .false.
-		endif
-	else
-		if (mass(ichemo) > 1.0e-12) then
-			chemo(ichemo)%present = .true.
-		endif
-	endif
-enddo
-call SetupChemomap
+!do ichemo = 1,MAX_CHEMO
+!	if (.not.chemo(ichemo)%used) cycle
+!	call getMass(ichemo,mass(ichemo))
+!	if (chemo(ichemo)%present) then
+!		if (mass(ichemo) < 1.0e-12) then
+!			chemo(ichemo)%present = .false.
+!			write(nflog,*) 'Set chemo not present: ',ichemo
+!		endif
+!	else
+!		if (mass(ichemo) > 1.0e-12) then
+!			chemo(ichemo)%present = .true.
+!			write(nflog,*) 'Reset chemo present: ',ichemo
+!		endif
+!	endif
+!enddo
+
+
+!call SetupChemomap
 
 nfinemap = 0
 do ic = 1,nchemo
@@ -1349,9 +1373,9 @@ do ic = 1,nchemo
 	if (ichemo <= TRACER) then
 		nfinemap = nfinemap + 1
 		finemap(nfinemap) = ichemo
-	elseif (mod(ichemo-TRACER-1,3) == 0) then
+	elseif (mod(ichemo-DRUG_A,3) == 0) then
 		nfinemap = nfinemap + 1
-		finemap(nfinemap) = ichemo		! idrug = (ichemo-TRACER-1)/3 + 1
+		finemap(nfinemap) = ichemo		! idrug = (ichemo-DRUG_A)/3 + 1
 	endif
 enddo		
 
@@ -1489,10 +1513,12 @@ do ic = 1,nfinemap
 		Fcurr => Cflux(:,:,:,ichemo)
 		
 !		write(nflog,*) 'fine grid: ichemo: ',ichemo
-!		write(nflog,'(a,i4)') 'Cave: '
-!		write(nflog,'(10f8.2)') Cave(NX/2,NY/2,:)
-
-		if (mass(ichemo) > massmin) then
+!		if (ichemo == DRUG_A+1) then
+!			write(nflog,'(a,i4)') 'Cave: '
+!			write(nflog,'(10f8.2)') Cave(NX/2,NY/2,:)
+!		endif
+		
+!		if (mass(ichemo) > massmin) then
 
 		call make_csr_SS(a, ichemo, Cave, Fcurr, rhs)	! fine grid - note: using the same flux values as the Cave_b solution!
 		
@@ -1566,7 +1592,7 @@ do ic = 1,nfinemap
 			enddo
 		enddo
 		
-		endif
+!		endif
 		
 		Cflux_prev(:,:,:,ichemo) = Fcurr
 		
@@ -1605,6 +1631,40 @@ if (use_integration) then
 	enddo
 endif
 
+end subroutine
+
+!----------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------
+subroutine CheckDrugConcs
+integer :: ndrugs_present, drug_present(3*MAX_DRUGTYPES), drug_number(3*MAX_DRUGTYPES)
+integer :: idrug, iparent, im, kcell, ichemo, i
+type(cell_type), pointer :: cp
+
+ndrugs_present = 0
+drug_present = 0
+do idrug = 1,ndrugs_used
+	iparent = DRUG_A + 3*(idrug-1)
+	if (chemo(iparent)%present) then		! simulation with this drug has started
+	    do im = 0,2
+	        ichemo = iparent + im
+	        ndrugs_present = ndrugs_present + 1
+	        drug_present(ndrugs_present) = ichemo
+	        drug_number(ndrugs_present) = idrug
+	    enddo
+	endif
+enddo
+
+do kcell = 1,nlist
+	if (cell_list(kcell)%state == DEAD) cycle
+    cp => cell_list(kcell)
+	do i = 1,ndrugs_present
+	    ichemo = drug_present(i)
+	    idrug = drug_number(i)
+	    if (cp%Cin(ichemo) > Cthreshold) drug_gt_cthreshold(idrug) = .true.
+	    if (cp%Cex(ichemo) > Cthreshold) drug_gt_cthreshold(idrug) = .true.
+	enddo
+enddo
+    
 end subroutine
 
 end module

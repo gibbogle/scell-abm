@@ -80,14 +80,15 @@ chemo(OXYGEN)%decay_rate = 0
 chemo(GLUCOSE)%decay_rate = 0
 chemo(TRACER)%decay_rate = 0
 
-!chemo(DRUG_A)%name = 'Drug_A'
-!chemo(DRUG_B)%name = 'Drug_B'
 do ichemo = 1,MAX_CHEMO
 	chemo(ichemo)%present = .false.
 	if (chemo(ichemo)%used) then
 		if (ichemo == OXYGEN .or. ichemo == GLUCOSE .or. ichemo == TRACER) then
 			chemo(ichemo)%present = .true.
 			chemo(ichemo)%medium_Cbnd = chemo(ichemo)%bdry_conc
+		else
+			chemo(ichemo)%bdry_conc = 0
+			chemo(ichemo)%medium_Cbnd = 0
 		endif
 	endif
 enddo
@@ -205,6 +206,58 @@ else
 	glucose_metab = 0
 endif
 end function
+
+!----------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------
+subroutine CheckDrugPresence
+integer :: idrug, iparent, im, ichemo
+
+! Check drugs and their metabolites
+do idrug = 1,ndrugs_used
+	iparent = DRUG_A + 3*(idrug-1)
+	if (chemo(iparent)%present) then		! simulation with this drug has started
+		if (.not.drug_gt_cthreshold(idrug)) then
+			write(logmsg,'(a,i2,a,a)') 'Removing drug and metabolites, concentrations below threshold: ',idrug,' ',chemo(iparent)%name
+			call logger(logmsg)
+			write(logmsg,'(a,3e12.3)') 'concs: ',(chemo(iparent+im)%medium_Cbnd,im=0,2)
+			call logger(logmsg)
+			write(logmsg,'(a,e12.3)') 'threshold concentration: ',Cthreshold
+			call logger(logmsg)
+			do im = 0,2
+				ichemo = iparent + im
+				chemo(ichemo)%present = .false.
+			enddo
+			call RemoveDrug(idrug)
+		endif
+	endif
+enddo
+end subroutine
+
+!----------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------------
+subroutine RemoveDrug(idrug)
+integer :: idrug
+integer :: iparent, ichemo, im, kcell
+type(cell_type), pointer :: cp
+
+iparent = DRUG_A + 3*(idrug-1)
+do im = 0,2
+	ichemo = iparent + im
+	chemo(ichemo)%medium_Cbnd = 0
+	Cflux(:,:,:,ichemo) = 0
+	chemo(ichemo)%Cave_b = 0
+	Caverage(:,:,:,ichemo) = 0
+enddo
+do kcell = 1,nlist
+	if (cell_list(kcell)%state == DEAD) cycle
+    cp => cell_list(kcell)
+	do im = 0,2
+		ichemo = iparent + im
+		cp%Cin(ichemo) = 0
+		cp%Cex(ichemo) = 0
+	enddo
+enddo
+end subroutine
 
 !----------------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------------
