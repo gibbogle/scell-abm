@@ -289,7 +289,7 @@ real(REAL_KIND) :: O2cutoff(3), hypoxia_threshold
 real(REAL_KIND) :: growthcutoff(3)
 logical :: use_radiation_growth_delay_all = .true.
 logical :: drug_gt_cthreshold(MAX_DRUGTYPES)
-real(REAL_KIND), parameter :: Cthreshold = 1.0e-6
+real(REAL_KIND) :: Cthreshold
 
 type(savedata_type) :: saveprofile, saveslice, saveFACS
 

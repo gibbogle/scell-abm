@@ -205,8 +205,9 @@ real(REAL_KIND) :: dt
 logical :: changed, ok
 integer :: kcell, nlist0, site(3), i, ichemo, idrug, im, ityp, killmodel, kpar=0 
 real(REAL_KIND) :: C_O2, C_glucose, kmet, Kd, dMdt, Cdrug, n_O2, kill_prob, dkill_prob, death_prob, tnow
+real(REAL_KIND) :: SF, survival_prob
 logical :: anoxia_death, aglucosia_death
-real(REAL_KIND) :: p_tag = 0.3
+real(REAL_KIND) :: p_tag = 1.0		! 0.3 ?? 
 type(drug_type), pointer :: dp
 
 !call logger('CellDeath')
@@ -221,11 +222,12 @@ do kcell = 1,nlist
 	ityp = cell_list(kcell)%celltype
 	call getO2conc(kcell,C_O2)
 	if (cell_list(kcell)%anoxia_tag) then
-		if (tnow >= cell_list(kcell)%t_anoxia_die .and. par_uni(kpar) < p_tag*dt/DELTA_T) then
+		if (tnow >= cell_list(kcell)%t_anoxia_die) then	! .and. par_uni(kpar) < p_tag*dt/DELTA_T) then	???
 			call CellDies(kcell)
 			changed = .true.
 			Nanoxia_dead(ityp) = Nanoxia_dead(ityp) + 1
-!			write(nflog,*) 'death from anoxia: Nanoxia_tag, Nanoxia_dead: ',Nanoxia_tag(ityp),Nanoxia_dead(ityp)
+!			write(logmsg,*) 'death from anoxia: Nanoxia_tag, Nanoxia_dead: ',Nanoxia_tag(ityp),Nanoxia_dead(ityp)
+!			call logger(logmsg)
 			cycle
 		endif
 	else
@@ -237,7 +239,8 @@ do kcell = 1,nlist
 				cell_list(kcell)%t_anoxia_tag = tnow
 				cell_list(kcell)%t_anoxia_die = tnow + anoxia_death_delay	! time that the cell will die
 				Nanoxia_tag(ityp) = Nanoxia_tag(ityp) + 1
-!				write(nflog,*) 'Tagged for anoxia: kcell, Nanoxia_tag: ',kcell,Nanoxia_tag(ityp)
+!				write(logmsg,'(a,2i6,2f8.1)') 'Tagged for anoxia: kcell, Nanoxia_tag: ',kcell,Nanoxia_tag(ityp),tnow,cell_list(kcell)%t_anoxia_die
+!				call logger(logmsg)
 			endif
 		else
 			cell_list(kcell)%t_anoxia = 0
@@ -268,6 +271,7 @@ do kcell = 1,nlist
 		ichemo = DRUG_A + 3*(idrug-1)	
 		kill_prob = 0
 		death_prob = 0
+		survival_prob = 1
 		do im = 0,2
 			if (.not.dp%kills(ityp,im)) cycle
 			killmodel = dp%kill_model(ityp,im)		! could use %drugclass to separate kill modes
@@ -276,10 +280,12 @@ do kcell = 1,nlist
 			n_O2 = dp%n_O2(ityp,im)
 			kmet = (1 - dp%C2(ityp,im) + dp%C2(ityp,im)*dp%KO2(ityp,im)**n_O2/(dp%KO2(ityp,im)**n_O2 + C_O2**n_O2))*dp%Kmet0(ityp,im)
 			dMdt = kmet*Cdrug
-			call getDrugKillProb(killmodel,Kd,dMdt,Cdrug,dt,dkill_prob)
-			kill_prob = kill_prob + dkill_prob
+			call getDrugSF(killmodel,Kd,dMdt,Cdrug,dt,SF)
+!			kill_prob = kill_prob + dkill_prob
+			survival_prob = SF*survival_prob
 			death_prob = max(death_prob,dp%death_prob(ityp,im))
 		enddo
+		kill_prob = 1 - survival_prob
 	    if (.not.cell_list(kcell)%drug_tag(idrug) .and. par_uni(kpar) < kill_prob) then	! don't tag more than once
 			cell_list(kcell)%p_drug_death(idrug) = death_prob
 			cell_list(kcell)%drug_tag(idrug) = .true.
@@ -292,11 +298,10 @@ end subroutine
 
 !-----------------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------------
-subroutine getDrugKillProb(kill_model,Kd,dMdt,Cdrug,dt,dkill_prob)
+subroutine getDrugSF(kill_model,Kd,dMdt,Cdrug,dt,SF)
 integer :: kill_model
-real(REAL_KIND) :: Kd, dMdt, Cdrug, dt, dkill_prob
-real(REAL_KIND) :: SF, dtstep, kill_prob, c
-integer :: Nsteps, istep
+real(REAL_KIND) :: Kd, dMdt, Cdrug, dt, SF
+real(REAL_KIND) :: c
 
 if (kill_model == 1) then
 	c = Kd*dMdt
@@ -310,7 +315,6 @@ elseif (kill_model == 5) then
 	c = Kd*Cdrug**2
 endif
 SF = exp(-c*dt)
-dkill_prob = 1 - SF
 end subroutine
 
 !-----------------------------------------------------------------------------------------
