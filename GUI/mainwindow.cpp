@@ -1138,12 +1138,14 @@ void MainWindow::setFields()
     groupBox_drop->setEnabled(true);
     if (rbut_FD_SOLVER_1->isChecked()) {
         int nxb = line_NXB->text().toInt();
+        int nxb1 = nxb - 1;
         double dxf = 41;
         if (specify_volume) {
             line_MEDIUM_VOLUME->setEnabled(true);
             double vol_cm3 = line_MEDIUM_VOLUME->text().toDouble();
-            int nzb = vol_cm3/(nxb*nxb*pow(4*dxf,3)*1.0e-12);   // need to adjust dxf to make exact
-            double dxb3 = vol_cm3/(nxb*nxb*nzb*1.0e-12);        // = pow(4*dxf,3)
+            int nzb1 = vol_cm3/(nxb1*nxb1*pow(4*dxf,3)*1.0e-12);   // need to adjust dxf to make exact
+            int nzb = nzb1 + 1;
+            double dxb3 = vol_cm3/(nxb1*nxb1*nzb1*1.0e-12);        // = pow(4*dxf,3)
             dxf = pow(dxb3,1./3)/4;
             sprintf(msg,"vol_cm3, nzb, dxf: %f %d %f",vol_cm3,nzb,dxf);
             LOG_MSG(msg);
@@ -1152,7 +1154,8 @@ void MainWindow::setFields()
             line_NZB->setText(QString::number(nzb));
         } else {
             int nzb = line_NZB->text().toInt();
-            double vol_cm3 = nxb*nxb*nzb*pow(4*dxf,3)*1.0e-12;
+            int nzb1 = nzb - 1;
+            double vol_cm3 = nxb1*nxb1*nzb1*pow(4*dxf,3)*1.0e-12;
             QString str = QString::number(vol_cm3,'g',3);
             line_MEDIUM_VOLUME->setText(str);
             line_MEDIUM_VOLUME->setEnabled(false);
