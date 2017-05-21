@@ -23,17 +23,15 @@
 #define KILL_SER_KO2 12
 #define KILL_NO2 13
 #define KILL_PROB 14
+#define KILL_Kd 15
 
-#define KILL_kills 15
-#define KILL_expt_kill_model 16
-#define KILL_sensitises 17
+#define KILL_kills 16
+#define KILL_expt_kill_model 17
+#define KILL_sensitises 18
 
 #define NDPARAMS 5
-#define NDKILLPARAMS 15
+#define NDKILLPARAMS 16
 #define NIKILLPARAMS 3
-
-//extern char *DRUG_param_name[];
-//extern char *KILL_param_name[];
 
 struct kill_params {
     QString info[NDKILLPARAMS+NIKILLPARAMS];

@@ -345,6 +345,7 @@ logical :: use_extracellular_O2 = .false.
 logical :: use_migration = .false.
 logical :: use_divide_time_distribution = .true.
 logical :: use_constant_divide_volume = .true.
+logical :: use_new_drugdata = .true.
 logical :: suppress_growth = .false.
 logical :: use_hysteresis = .false.
 logical :: use_permute = .false.
@@ -356,6 +357,7 @@ logical :: medium_change_step
 logical :: dbug = .false.
 
 integer :: kcell_now, nlt_threshold
+real(REAL_KIND) :: total_dose_time	! to check on drug exposure time
 
 !dec$ attributes dllexport :: nsteps, DELTA_T
 

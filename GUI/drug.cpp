@@ -10,7 +10,7 @@ DRUG_STR drug[NDRUGS];
 
 char *DRUG_param_name[] = {"diff_coef","medium_diff","cell_diff_in","cell_diff_out","halflife"};
 char *KILL_param_name[] = {"Kmet0","C2","KO2","Vmax","Km","Klesion","expt_O2_conc","expt_drug_conc","expt_duration",
-                           "expt_kill_fraction","SER_max","SER_Km","SER_KO2","n_O2","death_prob","kills","expt_kill_model","sensitises"};
+                           "expt_kill_fraction","SER_max","SER_Km","SER_KO2","n_O2","death_prob","Kd","kills","expt_kill_model","sensitises"};
 
 
 //--------------------------------------------------------------------------------------------------------
@@ -20,6 +20,7 @@ char *KILL_param_name[] = {"Kmet0","C2","KO2","Vmax","Km","Klesion","expt_O2_con
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::readDrugParams(int idrug, QString fileName)
 {
+    LOG_QMSG("readDrugParams: " + fileName);
     QFile file(fileName);
     if (!file.open(QFile::ReadOnly | QFile::Text)) {
         QMessageBox::warning(this, tr("Application"),
@@ -33,6 +34,7 @@ void MainWindow::readDrugParams(int idrug, QString fileName)
     QString line;
     int ival;
     double dval;
+    bool ok1, ok2;
 
     line = in.readLine();
     QStringList data = line.split(" ",QString::SkipEmptyParts);
@@ -41,8 +43,26 @@ void MainWindow::readDrugParams(int idrug, QString fileName)
         for (int i=0; i<6; i++) {
             line = in.readLine();
             QStringList data = line.split(" ",QString::SkipEmptyParts);
-            if (i > 0) dval = data[0].toDouble();
+            if (i > 0) {
+                dval = data[0].toDouble(&ok1);
+                if (!ok1) {
+                    QMessageBox::warning(this, tr("Application"),
+                                         tr("Drug file %1:\n%2.")
+                                         .arg(fileName)
+                                         .arg(" has the wrong number of parameters.  Check the file format."));
+                    return;
+                }
+            }
             if (i==0) {
+                dval = data[0].toInt(&ok1, 10);
+                ival = data[0].toDouble(&ok2);
+                if (ok1 || ok2) {
+                    QMessageBox::warning(this, tr("Application"),
+                                         tr("Drug file %1:\n%2.")
+                                         .arg(fileName)
+                                         .arg(" has the wrong number of parameters.  Check the file format."));
+                    return;
+                }
                 drug[idrug].param[kset].name = data[0];
 //                qDebug() << drug[idrug].param[kset].name;
             } else {
@@ -54,6 +74,7 @@ void MainWindow::readDrugParams(int idrug, QString fileName)
         for (int ictyp=0; ictyp<NCELLTYPES; ictyp++) {
             for (int i=0; i<NDKILLPARAMS+NIKILLPARAMS; i++) {
                 line = in.readLine();
+                QString numstr = QString::number(i);
                 QStringList data = line.split(" ",QString::SkipEmptyParts);
                 if (i < NDKILLPARAMS) {
                     dval = data[0].toDouble();
@@ -67,6 +88,8 @@ void MainWindow::readDrugParams(int idrug, QString fileName)
 //                    LOG_QMSG(drug[idrug].param[kset].kill[ictyp].info[i]);
 //                }
             }
+            // Set Ckill initially
+            drug[idrug].param[kset].kill[ictyp].dparam[KILL_expt_drug_conc] = computeCkill(idrug, kset, ictyp);
         }
     }
 }
@@ -197,7 +220,7 @@ void MainWindow::populateDrugTable(int idrug)
         for (int ictyp=0; ictyp<NCELLTYPES; ictyp++) {
             ctypstr = "CT" + QString::number(ictyp+1) + "_";
             for (int i=0; i<NDKILLPARAMS; i++) {
-                line = QString::number(drug[idrug].param[kset].kill[ictyp].dparam[i]);
+                line = QString::number(drug[idrug].param[kset].kill[ictyp].dparam[i],'g',4);
                 numstr = QString::number(i);
                 objname = "line_" + basestr + ctypstr + numstr;
                 QLineEdit* qline = this->findChild<QLineEdit*>(objname);
@@ -328,8 +351,8 @@ void MainWindow::makeDrugFileLists()
 }
 
 //--------------------------------------------------------------------------------------------------------
-// This may be superceded by a widget for selecting a file ("TPZ_..." or "DNB_..." or ...) then deducing
-// the drug name from the file name.  This will ensure that only a drug with a parameter file can be chosen.
+// The drug name is deduced from the file name.  This ensures that only a drug with a parameter file
+// can be chosen.
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::initDrugComboBoxes()
 {
@@ -337,7 +360,6 @@ void MainWindow::initDrugComboBoxes()
         comb_DRUG_A->addItem(Drug_FilesList[i]);
         comb_DRUG_B->addItem(Drug_FilesList[i]);
     }
-
 }
 
 //--------------------------------------------------------------------------------------------------------
@@ -349,6 +371,7 @@ void MainWindow::readDrugData(QTextStream *in)
 
     line = in->readLine();
     QStringList data = line.split(" ",QString::SkipEmptyParts);
+    LOG_QMSG("readDrugData: " + line);
     int ndrugs = data[0].toInt();
     if (ndrugs == 0) return;
     makeDrugFileLists();
@@ -439,3 +462,122 @@ void MainWindow::makeHeaderText(QString *header, bool interact)
     *header = datestr + " " + text;
 }
 
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
+void MainWindow::ConnectKillParameterSignals()
+{
+    int NactiveParams = 9;
+    int activeParamNo[] = { 0, 1, 2, 6, 8, 9, 13, 15, 17 };
+    QString basestr, ctypstr, numstr, objname;
+
+    LOG_QMSG("ConnectKillParameterSignals");
+    for (int kset=0; kset<3; kset++) {     // 0 = parent, 1 = metab_1, 2 = metab_2
+        if (kset == 0) {
+            basestr = "PARENT_";
+        } else if (kset == 1) {
+            basestr = "METAB1_";
+        } else {
+            basestr = "METAB2_";
+        }
+        for (int ictyp=0; ictyp<NCELLTYPES; ictyp++) {
+            ctypstr = "CT" + QString::number(ictyp+1) + "_";
+            for (int iactive=0; iactive<NactiveParams; iactive++) {
+                numstr = QString::number(activeParamNo[iactive]);
+                objname = "line_" + basestr + ctypstr + numstr;
+                QLineEdit* qline = this->findChild<QLineEdit*>(objname);
+                // Connect signal on editingFinished to slot to recalculate Ckill
+                connect(qline, SIGNAL(editingFinished()), this, SLOT(updateCkill()));
+            }
+        }
+    }
+}
+
+//--------------------------------------------------------------------------------------------------------
+// Need to determine kset (0 = parent, 1 = metab_1, 2 = metab_2) and ictyp (= 0, 1) to be computed.
+// Do we really care? - could compute all of them.
+//--------------------------------------------------------------------------------------------------------
+void MainWindow::updateCkill()
+{
+    int idrug, kset, ictyp;
+
+    QObject* obj = sender();
+    QString objname = obj->objectName();
+    QStringList part = objname.split("_",QString::SkipEmptyParts);
+//    LOG_QMSG("computeCkill: " + objname);
+//    LOG_QMSG(part[0]);
+//    LOG_QMSG(part[1]);
+//    LOG_QMSG(part[2]);
+    if (part[1].compare("PARENT") == 0) {
+        kset = 0;
+    } else if (part[1].compare("METAB1") == 0) {
+        kset = 1;
+    } else if (part[1].compare("METAB2") == 0) {
+        kset = 2;
+    }
+    if (part[2].contains("CT1")) {
+        ictyp = 0;
+    } else if (part[2].contains("CT2")) {
+        ictyp = 1;
+    }
+//    LOG_QMSG(QString::number(kset) + " " + QString::number(ictyp));
+//    sprintf(msg,"kset: %d ictyp: %d",kset,ictyp);
+//    LOG_MSG(msg);
+    QString Cobjname = "line_" + part[1] + "_" + part[2] + "_7";    // KILL_expt_drug_conc
+//    LOG_QMSG(Cobjname);
+
+    if (radioButton_drugA->isChecked()) {
+        idrug = 0;
+    } else if (radioButton_drugB->isChecked()) {
+        idrug = 1;
+    }
+
+//    sprintf(msg,"Kd: %f",drug[idrug].param[kset].kill[ictyp].dparam[15]);
+//    LOG_MSG(msg);
+
+    double Ckill = computeCkill(idrug, kset, ictyp);
+
+    QLineEdit* qline = this->findChild<QLineEdit*>(Cobjname);
+    qline->setText(QString::number(Ckill,'g',3));
+}
+
+//--------------------------------------------------------------------------------------------------------
+// Note that calculations are done with time in seconds for consistency with the DLL code.
+//--------------------------------------------------------------------------------------------------------
+double MainWindow::computeCkill(int idrug, int kset, int ictyp)
+{
+    double Kd, Kmet0, C2, KO2, n_O2,Ckill_O2, f, T, kmet, Ckill;
+    int killmodel, kills;
+
+    kills = drug[idrug].param[kset].kill[ictyp].iparam[0];
+    if (kills == 0) {   // Does not kill
+        return 0;
+    }
+    killmodel = drug[idrug].param[kset].kill[ictyp].iparam[1];
+    Kmet0 = drug[idrug].param[kset].kill[ictyp].dparam[0]/60;   // /min -> /sec
+    C2 = drug[idrug].param[kset].kill[ictyp].dparam[1];
+    KO2 = drug[idrug].param[kset].kill[ictyp].dparam[2];
+    Ckill_O2 = drug[idrug].param[kset].kill[ictyp].dparam[6];
+    T = drug[idrug].param[kset].kill[ictyp].dparam[8]*60;       // min -> sec
+    f = drug[idrug].param[kset].kill[ictyp].dparam[9];
+    n_O2 = drug[idrug].param[kset].kill[ictyp].dparam[13];
+    Kd = drug[idrug].param[kset].kill[ictyp].dparam[15];
+
+    kmet = (1 - C2 + C2*pow(KO2,n_O2)/(pow(KO2,n_O2) + pow(Ckill_O2,n_O2)))*Kmet0;
+    if (killmodel == 1) {
+//        Kd = -log(1-f)/(T*kmet*Ckill);
+          Ckill = -log(1-f)/(T*kmet*Kd);
+    } else if (killmodel == 2) {
+//        Kd = -log(1-f)/(T*kmet*pow(Ckill,2));
+          Ckill = sqrt(-log(1-f)/(T*kmet*Kd));
+    } else if (killmodel == 3) {
+//        Kd = -log(1-f)/(T*pow(kmet*Ckill,2));
+        Ckill = sqrt(-log(1-f)/(T*Kd))/kmet;
+    } else if (killmodel == 4) {
+//        Kd = -log(1-f)/(T*Ckill);
+          Ckill = -log(1-f)/(T*Kd);
+    } else if (killmodel == 5) {
+//        Kd = -log(1-f)/(T*pow(Ckill,2));
+        Ckill = sqrt(-log(1-f)/(T*Kd));
+    }
+    return Ckill;
+}

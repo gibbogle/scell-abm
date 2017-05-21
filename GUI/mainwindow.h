@@ -143,6 +143,9 @@ private slots:
     bool ProtocolUsesDrug();
     void on_pushButton_savedrugdata_clicked();
 
+    void ConnectKillParameterSignals();
+    double computeCkill(int idrug, int kset, int ictyp);
+
 public slots:
 	void preConnection();
 	void outputData(QString);
@@ -185,14 +188,15 @@ public slots:
     void on_buttonGroup_histotype_buttonClicked(QAbstractButton* button);
     void on_checkBox_histo_logscale_toggled();
     void on_buttonGroup_drug_buttonClicked(QAbstractButton* button);
+    void updateCkill();
 
     void on_checkBox_show_cells_toggled();
 
     void pushButton_clicked();
     void makeSFPlot(QString, double, double, QVector<double> *x, QVector<double> *y);
     void makeGlucosePlot(double *ndays, QVector<double> *x, QVector<double> *y);
-    void makeDrugPlot(QString drugTypeStr, QString cellTypeStr, double *maxdose, QString, QVector<double> *x, QVector<double> *y);
-    void makeDrugRadiationPlot(QString drugTypeStr, QString cellTypeStr, double *maxO2, QString plotStr, QVector<double> *x, QVector<double> *y);
+    void makeDrugPlot(int idrug, int kset, int ictyp, double *maxdose, QString plotStr, QVector<double> *x, QVector<double> *y);
+    void makeDrugRadiationPlot(int idrug, int kset, int ictyp, double *maxO2, QString plotStr, QVector<double> *x, QVector<double> *y);
 
     void processGroupBoxClick(QString);
 signals:

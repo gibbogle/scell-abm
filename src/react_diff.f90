@@ -1461,7 +1461,7 @@ do ic = 1,nchemo
 			ok = .false.
 		endif
 	else
-		write(nflog,*) 'no solve, zeroC: ',ichemo
+!		write(nflog,*) 'no solve, zeroC: ',ichemo
 	endif
 	call itsol_free_precond_ILU(icc, ierr)
 !	write(nflog,*) 'did itsol_free_precond_ILU'
@@ -1572,7 +1572,7 @@ do ic = 1,nfinemap
 				ok = .false.
 			endif
 		else
-			write(nflog,*) 'no solve, zeroC: ',ichemo
+!			write(nflog,*) 'no solve, zeroC: ',ichemo
 		endif
 		call itsol_free_precond_ILU(icc,ierr)
 		call itsol_free_matrix(icc,ierr)

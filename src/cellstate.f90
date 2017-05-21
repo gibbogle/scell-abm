@@ -15,16 +15,15 @@ contains
 ! Need to initialize site and cell concentrations when a cell divides and when there is
 ! cell death.
 !-----------------------------------------------------------------------------------------
-subroutine GrowCells(dose,dt,changed, ok)
-real(REAL_KIND) :: dose, dt
+subroutine GrowCells(dt,changed, ok)
+real(REAL_KIND) :: dt
 logical :: changed, ok
 
-!call logger('GrowCells')
 ok = .true.
-if (dose > 0) then
-	call Irradiation(dose, ok)
-	if (.not.ok) return
-endif
+!if (dose > 0) then
+!	call Irradiation(dose, ok)
+!	if (.not.ok) return
+!endif
 changed = .false.
 !call CellGrowth(dt,ok)
 call grower(dt,changed,OK)
@@ -207,6 +206,7 @@ integer :: kcell, nlist0, site(3), i, ichemo, idrug, im, ityp, killmodel, kpar=0
 real(REAL_KIND) :: C_O2, C_glucose, kmet, Kd, dMdt, Cdrug, n_O2, kill_prob, dkill_prob, death_prob, tnow
 real(REAL_KIND) :: SF, survival_prob
 logical :: anoxia_death, aglucosia_death
+logical :: flag
 real(REAL_KIND) :: p_tag = 1.0		! 0.3 ?? 
 type(drug_type), pointer :: dp
 
@@ -217,6 +217,7 @@ anoxia_death = chemo(OXYGEN)%controls_death
 aglucosia_death = chemo(GLUCOSE)%controls_death
 nlist0 = nlist
 nlt_threshold = 0
+flag = .false.
 do kcell = 1,nlist
 	if (cell_list(kcell)%state == DEAD) cycle
 	ityp = cell_list(kcell)%celltype
@@ -267,33 +268,42 @@ do kcell = 1,nlist
 		endif
 	endif
 	do idrug = 1,ndrugs_used	
-		dp => drug(idrug)
 		ichemo = DRUG_A + 3*(idrug-1)	
+		if (.not.chemo(ichemo)%present) cycle
+		if (cell_list(kcell)%drug_tag(idrug)) cycle	! don't tag more than once
+		dp => drug(idrug)
 		kill_prob = 0
 		death_prob = 0
 		survival_prob = 1
 		do im = 0,2
 			if (.not.dp%kills(ityp,im)) cycle
-			killmodel = dp%kill_model(ityp,im)		! could use %drugclass to separate kill modes
 			Cdrug = cell_list(kcell)%Cin(ichemo + im)
+			if (Cdrug == 0) cycle
+!			if (.not.flag) write(nflog,*) 'im: ',im
+			killmodel = dp%kill_model(ityp,im)		! could use %drugclass to separate kill modes
 			Kd = dp%Kd(ityp,im)
 			n_O2 = dp%n_O2(ityp,im)
 			kmet = (1 - dp%C2(ityp,im) + dp%C2(ityp,im)*dp%KO2(ityp,im)**n_O2/(dp%KO2(ityp,im)**n_O2 + C_O2**n_O2))*dp%Kmet0(ityp,im)
+			if (.not.flag .and. C_O2 < 0.01) write(nflog,'(a,6e12.3)') 'C_O2,Kmet0,kmet,Kd,Cdrug,dt: ',C_O2,dp%Kmet0(ityp,im),kmet,Kd,Cdrug,dt
 			dMdt = kmet*Cdrug
 			call getDrugSF(killmodel,Kd,dMdt,Cdrug,dt,SF)
-!			kill_prob = kill_prob + dkill_prob
 			survival_prob = SF*survival_prob
 			death_prob = max(death_prob,dp%death_prob(ityp,im))
 		enddo
 		kill_prob = 1 - survival_prob
+		if (kill_prob == 0) cycle
+		if (.not.flag .and. im==0 .and. idrug==1) then
+			total_dose_time = total_dose_time + dt
+			write(nflog,'(a,2f7.4,2f8.1)') 'kill_prob, SF: ',kill_prob,1-kill_prob,dt,total_dose_time
+		endif
 	    if (.not.cell_list(kcell)%drug_tag(idrug) .and. par_uni(kpar) < kill_prob) then	! don't tag more than once
 			cell_list(kcell)%p_drug_death(idrug) = death_prob
 			cell_list(kcell)%drug_tag(idrug) = .true.
             Ndrug_tag(idrug,ityp) = Ndrug_tag(idrug,ityp) + 1
 		endif
+		flag = .true.
 	enddo
 enddo
-!write(nflog,'(a,i6,2e12.3)') '# with C_O2 < anoxia_threshold: ',nlt,anoxia_threshold,t_anoxia_limit
 end subroutine
 
 !-----------------------------------------------------------------------------------------

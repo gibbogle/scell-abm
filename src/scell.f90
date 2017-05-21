@@ -349,7 +349,10 @@ bdry_oxygen bdry_glucose bdry_drugA bdry_drugA_met1 bdry_drugA_met2 bdry_drugB b
 
 write(logmsg,*) 'Opened nfout: ',outputfile
 call logger(logmsg)
-call DetermineKd
+if (.not.use_new_drugdata) then
+	call DetermineKd	! Kd is now set or computed in the GUI 
+endif
+total_dose_time = 0
 ok = .true.
 
 end subroutine
@@ -402,6 +405,9 @@ do idrug = 1,Ndrugs_used
             read(nf,*) drug(idrug)%SER_KO2(ictyp,im)
             read(nf,*) drug(idrug)%n_O2(ictyp,im)
             read(nf,*) drug(idrug)%death_prob(ictyp,im)
+            if (use_new_drugdata) then
+	            read(nf,*) drug(idrug)%Kd(ictyp,im)
+	        endif
             read(nf,*) ival
             drug(idrug)%kills(ictyp,im) = (ival == 1)
             read(nf,*) ival
@@ -1042,7 +1048,7 @@ subroutine simulate_step(res) BIND(C)
 use, intrinsic :: iso_c_binding
 integer(c_int) :: res
 integer :: kcell, hour, kpar=0
-real(REAL_KIND) :: radiation_dose, dt, volume, maxarea
+real(REAL_KIND) :: radiation_dose, dt, volume, maxarea, tsum
 integer :: i, k, nit, irepeat, nrepeat, nt_diff, it_diff, ncells0, nhypoxic(3)
 integer :: nshow = 100
 integer :: Nhop, nt_hour, nt_nbr
@@ -1053,6 +1059,7 @@ logical :: ok, done, changed
 logical :: dbug
 
 !Nhop = 10*(30/DELTA_T)
+!tsum = 0
 Nhop = 1
 nt_hour = 3600/DELTA_T
 nt_nbr = nt_hour*FULL_NBRLIST_UPDATE_HOURS
@@ -1092,6 +1099,12 @@ endif
 if (radiation_dose > 0) then
 	write(logmsg,'(a,f6.1)') 'Radiation dose: ',radiation_dose
 	call logger(logmsg)
+	call Irradiation(radiation_dose,ok)
+	if (.not.ok) then
+		call logger('irradiation error')
+		res = 3
+		return
+	endif
 endif
 
 call DrugChecks
@@ -1106,43 +1119,43 @@ if (.not.ok) then
 	return
 endif
 !if (ncells > nshow) write(*,*) 'start moving'
-if (istep == 1) then
-	nrepeat = 1
-else
-	nrepeat = 1
-endif
-do irepeat = 1,nrepeat
-t_fmover = 0
-nit = 0
-done = .false.
-do while (.not.done)
-	nit = nit + 1
-!	call mover(ok)
-!	if (ncells > nshow) write(*,*) 'moving'
-	call fmover(dt,done,ok)
-	if (.not.ok) then
-		call logger('fmover error')
-		res = 1
-		return
-	endif
-	t_fmover = t_fmover + dt
-	ncells0 = ncells
-!	if (ncells >= nshow) write(*,'(a,2i6,3f8.1)') 'growing: istep, ndt, dt, delta_tmove: ',istep,ndt,dt,delta_tmove,t_fmover
-!	call grower(dt,changed,ok)
-	call GrowCells(radiation_dose,dt,changed,ok)
-	if (.not.ok) then
-		call logger('grower error')
-		res = 3
-		return
-	endif
-	radiation_dose = 0
-!	if (ncells > ncells0) then
-	if (changed) then
-		call make_perm_index(ok)
-	endif
-enddo
-enddo
-call update_all_nbrlists
+!if (istep == 1) then
+!	nrepeat = 1
+!else
+!	nrepeat = 1
+!endif
+!do irepeat = 1,nrepeat
+
+!t_fmover = 0
+!nit = 0
+!done = .false.
+!do while (.not.done)
+!	nit = nit + 1
+!	call fmover(dt,done,ok)
+!	if (.not.ok) then
+!		call logger('fmover error')
+!		res = 1
+!		return
+!	endif
+!	if (dt == 0) then
+!		write(*,*) 'dt=0 ','done: ',done
+!		exit
+!	endif
+!	t_fmover = t_fmover + dt
+!	ncells0 = ncells
+!	tsum = tsum + dt
+!	call GrowCells(dt,changed,ok)
+!	if (.not.ok) then
+!		call logger('grower error')
+!		res = 3
+!		return
+!	endif
+!!	if (ncells > ncells0) then
+!	if (changed) then
+!		call make_perm_index(ok)
+!	endif
+!enddo
+!call update_all_nbrlists
 
 !if (mod(istep,Nhop) == 0) then
 !	! determine cell death and tagging for death
@@ -1179,7 +1192,7 @@ else
 endif
 dt = DELTA_T/nt_diff
 call setup_grid_cells
-call update_all_nbrlists
+!call update_all_nbrlists
 do it_diff = 1,nt_diff
 	call diff_solver(dt,ok)
 	if (.not.ok) then
@@ -1188,6 +1201,35 @@ do it_diff = 1,nt_diff
 	endif
 enddo
 medium_change_step = .false.
+
+t_fmover = 0
+nit = 0
+done = .false.
+do while (.not.done)
+	nit = nit + 1
+	call fmover(dt,done,ok)
+	if (.not.ok) then
+		call logger('fmover error')
+		res = 1
+		return
+	endif
+	if (dt == 0) then
+		exit
+	endif
+	t_fmover = t_fmover + dt
+	ncells0 = ncells
+!	tsum = tsum + dt
+	call GrowCells(dt,changed,ok)
+	if (.not.ok) then
+		call logger('grower error')
+		res = 3
+		return
+	endif
+	if (changed) then
+		call make_perm_index(ok)
+	endif
+enddo
+call update_all_nbrlists
 
 if (saveprofile%active) then
 	if (istep*DELTA_T >= saveprofile%it*saveprofile%dt) then
@@ -1228,6 +1270,8 @@ if (mod(istep,nt_hour) == 0) then
 	call set_bdry_conc()
 !	call write_bdryconcs
     call showcells
+	write(nflog,'(a,f8.1)') 'total_dose_time: ',total_dose_time
+	write(nflog,*)
 endif
 res = 0
 end subroutine

@@ -182,7 +182,7 @@ void MainWindow::createActions()
     action_outputs->setEnabled(false);
     action_save_3D_snapshot->setEnabled(false);
     action_save_profile_data->setEnabled(false);
-    action_save_slice_data->setEnabled(false);
+//    action_save_slice_data->setEnabled(false);
     action_show_gradient3D->setEnabled(false);
     action_show_gradient2D->setEnabled(false);
     action_field->setEnabled(false);
@@ -271,6 +271,9 @@ void MainWindow::createActions()
 
     connect(buttonGroup_farfield, SIGNAL(buttonClicked(QAbstractButton*)), this, SLOT(radioButtonChanged(QAbstractButton*)));
     connect(buttonGroup_hypoxia, SIGNAL(buttonClicked(QAbstractButton*)), this, SLOT(radioButtonChanged(QAbstractButton*)));
+
+    ConnectKillParameterSignals();
+
 }
 
 //--------------------------------------------------------------------------------------------------------
@@ -1919,7 +1922,7 @@ void MainWindow::runServer()
         action_stop->setEnabled(true);
         action_save_3D_snapshot->setEnabled(false);
         action_save_profile_data->setEnabled(false);
-        action_save_slice_data->setEnabled(false);
+//        action_save_slice_data->setEnabled(false);
         action_show_gradient3D->setEnabled(false);
         action_show_gradient2D->setEnabled(false);
         paused = false;
@@ -1986,7 +1989,7 @@ void MainWindow::runServer()
     action_FACS->setEnabled(true);
     action_save_3D_snapshot->setEnabled(false);
     action_save_profile_data->setEnabled(false);
-    action_save_slice_data->setEnabled(false);
+//    action_save_slice_data->setEnabled(false);
     action_show_gradient3D->setEnabled(false);
     action_show_gradient2D->setEnabled(false);
     if (!Global::showingField)
@@ -2512,7 +2515,7 @@ void MainWindow::postConnection()
     action_stop->setEnabled(false);
     action_save_3D_snapshot->setEnabled(true);
     action_save_profile_data->setEnabled(true);
-    action_save_slice_data->setEnabled(true);
+//    action_save_slice_data->setEnabled(true);
     action_show_gradient3D->setEnabled(true);
     action_show_gradient2D->setEnabled(true);
     action_field->setEnabled(true);
@@ -2575,7 +2578,7 @@ void MainWindow::pauseServer()
 	action_stop->setEnabled(true);
     action_save_3D_snapshot->setEnabled(true);
     action_save_profile_data->setEnabled(true);
-    action_save_slice_data->setEnabled(true);
+//    action_save_slice_data->setEnabled(true);
     action_show_gradient3D->setEnabled(true);
     action_show_gradient2D->setEnabled(true);
     action_field->setEnabled(true);
@@ -2612,7 +2615,7 @@ void MainWindow::stopServer()
     action_stop->setEnabled(false);
     action_save_3D_snapshot->setEnabled(true);
     action_save_profile_data->setEnabled(true);
-    action_save_slice_data->setEnabled(true);
+//    action_save_slice_data->setEnabled(true);
     action_show_gradient3D->setEnabled(true);
     action_show_gradient2D->setEnabled(true);
     action_field->setEnabled(true);

@@ -38,10 +38,12 @@ metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2^n_O2/(KO2^n_O2 + C_O2^n_O2)).Kme
  metabolism rate = dMdt = Cdrug.(1 - C2 + C2.KO2^n_O2/(KO2^n_O2 + C_O2^n_O2)).Kmet0   If Vmax > 0, Kmet0 is replaced by (Kmet0 + Vmax*Cdrug/(Km + Cdrug)) \n\
  This the rate of transformation of parent drug to metabolite 1, or of metabolite 1 to metabolite 2, or removal of metabolite 2"},
         {"PARENT_CT1_14", "The death probability of a drug-tagged cell at time of division."},
-        {"PARENT_CT1_15", "This box is ticked if the drug is cytotoxic and kill parameters are provided."},
-        {"PARENT_CT1_16", "Using Kd derived from the kill experiment(different for each model), then dMdt = Cdrug*(1 - C2 + C2*KO2/(KO2 + C_O2))*Kmet0, the kill probability Pkill in time dt for each model is: \n\
-1. Kd*dMdt*dt  2. Kd*Cdrug*dMdt*dt  3. Kd*dMdt^2*dt  4. Kd*Cdrug*dt  5. Kd*Cdrug^2*dt"},
-        {"PARENT_CT1_17", "This box is ticked if the drug sensitises the cells to radiation."},
+         {"PARENT_CT1_15", "The kill probability rate parameter.\n\
+  E.g. for kill model 1, kill probability rate r = Kd*dM/dt = Kd*kmet*Cdrug, and for duration t, SF = exp(-rt)"},
+         {"PARENT_CT1_16", "This box is ticked if the drug is cytotoxic and kill parameters are provided."},
+         {"PARENT_CT1_17", "Using Kd derived from the kill experiment(different for each model), then dMdt = Cdrug*(1 - C2 + C2*KO2/(KO2 + C_O2))*Kmet0, the kill probability Pkill in time dt for each model is: \n\
+ 1. Kd*dMdt*dt  2. Kd*Cdrug*dMdt*dt  3. Kd*dMdt^2*dt  4. Kd*Cdrug*dt  5. Kd*Cdrug^2*dt"},
+         {"PARENT_CT1_18", "This box is ticked if the drug sensitises the cells to radiation."},
     };
 
     PARAM_SET params[] = {

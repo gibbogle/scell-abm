@@ -92,7 +92,6 @@ if (dt_move + t_fmover > DELTA_T) then
 	dt_move = DELTA_T - t_fmover
 	done = .true.
 endif
-
 if (ncells < 500) then
 	tMnodes = 1
 else
