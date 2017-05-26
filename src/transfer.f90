@@ -792,23 +792,25 @@ cmedium = cmedium/nsum
 end subroutine
 
 !-----------------------------------------------------------------------------------------
+! This is very crude
 !-----------------------------------------------------------------------------------------
-subroutine getNecroticFraction(necrotic_fraction, totvol_cm3)
-real(REAL_KIND) :: necrotic_fraction, totvol_cm3
-real(REAL_KIND) :: dz, cellvol_cm3, dvol
-!real(REAL_KIND) :: necrotic_vol_cm3
-
-!call getNecroticVolume(necrotic_vol_cm3)
-!necrotic_fraction = necrotic_vol_cm3/vol_cm3
-dz = 2*Raverage
-cellvol_cm3 = Ncells/(1000.*Nmm3)	! Nmm3 = calibration target # of cells/mm3
-dvol = totvol_cm3-cellvol_cm3
-necrotic_fraction = dvol/totvol_cm3
-!write(*,'(a,i6,3e12.3,f6.3)') 'getNecroticFraction: ',Ncells,cellvol_cm3,totvol_cm3,dvol,necrotic_fraction
-if (necrotic_fraction < 0.005) necrotic_fraction = 0
-end subroutine
+!subroutine getNecroticFraction(necrotic_fraction, totvol_cm3)
+!real(REAL_KIND) :: necrotic_fraction, totvol_cm3
+!real(REAL_KIND) :: dz, cellvol_cm3, dvol
+!!real(REAL_KIND) :: necrotic_vol_cm3
+!
+!!call getNecroticVolume(necrotic_vol_cm3)
+!!necrotic_fraction = necrotic_vol_cm3/vol_cm3
+!dz = 2*Raverage
+!cellvol_cm3 = Ncells/(1000.*Nmm3)	! Nmm3 = calibration target # of cells/mm3
+!dvol = totvol_cm3-cellvol_cm3
+!necrotic_fraction = dvol/totvol_cm3
+!!write(*,'(a,i6,3e12.3,f6.3)') 'getNecroticFraction: ',Ncells,cellvol_cm3,totvol_cm3,dvol,necrotic_fraction
+!if (necrotic_fraction < 0.005) necrotic_fraction = 0
+!end subroutine
 
 !-----------------------------------------------------------------------------------------
+! Region 5 is the whole spheroid
 !-----------------------------------------------------------------------------------------
 subroutine getDiamVol(diam_cm,vol_cm3)
 real(REAL_KIND) :: diam_cm, vol_cm3
@@ -816,7 +818,7 @@ real(REAL_KIND) :: area_cm2, radius, cntr(3), rng(3)
 !call getBlobCentreRange(cntr,rng,radius)
 !diam_cm = 2*radius
 !vol_cm3 = (4*PI/3)*radius**3
-call getVolume(vol_cm3, area_cm2)
+call getVolume(5, vol_cm3, area_cm2)
 diam_cm = 2*sqrt(area_cm2/PI)
 end subroutine
 
@@ -844,8 +846,9 @@ integer :: TNanoxia_dead, TNaglucosia_dead, TNradiation_dead, TNdrug_dead(2),  T
            Ntagged_anoxia(MAX_CELLTYPES), Ntagged_aglucosia(MAX_CELLTYPES), Ntagged_radiation(MAX_CELLTYPES), &
            Ntagged_drug(2,MAX_CELLTYPES), &
            TNtagged_anoxia, TNtagged_aglucosia, TNtagged_radiation, TNtagged_drug(2)
-integer :: ityp
+integer :: ityp, i
 real(REAL_KIND) :: diam_um, diam_cm, vol_cm3, vol_mm3, npmm3, hour, plate_eff(MAX_CELLTYPES), Tplate_eff, necrotic_fraction
+real(REAL_KIND) :: volume_cm3(5), maxarea(5), diameter_um(5)
 real(REAL_KIND) :: cmedium(MAX_CHEMO), cbdry(MAX_CHEMO)
 real(REAL_KIND) :: hypoxic_percent, clonohypoxic_percent, growth_percent, necrotic_percent
 !    medium_oxygen, medium_glucose, medium_drug(2), &
@@ -884,8 +887,8 @@ call getClonoHypoxicCount(nclonohypoxic)
 clonohypoxic_percent = (100.*nclonohypoxic(i_hypoxia_cutoff))/TNviable
 call getGrowthCount(ngrowth)
 growth_percent = (100.*ngrowth(i_growth_cutoff))/Ncells
-call getNecroticFraction(necrotic_fraction,vol_cm3)
-necrotic_percent = 100.*necrotic_fraction
+!call getNecroticFraction(necrotic_fraction,vol_cm3)
+!necrotic_percent = 100.*necrotic_fraction
 do ityp = 1,Ncelltypes
 	if (Nlive(ityp) > 0) then
 		plate_eff(ityp) = real(Nviable(ityp))/Nlive(ityp)
@@ -908,6 +911,14 @@ call getMediumConc(cmedium, cbdry)
 !bdry_drug_1000(1) = cbdry(DRUG_A)*1000.
 !bdry_drug_1000(2) = cbdry(DRUG_B)*1000.
 
+call getVolumes(volume_cm3,maxarea)
+do i = 1,5
+	diameter_um(i) = 10000*(6*volume_cm3(i)/PI)**(1./3)
+enddo
+necrotic_fraction = volume_cm3(1)/volume_cm3(5)
+necrotic_percent = 100.*necrotic_fraction
+
+
 summaryData(1:36) = [ rint(istep), rint(Ncells), rint(TNanoxia_dead), rint(TNaglucosia_dead), rint(TNdrug_dead(1)), rint(TNdrug_dead(2)), rint(TNradiation_dead), &
     rint(TNtagged_anoxia), rint(TNtagged_aglucosia), rint(TNtagged_drug(1)), rint(TNtagged_drug(2)), rint(TNtagged_radiation), &
 	diam_um, vol_mm3, hypoxic_percent, clonohypoxic_percent, growth_percent, necrotic_percent, Tplate_eff, npmm3, &
@@ -915,8 +926,8 @@ summaryData(1:36) = [ rint(istep), rint(Ncells), rint(TNanoxia_dead), rint(TNagl
 	cbdry(OXYGEN), cbdry(GLUCOSE), cbdry(DRUG_A:DRUG_A+2), cbdry(DRUG_B:DRUG_B+2) ]
 !	medium_oxygen_1000, medium_glucose_1000, medium_drug_1000(1), medium_drug_1000(2), &
 !	bdry_oxygen_1000, bdry_glucose_1000, bdry_drug_1000(1), bdry_drug_1000(2) ]
-write(nfres,'(a,a,2a12,i8,3e12.4,22i7,28e12.4)') trim(header),' ',gui_run_version, dll_run_version, &
-	istep, hour, vol_mm3, diam_um, Ncells_type(1:2), &
+write(nfres,'(a,a,2a12,i8,7e12.4,22i7,28e12.4)') trim(header),' ',gui_run_version, dll_run_version, &
+	istep, hour, vol_mm3, diameter_um, Ncells_type(1:2), &
     Nanoxia_dead(1:2), Naglucosia_dead(1:2), Ndrug_dead(1,1:2), &
     Ndrug_dead(2,1:2), Nradiation_dead(1:2), &
     Ntagged_anoxia(1:2), Ntagged_aglucosia(1:2), Ntagged_drug(1,1:2), &
@@ -1505,7 +1516,7 @@ end subroutine
 !-----------------------------------------------------------------------------------------
 ! Estimate necrotic volume by determining the range in the three axis directions 
 !-----------------------------------------------------------------------------------------
-subroutine getNecroticVolume(vol)
+subroutine getNecroticVolume1(vol)
 real(REAL_KIND) :: vol
 real(REAL_KIND) :: rmin(3), rmax(3), rng(3), cblob(3), c(3), r, smin, smax, R3, Rn(3), Rdiv
 integer :: kcell, k, js, ix, iy, iz, ixx, iyy, izz

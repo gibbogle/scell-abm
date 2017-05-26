@@ -36,6 +36,7 @@ end function
 
 !-----------------------------------------------------------------------------------------
 ! Estimate blob radius from the volume.
+! Region 5 is the whole spheroid
 !-----------------------------------------------------------------------------------------
 function getRadius() result(R)
 real(REAL_KIND) :: R
@@ -43,7 +44,7 @@ real(REAL_KIND) :: vol_cm3, area_cm2
 !real(REAL_KIND) :: cntr(3), rng(3), diam
 
 !call getBlobCentreRange(cntr,rng, R)
-call getVolume(vol_cm3, area_cm2)
+call getVolume(5, vol_cm3, area_cm2)
 R = sqrt(area_cm2/PI)
 end function
 
@@ -52,18 +53,27 @@ end function
 ! The region occupied by the blob is divided into layers dz thick, and the cells in each
 ! layer are identified.
 !---------------------------------------------------------------------------------------
-subroutine getVolume(volume,maxarea)
+subroutine getVolume(iregion,volume,maxarea)
+integer :: iregion
 real(REAL_KIND) :: volume, maxarea
 real(REAL_KIND) :: z, zmin, zmax, r, cntr(2)
-integer :: kcell, iz, nzz, nbig, nzlmax
+integer :: kcell, iz, nzz, nbig, nzlmax, i
 type(cell_type), pointer :: cp
 
+if (iregion == 1) then
+	write(nflog,*) 'Error: getVolume: not for iregion = 1'
+	stop
+endif
 zmin = 1.0e10
 zmax = -1.0e10
 do kcell = 1,nlist
 	if (cell_list(kcell)%state == DEAD) cycle
 	cp => cell_list(kcell)
 	z = cp%centre(3,1)
+	if (iregion < 5) then
+		i = iregion - 1
+		if (cp%Cin(OXYGEN) > O2cutoff(i)) cycle
+	endif
 	zmin = min(zmin,z)
 	zmax = max(zmax,z)
 enddo
@@ -83,6 +93,10 @@ do kcell = 1,nlist
 	if (cell_list(kcell)%state == DEAD) cycle
 	cp => cell_list(kcell)
 	z = cp%centre(3,1)
+	if (iregion < 5) then
+		i = iregion - 1
+		if (cp%Cin(OXYGEN) > O2cutoff(i)) cycle
+	endif
 	iz = (z-zmin)/dz + 1
 	nzlist(iz) = nzlist(iz) + 1
 	if (nzlist(iz) > nbig) then
@@ -97,7 +111,7 @@ do iz = 1,nzz
 !	write(*,*) iz,nzlist(iz)
 	nzlmax = max(nzlmax,nzlist(iz))
 	if (nzlist(iz) > 0) then
-		call getArea(iz,area(iz),cntr)
+		call getArea(iregion,iz,area(iz),cntr)
 	else
 		area(iz) = 0
 	endif
@@ -118,13 +132,110 @@ r = sqrt(maxarea/PI)	! cm
 end subroutine
 
 !---------------------------------------------------------------------------------------
+! This is iregion = 1
+!---------------------------------------------------------------------------------------
+subroutine getNecroticVolume(volume,maxarea)
+real(REAL_KIND) :: volume, maxarea
+real(REAL_KIND) :: z, zmin, zmax, r, cntr(2)
+integer :: kcell, iz, nzz, nbig, nzlmax, n, iregion=1
+type(cell_type), pointer :: cp
+
+zmin = 1.0e10
+zmax = -1.0e10
+n = 0
+do kcell = 1,nlist
+	if (cell_list(kcell)%state == DEAD) cycle
+	cp => cell_list(kcell)
+	if (cell_list(kcell)%Cin(OXYGEN) < O2cutoff(2)) then
+		n = n+1
+		z = cp%centre(3,1)
+		cntr = cntr + cp%centre(1:2,1)
+		zmin = min(zmin,z)
+		zmax = max(zmax,z)
+	endif
+enddo
+if (n == 0) then
+	volume = 0
+	maxarea = 0
+	return
+endif
+cntr = cntr/n	! this is the approximate spheroid centre
+zmin = zmin - dz
+zmax = zmax + dz
+nzz = (zmax-zmin)/dz + 1
+r = (3*Ncells/(4*PI))**(1./3.)
+nbig = PI*r**2
+nbig = 1.5*nbig
+! We need an array to store the cells indicies
+allocate(nzlist(nzz))
+allocate(czlist(nzz,nbig))
+allocate(area(nzz))
+
+nzlist = 0
+do kcell = 1,nlist
+	if (cell_list(kcell)%state == DEAD) cycle
+	cp => cell_list(kcell)
+	if (cell_list(kcell)%Cin(OXYGEN) < O2cutoff(2)) then
+		z = cp%centre(3,1)
+		iz = (z-zmin)/dz + 1
+		nzlist(iz) = nzlist(iz) + 1
+		if (nzlist(iz) > nbig) then
+			write(*,*) 'Error: getVolume: nzlist(iz) too big: ',iz,nzlist(iz),nbig
+			stop
+		endif
+		czlist(iz,nzlist(iz)) = kcell
+	endif
+enddo
+
+nzlmax = 0
+do iz = 1,nzz
+	nzlmax = max(nzlmax,nzlist(iz))
+	if (nzlist(iz) > 0) then
+		call getArea(iregion,iz,area(iz),cntr)
+	else
+		area(iz) = 0
+	endif
+enddo
+volume = 0
+maxarea = 0
+do iz = 1,nzz
+	volume = volume + area(iz)
+	if (area(iz) > maxarea) maxarea = area(iz)
+enddo
+deallocate(nzlist)
+deallocate(czlist)
+deallocate(area)
+volume = dz*volume		! cm3
+r = sqrt(maxarea/PI)	! cm
+!write(*,'(a,i6,3e10.3,f6.1)') 'Ncells,volume,area,diam (cm,um): ',Ncells,volume,maxarea,2*r,2*r*10000
+end subroutine
+
+!---------------------------------------------------------------------------------------
+! Returns region volumes
+! region 1: necrotic core
+! region 2-4: necrotic core + low-oxygen cells
+! region 5: whole spheroid
+!---------------------------------------------------------------------------------------
+subroutine getVolumes(volume,maxarea)
+real(REAL_KIND) :: volume(5), maxarea(5)
+integer :: iregion
+
+volume = 0
+maxarea = 0
+do iregion = 2,5
+	call getVolume(iregion,volume(iregion),maxarea(iregion))
+enddo
+call getNecroticVolume(volume(1),maxarea(1))
+end subroutine
+
+!---------------------------------------------------------------------------------------
 ! nsmax = dimension of rad(:,2)
 !---------------------------------------------------------------------------------------
 subroutine getSlices(nslices,dzslice,nsmax,rad)
 integer :: nslices, nsmax
 real(REAL_KIND) :: dzslice, rad(:,:)
 real(REAL_KIND) :: z, zmin, zmax, r, cntr(2)
-integer :: kcell, iz, nzz, nbig, i, iz1, iz2
+integer :: kcell, iz, nzz, nbig, i, iz1, iz2, iregion=5
 type(cell_type), pointer :: cp
 
 zmin = 1.0e10
@@ -165,7 +276,7 @@ enddo
 
 do iz = 1,nzz
 	if (nzlist(iz) > 0) then
-		call getArea(iz,area(iz),cntr)
+		call getArea(iregion,iz,area(iz),cntr)
         r_outer(iz) = sqrt(area(iz)/PI)	! cm
         call getInnerRadius(iz,cntr,r_inner(iz))
 	else
@@ -219,12 +330,13 @@ r_in = sqrt(r2min)
 end subroutine
 
 !---------------------------------------------------------------------------------------
+! Uses arrays nzlist(:) and czlist(:,:) 
 !---------------------------------------------------------------------------------------
-subroutine getArea(iz, area, cntr)
-integer :: iz
+subroutine getArea(iregion,iz, area, cntr)
+integer :: iregion, iz
 real(REAL_KIND) :: area, cntr(2)
 real(REAL_KIND), allocatable :: x(:), y(:), xv(:), yv(:)
-real(REAL_KIND) :: ave(2), xc, yc, d2, d2max, dx(4), dy(4), dx_um
+real(REAL_KIND) :: ave(2), xc, yc, d2, d2max, dx(4), dy(4), delx, dely, r2
 real(REAL_KIND) :: delta = 0.20*dz
 integer, allocatable :: iwk(:), vertex(:)
 integer :: kcell, n, nvert, i, i1, i2, k, kmax
@@ -244,13 +356,20 @@ do i = 1,n
 	cp => cell_list(kcell)
 	x(i) = cp%centre(1,1)
 	y(i) = cp%centre(2,1)
+	if (iregion == 1) then
+		delx = x(i) - cntr(1)
+		dely = y(i) - cntr(2)
+		r2 = delx**2 + dely**2
+		x(i) = delx/r2
+		y(i) = dely/r2
+	endif
 enddo
 if (n <= 3) then
 	area = n*dz*dz
 	return
 endif
 call enveloper(x,y,n,vertex,nvert,iwk)
-!write(*,*) 'get_diameter: nvert: ',nvert
+!write(*,*) 'get_diameter: nvert: ',nvert 
 ave = 0
 do i = 1,nvert
 	xv(i) = x(vertex(i))
@@ -259,25 +378,33 @@ do i = 1,nvert
 	ave(1) = ave(1) + xv(i)
 	ave(2) = ave(2) + yv(i)
 enddo
-cntr = ave/nvert	! this is the approximate centre
-! Now adjust (xv,yv) to the site corner most remote from the centre
-dx = [-delta, delta, delta, -delta]
-dy = [-delta, -delta, delta, delta]
-do i = 1,nvert
-	d2max = 0
-	do k = 1,4
-		xc = xv(i) + dx(k)
-		yc = yv(i) + dy(k)
-		d2 = (xc - cntr(1))**2 + (yc-cntr(2))**2
-		if (d2 > d2max) then
-			d2max = d2
-			kmax = k
-		endif
+if (iregion == 1) then
+	do i = 1,nvert
+		r2 = xv(i)*xv(i) + yv(i)*yv(i)
+		xv(i) = cntr(1) + xv(i)/r2
+		yv(i) = cntr(2) + yv(i)/r2
 	enddo
-	xv(i) = xv(i) + dx(kmax)
-	yv(i) = yv(i) + dy(kmax)
-!	write(*,'(i6,2f6.1)') i,xv(i),yv(i)
-enddo
+else
+	! Now adjust (xv,yv) to the site corner most remote from the centre
+	cntr = ave/nvert	! this is the approximate centre
+	dx = [-delta, delta, delta, -delta]
+	dy = [-delta, -delta, delta, delta]
+	do i = 1,nvert
+		d2max = 0
+		do k = 1,4
+			xc = xv(i) + dx(k)
+			yc = yv(i) + dy(k)
+			d2 = (xc - cntr(1))**2 + (yc-cntr(2))**2
+			if (d2 > d2max) then
+				d2max = d2
+				kmax = k
+			endif
+		enddo
+		xv(i) = xv(i) + dx(kmax)
+		yv(i) = yv(i) + dy(kmax)
+	!	write(*,'(i6,2f6.1)') i,xv(i),yv(i)
+	enddo
+endif
 area = 0
 do i1 = 1,nvert
 	i2 = i1+1
@@ -285,10 +412,6 @@ do i1 = 1,nvert
 	area = area + xv(i1)*yv(i2) - xv(i2)*yv(i1)
 enddo
 area = -area/2
-!dx_um = DELTA_X*10000	! site size in um
-!area = area*dx_um*dx_um	! area in um^2
-!diam = 2*sqrt(area/PI)
-!write(*,'(a,i4,2f8.1)') 'area: ',iz,area,diam
 
 deallocate(xv)
 deallocate(yv)
