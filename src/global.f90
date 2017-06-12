@@ -316,7 +316,6 @@ logical :: use_TCP = .true.         ! turned off in para_main()
 logical :: use_CPORT1 = .false.
 logical :: stopped, clear_to_send
 
-character*(128) :: logfile
 character*(2048) :: logmsg
 
 type(cell_type), allocatable, target :: cell_list(:)

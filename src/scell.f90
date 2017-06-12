@@ -1750,10 +1750,9 @@ enddo
 awp_0%is_open = .false.
 awp_1%is_open = .false.
 par_zig_init = .false.
-logfile = 'scell.log'
 inquire(unit=nflog,OPENED=isopen)
 if (.not.isopen) then
-    open(nflog,file=logfile,status='replace')
+    open(nflog,file='scell.log',status='replace')
 endif
 #if defined(OPENMP) || defined(_OPENMP)
     write(logmsg,'(a)') 'Executing with OpenMP'
