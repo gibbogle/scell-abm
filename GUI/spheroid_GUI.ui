@@ -79,7 +79,7 @@ padding: 8px
            <enum>QTabWidget::West</enum>
           </property>
           <property name="currentIndex">
-           <number>6</number>
+           <number>4</number>
           </property>
           <property name="elideMode">
            <enum>Qt::ElideNone</enum>
@@ -2992,7 +2992,7 @@ padding: 8px
                </widget>
               </item>
               <item row="1" column="0">
-               <widget class="QMyLabel" name="infolabel_PARENT_CT1_17">
+               <widget class="QMyLabel" name="infolabel_PARENT_CT1_18">
                 <property name="text">
                  <string>Sensitises?</string>
                 </property>
@@ -5354,7 +5354,7 @@ padding: 8px
                </widget>
               </item>
               <item row="17" column="0">
-               <widget class="QMyLabel" name="infolabel_PARENT_CT1_18">
+               <widget class="QMyLabel" name="infolabel_PARENT_CT1_17">
                 <property name="maximumSize">
                  <size>
                   <width>130</width>
