@@ -1112,12 +1112,6 @@ call DrugChecks
 
 !dt = DELTA_T/NT_CONC
 ! the idea is to accumulate time steps until DELTA_T is reached  
-call make_perm_index(ok)
-if (.not.ok) then
-	call logger('make_perm_index error')
-	res = 4
-	return
-endif
 !if (ncells > nshow) write(*,*) 'start moving'
 !if (istep == 1) then
 !	nrepeat = 1
@@ -1184,6 +1178,13 @@ if (ngaps > 2000 .or. mod(istep,nt_nbr) == 0) then
 	endif
 endif
 
+call make_perm_index(ok)
+if (.not.ok) then
+	call logger('make_perm_index error')
+	res = 4
+	return
+endif
+
 ! Reaction-diffusion system
 if (medium_change_step .or. chemo(DRUG_A)%present) then
 	nt_diff = n_substeps
@@ -1208,6 +1209,7 @@ done = .false.
 do while (.not.done)
 	nit = nit + 1
 	call fmover(dt,done,ok)
+!	call fmover_LAS(dt,done,ok)
 	if (.not.ok) then
 		call logger('fmover error')
 		res = 1
@@ -1577,6 +1579,7 @@ subroutine make_perm_index(ok)
 logical :: ok
 integer :: np, kcell, kpar=0
 
+!write(*,*) 'make_perm_index: ',ncells
 np = 0
 do kcell = 1,nlist
 	if (cell_list(kcell)%state == DEAD) cycle
@@ -1584,6 +1587,7 @@ do kcell = 1,nlist
 	perm_index(np) = kcell
 enddo
 if (np /= ncells) then
+	write(*,*) 'Error: make_perm_index: np /= Ncells: ',np,ncells,nlist
 	write(logmsg,*) 'Error: make_perm_index: np /= Ncells: ',np,ncells,nlist
 	call logger(logmsg)
 	ok = .false.
