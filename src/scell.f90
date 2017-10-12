@@ -1208,8 +1208,8 @@ nit = 0
 done = .false.
 do while (.not.done)
 	nit = nit + 1
-	call fmover(dt,done,ok)
-!	call fmover_LAS(dt,done,ok)
+!	call fmover(dt,done,ok)
+	call fmover_LAS(dt,done,ok)
 	if (.not.ok) then
 		call logger('fmover error')
 		res = 1
