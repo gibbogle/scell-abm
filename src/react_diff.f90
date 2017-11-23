@@ -1445,14 +1445,16 @@ do ic = 1,nchemo
 		ok = .false.
 	endif
 
-	do izb = 1,NZB
-		do iyb = 1,NYB
-			do ixb = 1,NXB
-				k = (ixb-1)*NYB*NZB + (iyb-1)*NZB + izb
-				x(k) = Cave_b(ixb,iyb,izb)		! initial guess
-			enddo
-		enddo
-	enddo
+!	do izb = 1,NZB
+!		do iyb = 1,NYB
+!			do ixb = 1,NXB
+!				k = (ixb-1)*NYB*NZB + (iyb-1)*NZB + izb
+!				x(k) = Cave_b(ixb,iyb,izb)		! initial guess
+!			enddo
+!		enddo
+!	enddo
+	x = 0
+	
 	if (.not.zeroC(ichemo)) then
 	!	write(nflog,*) 'call itsol_solve_fgmr_ILU'
 		call itsol_solve_fgmr_ILU(icc, rhs, x, im_krylov, maxits, tol_b, iters, ierr)
@@ -1546,14 +1548,15 @@ do ic = 1,nfinemap
 			ok = .false.
 		endif
 
-		do iz = 1,NZ-1
-			do iy = 2,NY-1
-				do ix = 2,NX-1
-					k = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
-					x(k) = Cave(ix,iy,iz)		! initial guess
-				enddo
-			enddo
-		enddo
+!		do iz = 1,NZ-1
+!			do iy = 2,NY-1
+!				do ix = 2,NX-1
+!					k = (ix-2)*(NY-2)*(NZ-1) + (iy-2)*(NZ-1) + iz
+!					x(k) = Cave(ix,iy,iz)		! initial guess
+!				enddo
+!			enddo
+!		enddo
+		x = 0
 		
 		if (.not.zeroC(ichemo)) then
 !			write(*,*) 'call itsol_solve_fgmr_ILU'

@@ -40,7 +40,7 @@ real(REAL_KIND), parameter :: BIG = 1.0d10
 real(REAL_KIND), parameter :: um3_cm3 = 1.0e-12
 real(REAL_KIND), parameter :: small_d = 0.1e-4		! 0.1 um -> cm
 real(REAL_KIND), parameter :: CFSE_std = 0.05
-real(REAL_KIND), parameter :: Vcell_pL = 1.0e09
+real(REAL_KIND), parameter :: cm3_pL = 1.0e09
 
 integer, parameter :: ALIVE = 0
 integer, parameter :: DEAD = 1

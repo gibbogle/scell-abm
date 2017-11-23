@@ -648,6 +648,8 @@ void Field::displayField(int hr, int *res)
         xp = a*x + b;
         yp = a*y + b;
         d = 2*a*radius;
+        int status = fdata.cell_data[i].status;
+        /*
 //        sprintf(msg,"Cell: %d x,y: %f %f radius: %f xp,yp: %f %f",i,x,y,radius,xp,yp);
 //        LOG_MSG(msg);
         if (fdata.cell_data[i].status == 0) {
@@ -670,6 +672,58 @@ void Field::displayField(int hr, int *res)
             rgbcol[0] = 255;
             rgbcol[1] = 150;
             rgbcol[2] = 0;
+        }
+        */
+        if (Global::only2colours2D && Global::celltypecolours2D) {
+            if (status == 0 || status == 10 || status == 1 || status == 3) {
+                int celltype = fdata.cell_data[i].celltype;
+                QColor color = Global::celltype_colour[celltype];
+                rgbcol[0] = color.red();
+                rgbcol[1] = color.green();
+                rgbcol[2] = color.blue();
+            } else if (status == 2 || status == 4) {    // tagged to die of starvation
+                rgbcol[0] = 0;
+                rgbcol[1] = 0;
+                rgbcol[2] = 255;
+            } else if (status > 10) {                   // tagged to die of treatment
+                rgbcol[0] = 255;
+                rgbcol[1] = 150;
+                rgbcol[2] = 0;
+            }
+        } else {
+            if (status == 0  || status == 10) {         // growing (This is unnecessarily complicated, since cell_data[].celltype is available)
+                if (!Global::celltypecolours2D) {   // use original colour (light green)
+                    rgbcol[0] = 0;
+                    rgbcol[1] = 255;
+                    rgbcol[2] = 0;
+                } else if (status == 0) {           // use colours from 3D screen
+                    QColor color = Global::celltype_colour[1];
+                    rgbcol[0] = color.red();
+                    rgbcol[1] = color.green();
+                    rgbcol[2] = color.blue();
+                } else {
+                    QColor color = Global::celltype_colour[2];
+                    rgbcol[0] = color.red();
+                    rgbcol[1] = color.green();
+                    rgbcol[2] = color.blue();
+                }
+            } else if (status == 1) {                   // radiobiological hypoxia
+                rgbcol[0] = 50;
+                rgbcol[1] = 100;
+                rgbcol[2] = 32;
+            } else if (status == 2 || status == 4) {    // tagged to die of starvation
+                rgbcol[0] = 0;
+                rgbcol[1] = 0;
+                rgbcol[2] = 255;
+            } else if (status == 3) {                   // mitosis
+                rgbcol[0] = 255;
+                rgbcol[1] = 0;
+                rgbcol[2] = 255;
+            } else if (status > 10) {                   // tagged to die of treatment
+                rgbcol[0] = 255;
+                rgbcol[1] = 150;
+                rgbcol[2] = 0;
+            }
         }
         brush.setColor(QColor(rgbcol[0],rgbcol[1],rgbcol[2]));
         scene->addEllipse(xp,yp,d,d,Qt::NoPen, brush);

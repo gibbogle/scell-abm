@@ -110,7 +110,7 @@ public:
     void recorder();
     void stop();
     void set_celltype_colour(COLOUR_TYPE *, QString str);
-    void setOpacity(int position);
+    void setOpacity(int celltype, int position);
 
     QList<CELL_POS > TCpos_list;
     QList<ACTOR_TYPE> T_Actor_list;

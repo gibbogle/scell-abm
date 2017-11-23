@@ -42,7 +42,7 @@ padding: 8px
     <item row="0" column="0">
      <widget class="QStackedWidget" name="stackedWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="page_input">
        <layout class="QVBoxLayout" name="verticalLayout">
@@ -79,7 +79,7 @@ padding: 8px
            <enum>QTabWidget::West</enum>
           </property>
           <property name="currentIndex">
-           <number>4</number>
+           <number>6</number>
           </property>
           <property name="elideMode">
            <enum>Qt::ElideNone</enum>
@@ -6229,7 +6229,7 @@ padding: 8px
              </rect>
             </property>
             <property name="text">
-             <string>20</string>
+             <string>50</string>
             </property>
            </widget>
            <widget class="QLabel" name="alabel_nbins">
@@ -8539,41 +8539,6 @@ padding: 8px
          <string/>
         </property>
        </widget>
-       <widget class="QSlider" name="verticalSliderTransparency">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <property name="geometry">
-         <rect>
-          <x>890</x>
-          <y>30</y>
-          <width>19</width>
-          <height>221</height>
-         </rect>
-        </property>
-        <property name="maximum">
-         <number>100</number>
-        </property>
-        <property name="sliderPosition">
-         <number>0</number>
-        </property>
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-       </widget>
-       <widget class="QLabel" name="alabel_Transparency">
-        <property name="geometry">
-         <rect>
-          <x>880</x>
-          <y>260</y>
-          <width>71</width>
-          <height>16</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>Transparency</string>
-        </property>
-       </widget>
        <widget class="QGroupBox" name="groupBox_display">
         <property name="geometry">
          <rect>
@@ -8697,14 +8662,61 @@ padding: 8px
          </property>
         </widget>
        </widget>
-       <widget class="QWidget" name="widget_dialog" native="true">
+       <widget class="QLabel" name="alabel_Transparency">
         <property name="geometry">
          <rect>
-          <x>860</x>
-          <y>330</y>
-          <width>120</width>
-          <height>80</height>
+          <x>1020</x>
+          <y>390</y>
+          <width>71</width>
+          <height>16</height>
          </rect>
+        </property>
+        <property name="text">
+         <string>Transparency</string>
+        </property>
+       </widget>
+       <widget class="QSlider" name="verticalSliderTransparency1">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="geometry">
+         <rect>
+          <x>1000</x>
+          <y>160</y>
+          <width>19</width>
+          <height>221</height>
+         </rect>
+        </property>
+        <property name="maximum">
+         <number>100</number>
+        </property>
+        <property name="sliderPosition">
+         <number>0</number>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+       </widget>
+       <widget class="QSlider" name="verticalSliderTransparency2">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="geometry">
+         <rect>
+          <x>1080</x>
+          <y>160</y>
+          <width>19</width>
+          <height>221</height>
+         </rect>
+        </property>
+        <property name="maximum">
+         <number>100</number>
+        </property>
+        <property name="sliderPosition">
+         <number>0</number>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
         </property>
        </widget>
       </widget>
@@ -8910,14 +8922,95 @@ padding: 8px
          <bool>true</bool>
         </property>
        </widget>
+       <widget class="QLabel" name="alabel_2Dcolours">
+        <property name="geometry">
+         <rect>
+          <x>710</x>
+          <y>250</y>
+          <width>201</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>(Colours are selected on the 3D screen)</string>
+        </property>
+       </widget>
+       <widget class="QCheckBox" name="checkBox_only2colours2D">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="geometry">
+         <rect>
+          <x>710</x>
+          <y>290</y>
+          <width>171</width>
+          <height>18</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Display only cell-type colours?</string>
+        </property>
+       </widget>
+       <widget class="QCheckBox" name="checkBox_celltypecolours2D">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="geometry">
+         <rect>
+          <x>710</x>
+          <y>220</y>
+          <width>181</width>
+          <height>18</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Different colours for cell types?</string>
+        </property>
+       </widget>
       </widget>
       <widget class="QWidget" name="page_FACS">
+       <widget class="QLabel" name="alabel__FACS">
+        <property name="geometry">
+         <rect>
+          <x>280</x>
+          <y>-10</y>
+          <width>141</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>20</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>FACS</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="alabel__Histo">
+        <property name="geometry">
+         <rect>
+          <x>1060</x>
+          <y>-10</y>
+          <width>141</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>20</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>Histogram</string>
+        </property>
+       </widget>
        <widget class="QMyGroupBox" name="groupBox_FACS">
         <property name="geometry">
          <rect>
-          <x>0</x>
+          <x>10</x>
           <y>30</y>
-          <width>771</width>
+          <width>791</width>
           <height>621</height>
          </rect>
         </property>
@@ -8945,7 +9038,7 @@ padding: 8px
           <rect>
            <x>640</x>
            <y>50</y>
-           <width>121</width>
+           <width>141</width>
            <height>101</height>
           </rect>
          </property>
@@ -8957,8 +9050,8 @@ padding: 8px
          <property name="geometry">
           <rect>
            <x>640</x>
-           <y>300</y>
-           <width>121</width>
+           <y>350</y>
+           <width>141</width>
            <height>101</height>
           </rect>
          </property>
@@ -8983,7 +9076,7 @@ padding: 8px
          <property name="geometry">
           <rect>
            <x>650</x>
-           <y>260</y>
+           <y>310</y>
            <width>71</width>
            <height>18</height>
           </rect>
@@ -9009,7 +9102,7 @@ padding: 8px
          <property name="geometry">
           <rect>
            <x>680</x>
-           <y>280</y>
+           <y>330</y>
            <width>41</width>
            <height>16</height>
           </rect>
@@ -9019,30 +9112,12 @@ padding: 8px
          </property>
         </widget>
        </widget>
-       <widget class="QLabel" name="alabel__FACS">
-        <property name="geometry">
-         <rect>
-          <x>280</x>
-          <y>-10</y>
-          <width>141</width>
-          <height>41</height>
-         </rect>
-        </property>
-        <property name="font">
-         <font>
-          <pointsize>20</pointsize>
-         </font>
-        </property>
-        <property name="text">
-         <string>FACS</string>
-        </property>
-       </widget>
        <widget class="QMyGroupBox" name="groupBox_Histo">
         <property name="geometry">
          <rect>
-          <x>780</x>
+          <x>800</x>
           <y>30</y>
-          <width>761</width>
+          <width>781</width>
           <height>621</height>
          </rect>
         </property>
@@ -9073,7 +9148,7 @@ padding: 8px
           <rect>
            <x>640</x>
            <y>90</y>
-           <width>121</width>
+           <width>141</width>
            <height>101</height>
           </rect>
          </property>
@@ -9105,9 +9180,6 @@ padding: 8px
           <property name="text">
            <string>Cell type 1</string>
           </property>
-          <attribute name="buttonGroup">
-           <string>buttonGroup_celltype</string>
-          </attribute>
          </widget>
          <widget class="QRadioButton" name="radioButton_celltype_2">
           <property name="geometry">
@@ -9121,9 +9193,6 @@ padding: 8px
           <property name="text">
            <string>Cell type 2</string>
           </property>
-          <attribute name="buttonGroup">
-           <string>buttonGroup_celltype</string>
-          </attribute>
          </widget>
          <widget class="QRadioButton" name="radioButton_celltype_3">
           <property name="geometry">
@@ -9140,9 +9209,6 @@ padding: 8px
           <property name="checked">
            <bool>true</bool>
           </property>
-          <attribute name="buttonGroup">
-           <string>buttonGroup_celltype</string>
-          </attribute>
          </widget>
         </widget>
         <widget class="QwtPlot" name="qwtPlot_HistoLine">
@@ -9188,9 +9254,6 @@ padding: 8px
           <property name="checked">
            <bool>true</bool>
           </property>
-          <attribute name="buttonGroup">
-           <string>buttonGroup_histotype</string>
-          </attribute>
          </widget>
          <widget class="QRadioButton" name="radioButton_histotype_2">
           <property name="geometry">
@@ -9204,9 +9267,6 @@ padding: 8px
           <property name="text">
            <string>Line plot</string>
           </property>
-          <attribute name="buttonGroup">
-           <string>buttonGroup_histotype</string>
-          </attribute>
          </widget>
         </widget>
         <widget class="QCheckBox" name="checkBox_histo_logscale">
@@ -9226,22 +9286,30 @@ padding: 8px
          </property>
         </widget>
        </widget>
-       <widget class="QLabel" name="alabel__Histo">
+       <widget class="QPushButton" name="pushButton_update_FACS_Histo">
         <property name="geometry">
          <rect>
-          <x>1060</x>
-          <y>-10</y>
-          <width>141</width>
-          <height>41</height>
+          <x>620</x>
+          <y>0</y>
+          <width>75</width>
+          <height>23</height>
          </rect>
         </property>
-        <property name="font">
-         <font>
-          <pointsize>20</pointsize>
-         </font>
+        <property name="text">
+         <string>Refresh</string>
+        </property>
+       </widget>
+       <widget class="QCheckBox" name="checkBox_volume_scaling">
+        <property name="geometry">
+         <rect>
+          <x>730</x>
+          <y>0</y>
+          <width>111</width>
+          <height>21</height>
+         </rect>
         </property>
         <property name="text">
-         <string>Histogram</string>
+         <string>Use C*V for drugs</string>
         </property>
        </widget>
       </widget>
@@ -9398,7 +9466,7 @@ padding: 8px
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="icons.qrc">
+    <iconset resource="../../vspheroid-abm/GUI/icons.qrc">
      <normaloff>:/icons/001_29.png</normaloff>:/icons/001_29.png</iconset>
    </property>
    <property name="text">
@@ -9413,7 +9481,7 @@ padding: 8px
   </action>
   <action name="action_run">
    <property name="icon">
-    <iconset resource="icons.qrc">
+    <iconset resource="../../vspheroid-abm/GUI/icons.qrc">
      <normaloff>:/icons/001_59.png</normaloff>:/icons/001_59.png</iconset>
    </property>
    <property name="text">
@@ -9425,7 +9493,7 @@ padding: 8px
   </action>
   <action name="action_inputs">
    <property name="icon">
-    <iconset resource="icons.qrc">
+    <iconset resource="../../vspheroid-abm/GUI/icons.qrc">
      <normaloff>:/icons/001_45.png</normaloff>:/icons/001_45.png</iconset>
    </property>
    <property name="text">
@@ -9437,7 +9505,7 @@ padding: 8px
   </action>
   <action name="action_outputs">
    <property name="icon">
-    <iconset resource="icons.qrc">
+    <iconset resource="../../vspheroid-abm/GUI/icons.qrc">
      <normaloff>:/icons/Display2.png</normaloff>:/icons/Display2.png</iconset>
    </property>
    <property name="text">
@@ -9452,7 +9520,7 @@ padding: 8px
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="icons.qrc">
+    <iconset resource="../../vspheroid-abm/GUI/icons.qrc">
      <normaloff>:/icons/cell2.png</normaloff>:/icons/cell2.png</iconset>
    </property>
    <property name="text">
@@ -9464,7 +9532,7 @@ padding: 8px
   </action>
   <action name="action_pause">
    <property name="icon">
-    <iconset resource="icons.qrc">
+    <iconset resource="../../vspheroid-abm/GUI/icons.qrc">
      <normaloff>:/icons/001_07.png</normaloff>:/icons/001_07.png</iconset>
    </property>
    <property name="text">
@@ -9549,7 +9617,7 @@ padding: 8px
   </action>
   <action name="action_field">
    <property name="icon">
-    <iconset resource="icons.qrc">
+    <iconset resource="../../vspheroid-abm/GUI/icons.qrc">
      <normaloff>:/icons/color.jpg</normaloff>:/icons/color.jpg</iconset>
    </property>
    <property name="text">
@@ -9566,7 +9634,7 @@ padding: 8px
   </action>
   <action name="action_FACS">
    <property name="icon">
-    <iconset resource="icons.qrc">
+    <iconset resource="../../vspheroid-abm/GUI/icons.qrc">
      <normaloff>:/icons/FACS_234.png</normaloff>:/icons/FACS_234.png</iconset>
    </property>
    <property name="text">
@@ -9652,18 +9720,14 @@ padding: 8px
   <tabstop>spin_SEED1</tabstop>
   <tabstop>spin_SEED2</tabstop>
  </tabstops>
- <resources>
-  <include location="icons.qrc"/>
- </resources>
+ <resources/>
  <connections/>
  <buttongroups>
   <buttongroup name="buttonGroup_drugtype"/>
   <buttongroup name="buttonGroup_drugcelltype"/>
   <buttongroup name="buttonGroup_farfield"/>
-  <buttongroup name="buttonGroup_histotype"/>
   <buttongroup name="buttonGroup_hypoxia"/>
   <buttongroup name="buttonGroup_plane"/>
-  <buttongroup name="buttonGroup_celltype"/>
   <buttongroup name="buttonGroup_drug"/>
  </buttongroups>
 </ui>

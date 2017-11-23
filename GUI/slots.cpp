@@ -158,8 +158,9 @@ void MainWindow::on_comboBox_CELLCOLOUR_1_currentIndexChanged(int index)
 {
     QColor qcolor;
     qcolor = comboColour[index];
-//    vtk->celltype_colour[1] = qcolor;
-//    vtk->renderCells();
+    Global::celltype_colour[1] = qcolor;    // bad to duplicate this!
+    vtk->celltype_colour[1] = qcolor;
+    vtk->renderCells();
     sprintf(msg,"changed celltype_colour[1]: index: %d r,g,b: %d %d %d",index,qcolor.red(),qcolor.green(),qcolor.blue());
     LOG_MSG(msg);
 }
@@ -168,8 +169,11 @@ void MainWindow::on_comboBox_CELLCOLOUR_1_currentIndexChanged(int index)
 //-----------------------------------------------------------------------------------------
 void MainWindow::on_comboBox_CELLCOLOUR_2_currentIndexChanged(int index)
 {
-//    vtk->celltype_colour[2] = comboColour[index];
-//    vtk->renderCells();
+    QColor qcolor;
+    qcolor = comboColour[index];
+    Global::celltype_colour[2] = qcolor;    // bad to duplicate this!
+    vtk->celltype_colour[2] = qcolor;
+    vtk->renderCells();
 }
 
 //------------------------------------------------------------------------------------------------------
@@ -326,10 +330,16 @@ void MainWindow::onSelectFieldConstituent()
     }
 }
 
-void MainWindow::on_verticalSliderTransparency_sliderMoved(int position)
+void MainWindow::on_verticalSliderTransparency1_sliderMoved(int position)
 {
-//    vtk->setOpacity(position);
+    vtk->setOpacity(1,position);
 }
+
+void MainWindow::on_verticalSliderTransparency2_sliderMoved(int position)
+{
+    vtk->setOpacity(2,position);
+}
+
 
 //--------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------
@@ -401,4 +411,49 @@ void MainWindow:: on_cbox_SAVE_FACS_DATA_toggled(bool checked)
     text_SAVE_FACS_DATA_FILE_NAME->setEnabled(checked);
     line_SAVE_FACS_DATA_INTERVAL->setEnabled(checked);
     line_SAVE_FACS_DATA_NUMBER->setEnabled(checked);
+}
+
+//--------------------------------------------------------------------------------------------------------
+// Note: with field->displayField, clicking the checkbox can cause a crash.  Not sure why.
+//--------------------------------------------------------------------------------------------------------
+void MainWindow::on_checkBox_celltypecolours2D_toggled(bool checked)
+{
+    int res;
+    Global::celltypecolours2D = checked;
+//    field->slice_changed = true;
+//    if (started) field->displayField(hour,&res);
+    checkBox_only2colours2D->setEnabled(checked);
+}
+
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
+void MainWindow::on_checkBox_only2colours2D_toggled(bool checked)
+{
+    int res;
+    Global::only2colours2D = checked;
+//    field->slice_changed = true;
+//    if (started) field->displayField(hour,&res);
+}
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
+void MainWindow::on_pushButton_update_FACS_Histo_clicked()
+{
+    if (exthread->paused || exthread->stopped) {
+        exthread->getFACS();
+        emit facs_update();
+        emit histo_update();
+    }
+}
+
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
+void MainWindow::on_checkBox_volume_scaling_toggled(bool checked)
+{
+    if (checked) {
+        Global::volume_scaling = 1;
+        LOG_MSG("volume_scaling: on");
+    } else {
+        Global::volume_scaling = 0;
+        LOG_MSG("volume_scaling: off");
+    }
 }

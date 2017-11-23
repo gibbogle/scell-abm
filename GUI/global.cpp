@@ -24,6 +24,8 @@ namespace Global
     double *FACS_data=NULL;
     int nFACS_cells=0;
     int nFACS_dim=0;
+    double FACS_vmin[MAX_VARS];
+    double FACS_vmax[MAX_VARS];
 
     double *histo_data=NULL;
     double *histo_data_log=NULL;
@@ -57,20 +59,13 @@ namespace Global
     double oxy_v0;
     double oxy_dv;
 
-//    double distData[4000];
-//    bool dist_used[20];
     int dist_nv;
     DIST_SET distParams[20];
 
-//    int cell_list[N_CELLINFO*MAX_CELLS];
     int ncell_list;
     CELL_DATA cell_list[MAX_CELLS];
     double blobcentre[3];
     double droppedcentre[3];
-
-//    double *profile_x[20];
-//    double *profile_y[20];
-//    int profile_n[20];
 
     bool showingVTK;
     bool recordingVTK;
@@ -79,5 +74,11 @@ namespace Global
     bool showingField;
     bool recordingField;
     bool dropped;
+
+    bool celltypecolours2D;
+    bool only2colours2D;
+    QColor celltype_colour[3];
+
+    int volume_scaling;
 
 } // namespace Global

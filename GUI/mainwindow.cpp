@@ -530,6 +530,7 @@ void MainWindow:: initFACSPlot()
     connect((QObject *)groupBox_FACS,SIGNAL(groupBoxClicked(QString)),this,SLOT(processGroupBoxClick(QString)));
 }
 
+/*
 //--------------------------------------------------------------------------------------------------------
 // Possible variables to plot are Global::vars_used[]
 // Use this to trigger FACS plot.
@@ -727,6 +728,231 @@ void MainWindow::showFACS()
         actionStop_recording_FACS->setEnabled(false);
     }
 }
+*/
+
+//--------------------------------------------------------------------------------------------------------
+// Possible variables to plot are Global::vars_used[]
+// Use this to trigger FACS plot.
+//--------------------------------------------------------------------------------------------------------
+void MainWindow::showFACS()
+{
+    double xmin, xmax, ymin, ymax, x, y, xscale, yscale;
+    int i, ivar, kvar_x, kvar_y, ichemo;
+    bool x_logscale, y_logscale;
+    QString xlabel, ylabel;
+    QRadioButton *rb;
+
+//    if (showingFACS) LOG_MSG("showingFACS");
+//    if (recordingFACS) LOG_MSG("recordingFACS");
+    qpFACS = (QwtPlot *)qFindChild<QObject *>(this, "qwtPlot_FACS");
+    qpFACS->size();
+    qpFACS->clear();
+    qpFACS->setTitle("FACS");
+//    QwtSymbol symbol = QwtSymbol( QwtSymbol::Diamond, Qt::blue, Qt::NoPen, QSize( 3,3 ) );
+    QwtSymbol symbol = QwtSymbol( QwtSymbol::Rect, Qt::blue, Qt::NoPen, QSize( 2,2 ) );
+
+    // Determine which button is checked:
+    for (ivar=0; ivar<Global::nvars_used; ivar++) {
+        rb = FACS_x_vars_rb_list[ivar];
+        if (rb->isChecked()) {
+            ichemo = Global::GUI_to_DLL_index[ivar];
+            break;
+        }
+    }
+    kvar_x = ivar;
+    switch(ichemo) {
+    case CFSE:
+        xscale = 1000;
+        xlabel = "CFSE";
+        xmin = 0.1;
+        xmax = 1500;
+        break;
+    case OXYGEN:
+        xscale = 1;
+        xlabel = "Oxygen";
+        xmin = 1.0e-4;
+        xmax = 1.0;
+        break;
+    case GLUCOSE:
+        xscale = 1;
+        xlabel = "Glucose";
+        xmin = 1.0e-3;
+        xmax = 10.0;
+        break;
+    case TRACER:
+        break;
+    case DRUG_A_PARENT:
+        xscale = 1;
+        xlabel = "Drug A";
+        xmax = Global::FACS_vmax[DRUG_A];
+        xmin = MIN(1.0e-5,xmax/2);
+        break;
+    case DRUG_A_METAB_1:
+        xscale = 1;
+        xlabel = "Drug A metab 1";
+        xmax = Global::FACS_vmax[DRUG_A_METAB_1];
+        xmin = MIN(1.0e-5,xmax/2);
+        break;
+    case DRUG_A_METAB_2:
+        xscale = 1;
+        xlabel = "Drug A metab 2";
+        xmax = Global::FACS_vmax[DRUG_A_METAB_2];
+        xmin = MIN(1.0e-5,xmax/2);
+        break;
+    case DRUG_B_PARENT:
+        break;
+    case DRUG_B_METAB_1:
+        break;
+    case DRUG_B_METAB_2:
+        break;
+    case GROWTH_RATE:
+        xscale = 1;
+        xlabel = "Growth rate";
+        xmin = 1.0e-7;
+        xmax = 1.0e-5;
+        break;
+    case CELL_VOLUME:
+        xscale = 1;
+        xlabel = "Cell volume";
+        xmin = 0;
+        xmax = 2;
+        break;
+    case O2_BY_VOL:
+        xscale = 1;
+        xlabel = "O2 x volume";
+        xmin = 0;
+        xmax = 2;
+        break;
+    }
+    sprintf(msg,"ichemo: %d vmin,vmax: %e %e",ichemo,Global::FACS_vmin[ichemo],Global::FACS_vmax[ichemo]);
+    LOG_MSG(msg);
+
+    for (ivar=0; ivar<Global::nvars_used; ivar++) {
+        rb = FACS_y_vars_rb_list[ivar];
+        if (rb->isChecked()) {
+            ichemo = Global::GUI_to_DLL_index[ivar];
+            break;
+        }
+    }
+    kvar_y = ivar;
+    switch(ichemo) {
+    case CFSE:
+        yscale = 1000;
+        ylabel = "CFSE";
+        ymin = 0.1;
+        ymax = 1500;
+        break;
+    case OXYGEN:
+        yscale = 1;
+        ylabel = "Oxygen";
+        ymin = 1.0e-4;
+        ymax = 1.0;
+        break;
+    case GLUCOSE:
+        yscale = 1;
+        ylabel = "Glucose";
+        ymin = 1.0e-3;
+        ymax = 10.0;
+        break;
+    case TRACER:
+        break;
+    case DRUG_A_PARENT:
+        yscale = 1;
+        ylabel = "Drug A";
+        ymax = Global::FACS_vmax[DRUG_A];
+        ymin = MIN(1.0e-5,ymax/2);
+        break;
+    case DRUG_A_METAB_1:
+        yscale = 1;
+        ylabel = "Drug A metab 1";
+        ymax = Global::FACS_vmax[DRUG_A_METAB_1];
+        ymin = MIN(1.0e-5,ymax/2);
+        break;
+    case DRUG_A_METAB_2:
+        yscale = 1;
+        ylabel = "Drug A metab 2";
+        ymax = Global::FACS_vmax[DRUG_A_METAB_2];
+        ymin = MIN(1.0e-5,ymax/2);
+        break;
+    case DRUG_B_PARENT:
+        break;
+    case DRUG_B_METAB_1:
+        break;
+    case DRUG_B_METAB_2:
+        break;
+    case GROWTH_RATE:
+        yscale = 1;
+        ylabel = "Growth rate";
+        ymin = 1.0e-7;
+        ymax = 1.0e-5;
+        break;
+    case CELL_VOLUME:
+        yscale = 1;
+        ylabel = "Cell volume";
+        ymin = 0;
+        ymax = 2;
+        break;
+    case O2_BY_VOL:
+        yscale = 1;
+        ylabel = "O2 x volume";
+        ymin = 0;
+        ymax = 2;
+        break;
+    }
+
+    x_logscale = checkBox_FACS_log_x->isChecked();
+    y_logscale = checkBox_FACS_log_y->isChecked();
+//    xmin = 0.1;
+//    xmax = 1500;
+    double cfse_min = 1.0e20;
+    for (i=0; i<Global::nFACS_cells; i++) {
+        x = Global::FACS_data[Global::nvars_used*i+kvar_x];
+        cfse_min = MIN(x,cfse_min);
+        y = Global::FACS_data[Global::nvars_used*i+kvar_y];
+        x = xscale*x;
+        y = yscale*y;
+        y = max(y,1.01*ymin);
+//        ymax = max(y,ymax);
+        if (x >= xmin) {
+            QwtPlotMarker* m = new QwtPlotMarker();
+            m->setSymbol( symbol );
+            m->setValue( QPointF( x,y ) );
+            m->attach( qpFACS );
+        }
+    }
+    qpFACS->setAxisScale(QwtPlot::yLeft, ymin, ymax, 0);
+    qpFACS->setAxisTitle(QwtPlot::yLeft, ylabel);
+    if (y_logscale) {
+        qpFACS->setAxisScaleEngine(QwtPlot::yLeft, new QwtLog10ScaleEngine);
+    } else {
+        qpFACS->setAxisScaleEngine(QwtPlot::yLeft, new QwtLinearScaleEngine);
+    }
+    qpFACS->setAxisMaxMinor(QwtPlot::yLeft, 10);
+    qpFACS->setAxisMaxMajor(QwtPlot::yLeft, 5);
+
+    qpFACS->setAxisScale(QwtPlot::xBottom, xmin, xmax, 0);
+    qpFACS->setAxisTitle(QwtPlot::xBottom, xlabel);
+    if (x_logscale) {
+        qpFACS->setAxisScaleEngine(QwtPlot::xBottom, new QwtLog10ScaleEngine);
+    } else {
+        qpFACS->setAxisScaleEngine(QwtPlot::xBottom, new QwtLinearScaleEngine);
+    }
+    qpFACS->setAxisMaxMinor(QwtPlot::xBottom, 10);
+    qpFACS->setAxisMaxMajor(QwtPlot::xBottom, 5);
+
+    qpFACS->replot();
+//    sprintf(msg,"x range: %f %f  y range: %f %f",xmin,xmax,ymin,ymax);
+//    LOG_MSG(msg);
+//    QSize size = qpFACS->size();
+//    sprintf(msg,"qpFACS size: %d %d",size.width(),size.height());
+//    LOG_MSG(msg);
+    if (videoFACS->record) {
+        videoFACS->recorder();
+    } else if (actionStop_recording_FACS->isEnabled()) {
+        actionStart_recording_FACS->setEnabled(true);
+        actionStop_recording_FACS->setEnabled(false);
+    }
+}
 
 //--------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------
@@ -738,7 +964,7 @@ void MainWindow::test_histo()
     for (int i=0; i<numValues; i++) {
         values[i] = rand() %100;
     }
-    makeHistoPlot(numValues,xmin,width,values);
+    makeHistoPlot(1,numValues,xmin,width,values);
 }
 
 //--------------------------------------------------------------------------------------------------------
@@ -756,6 +982,7 @@ void MainWindow:: initHistoPlot()
     connect((QObject *)groupBox_Histo,SIGNAL(groupBoxClicked(QString)),this,SLOT(processGroupBoxClick(QString)));
 }
 
+/*
 //--------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------
 void MainWindow::makeHistoPlot(int numValues, double xmin, double width,  QwtArray<double> values)
@@ -822,7 +1049,123 @@ void MainWindow::makeHistoPlot(int numValues, double xmin, double width,  QwtArr
     plot->replot();
 //    plot->resize(600,400);
     plot->show();
+}
+*/
 
+//--------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
+void MainWindow::makeHistoPlot(int ivar, int numValues, double xmin, double width,  QwtArray<double> values)
+{
+    QwtPlot *plot;
+    double pos;
+    QString mode;
+    bool savedata;
+
+    QString xlabel = Global::var_string[ivar];
+    bool use_HistoBar = radioButton_histotype_1->isChecked();
+    bool log_scale = checkBox_histo_logscale->isChecked();
+    savedata = log_scale && (ivar == DRUG_A_METAB_1);
+    if (savedata) {
+        sprintf(msg,"makeHistoPlot: hour: %f", hour);
+        LOG_MSG(msg);
+        if (use_HistoBar) {
+            mode = "Histogram: " + xlabel;
+        } else {
+            mode = "Line: " + xlabel;
+        }
+        LOG_QMSG(mode);
+    }
+    if (use_HistoBar) {
+        plot = qpHistoBar;
+        qpHistoLine->hide();
+    } else {
+        plot = qpHistoLine;
+        qpHistoBar->hide();
+    }
+    plot->clear();
+    plot->setCanvasBackground(QColor(Qt::white));
+    plot->setTitle("Histogram");
+
+    QwtPlotGrid *grid = new QwtPlotGrid;
+    grid->enableXMin(true);
+    grid->enableYMin(true);
+    grid->setMajPen(QPen(Qt::black, 0, Qt::DotLine));
+    grid->setMinPen(QPen(Qt::gray, 0 , Qt::DotLine));
+    grid->attach(plot);
+
+    double x0 = xmin - 3;
+    double x1 = x0 + 6;
+    if (use_HistoBar) {
+        if (histogram) {
+            histogram->detach();
+        } else {
+            histogram = new HistogramItem();
+        }
+        histogram->setColor(Qt::darkCyan);
+
+        QwtArray<QwtDoubleInterval> intervals(numValues);
+
+        pos = xmin;
+        for ( int i = 0; i < numValues; i++ )
+        {
+            intervals[i] = QwtDoubleInterval(pos, pos + width);
+            if (savedata) {
+                if (i == 0) {
+                    sprintf(msg,"%f %f",x0,0);
+                    LOG_MSG(msg);
+                    sprintf(msg,"%f %f",xmin-width/2,0);
+                    LOG_MSG(msg);
+                }
+                sprintf(msg,"%f %f",pos+width/2,values[i]);
+                LOG_MSG(msg);
+                if (i == numValues-1) {
+                    sprintf(msg,"%f %f",pos+3*width/2,0);
+                    LOG_MSG(msg);
+                    sprintf(msg,"%f %f",x1,0);
+                    LOG_MSG(msg);
+                }
+            }
+            pos += width;
+        }
+
+        histogram->setData(QwtIntervalData(intervals, values));
+        histogram->attach(plot);
+    } else {
+        double x[100], y[100];
+        for ( int i = 0; i < numValues; i++ ) {
+            x[i] = xmin + (i + 0.5)*width;
+            y[i] = values[i];
+            if (savedata) {
+                if (i == 0) {
+                    sprintf(msg,"%f %f",x0,0);
+                    LOG_MSG(msg);
+                    sprintf(msg,"%f %f",xmin-width/2,0);
+                    LOG_MSG(msg);
+                }
+                sprintf(msg,"%f %f",x[i],y[i]);
+                LOG_MSG(msg);
+                if (i == numValues-1) {
+                    sprintf(msg,"%f %f",x[i]+width/2,0);
+                    LOG_MSG(msg);
+                    sprintf(msg,"%f %f",x1,0);
+                    LOG_MSG(msg);
+                }
+            }
+        }
+        pos = x[numValues-1] + width/2;
+        QwtPlotCurve *curve = new QwtPlotCurve("");
+        QPen *pen = new QPen();
+        pen->setColor(Qt::black);
+        curve->attach(plot);
+        curve->setPen(*pen);
+        curve->setData(x, y, numValues);
+    }
+
+    plot->setAxisScale(QwtPlot::yLeft, 0.0, 100.0);
+    plot->setAxisScale(QwtPlot::xBottom, xmin, pos);
+    plot->replot();
+//    plot->resize(600,400);
+    plot->show();
 }
 
 //--------------------------------------------------------------------------------------------------------
@@ -896,7 +1239,7 @@ void MainWindow:: showHisto()
         xmin = Global::histo_vmin[ivar];
         width = (Global::histo_vmax[ivar] - Global::histo_vmin[ivar])/numValues;
     }
-    makeHistoPlot(numValues,xmin,width,values);
+    makeHistoPlot(ivar,numValues,xmin,width,values);
 }
 
 //-------------------------------------------------------------
@@ -3493,10 +3836,10 @@ void MainWindow::setupCellColours()
 //    comboBox_CELLCOLOUR_2->addItem("blue");
 //    comboBox_CELLCOLOUR_2->addItem("purple");
 //    comboBox_CELLCOLOUR_2->addItem("brown");
-    int k1 = 0;
+    int k1 = 3;
     comboBox_CELLCOLOUR_1->setCurrentIndex(k1);
     vtk->celltype_colour[1] = comboColour[k1];
-    int k2 = 1;
+    int k2 = 0;
     comboBox_CELLCOLOUR_2->setCurrentIndex(k2);
     vtk->celltype_colour[2] = comboColour[k2];
 }

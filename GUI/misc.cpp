@@ -276,6 +276,7 @@ void ExecThread::run()
         }
     }
     LOG_MSG("ExecThread::run: stopped or completed");
+    stopped = true;
     snapshot();
     sleep(100);
 	LOG_MSG("ExecThread::run: call terminate_run");
@@ -331,15 +332,13 @@ void ExecThread::saveGradient2D(int i)
 //-----------------------------------------------------------------------------------------
 void ExecThread::getFACS()
 {
-//    LOG_MSG("getFACS");
-
     get_nfacs(&Global::nFACS_cells);
     if (!Global::FACS_data || Global::nFACS_cells*Global::nvars_used > Global::nFACS_dim) {
         if (Global::FACS_data) free(Global::FACS_data);
         Global::nFACS_dim = 3*Global::nFACS_cells*Global::nvars_used;   // 3* to avoid excessive malloc/free
         Global::FACS_data = (double *)malloc(Global::nFACS_dim*sizeof(double));
     }
-    get_facs(Global::FACS_data);
+    get_facs(Global::FACS_data, Global::FACS_vmin, Global::FACS_vmax, Global::volume_scaling);
 
     if (!Global::histo_data || Global::nhisto_bins*Global::nvars_used > Global::nhisto_dim) {
         if (Global::histo_data) free(Global::histo_data);
@@ -350,7 +349,7 @@ void ExecThread::getFACS()
     }
 
     get_histo(Global::nhisto_bins, Global::histo_data, Global::histo_vmin, Global::histo_vmax,
-              Global::histo_data_log, Global::histo_vmin_log, Global::histo_vmax_log);
+              Global::histo_data_log, Global::histo_vmin_log, Global::histo_vmax_log, Global::volume_scaling);
 }
 
 //-----------------------------------------------------------------------------------------

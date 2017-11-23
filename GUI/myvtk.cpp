@@ -508,17 +508,15 @@ void MyVTK::unpack(int x, double *rr, double *gg, double *bb)
 
 //---------------------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------
-void MyVTK::setOpacity(int position)
+void MyVTK::setOpacity(int celltype, int position)
 {
     if (position == 100) {
-        opacity[1] = 0.001;
-        opacity[2] = 0.001;
+        opacity[celltype] = 0.001;
     } else {
-        opacity[1] = (100. - position)/100;
-        opacity[2] = (100. - position)/100;
+        opacity[celltype] = (100. - position)/100;
     }
-    sprintf(msg,"opacity: %d %f",1,opacity[1]);
-    LOG_MSG(msg);
+//    sprintf(msg,"celltype opacity: %d %f",celltype,opacity[celltype]);
+//    LOG_MSG(msg);
     if (paused) {
         LOG_QMSG("renderCells");
         renderCells();

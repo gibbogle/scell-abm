@@ -120,30 +120,64 @@ do kcell = 1,nlist
 			cdata(nc)%radius = rad
 			cdata(nc)%centre(1:2) = [c(1),c(2)]		! always use centre(1:2) to store the 2D coordinates
 		endif
-		if (cp%anoxia_tag) then
-			cdata(nc)%status = 2	! tagged to die of anoxia
-		elseif (cp%aglucosia_tag) then
-			cdata(nc)%status = 4	! tagged to die of aglucosia
-		elseif (cp%radiation_tag) then
-			cdata(nc)%status = 10
-			write(nflog,*) 'Tagged to die from radiation: ',kcell
-		elseif (cp%drug_tag(1)) then
-			cdata(nc)%status = 11
-		elseif (cp%drug_tag(1)) then
-			cdata(nc)%status = 12
-		elseif (cp%Cin(OXYGEN) < hypoxia_threshold) then
-			cdata(nc)%status = 1	! radiobiological hypoxia
-		elseif (cp%mitosis > 0) then
-			cdata(nc)%status = 3	! in mitosis
-		else
-			cdata(nc)%status = 0
-		endif
+		! status
+!		if (cp%anoxia_tag) then
+!			cdata(nc)%status = 2	! tagged to die of anoxia
+!		elseif (cp%aglucosia_tag) then
+!			cdata(nc)%status = 4	! tagged to die of aglucosia
+!		elseif (cp%radiation_tag) then
+!			cdata(nc)%status = 10
+!			write(nflog,*) 'Tagged to die from radiation: ',kcell
+!		elseif (cp%drug_tag(1)) then
+!			cdata(nc)%status = 11
+!		elseif (cp%drug_tag(1)) then
+!			cdata(nc)%status = 12
+!		elseif (cp%Cin(OXYGEN) < hypoxia_threshold) then
+!			cdata(nc)%status = 1	! radiobiological hypoxia
+!		elseif (cp%mitosis > 0) then
+!			cdata(nc)%status = 3	! in mitosis
+!		else
+!			cdata(nc)%status = 0
+!		endif
+		cdata(nc)%status = getstatus(cp)
+		cdata(nc)%celltype = cp%celltype
 	enddo
 enddo
 write(nflog,*) 'axis: ',axis,' nc: ',nc
 fdata%ncells = nc
 res = 0
 end subroutine
+
+!--------------------------------------------------------------------------------
+! A growing cell has status 0 for celltype 1, 10 for celltype 2
+!--------------------------------------------------------------------------------
+function getstatus(cp) result(status)
+type(cell_type), pointer :: cp
+integer :: status
+
+if (cp%anoxia_tag) then
+	status = 2	! tagged to die of anoxia
+elseif (cp%aglucosia_tag) then
+	status = 4	! tagged to die of aglucosia
+elseif (cp%radiation_tag) then
+	status = 11
+elseif (cp%drug_tag(1)) then
+	status = 12
+elseif (cp%drug_tag(2)) then
+	status = 13
+elseif (cp%Cin(OXYGEN) < hypoxia_threshold) then
+	status = 1	! radiobiological hypoxia
+!elseif (cp%mitosis > 0) then
+elseif (cp%V > 0.9*cp%divide_volume) then  ! just a surrogate for mitosis
+	status = 3	! in mitosis
+else
+	if (cp%celltype == 1) then
+		status = 0
+	else
+		status = 10
+	endif
+endif
+end function
 
 !--------------------------------------------------------------------------------
 ! This version computes concentrations in a spherical shell of thickness dr.
@@ -455,14 +489,17 @@ end subroutine
 
 !-----------------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------------
-subroutine get_FACS(facs_data) BIND(C)
+subroutine get_FACS(facs_data, vmin, vmax, volume_scaling) BIND(C)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_facs
 use, intrinsic :: iso_c_binding
-real(c_double) :: val, facs_data(*)
+integer(c_int),value :: volume_scaling
+real(c_double) :: val, facs_data(*), vmin(*), vmax(*)
 integer :: k, kcell, iextra, ichemo, ivar, nvars, var_index(32)
-real(REAL_KIND) :: cfse_min
+real(REAL_KIND) :: cfse_min, Vcell_pL
+logical :: volscale
 
 !write(nflog,*) 'get_FACS'
+volscale = (volume_scaling == 1)
 nvars = 1	! CFSE
 var_index(nvars) = 0
 do ichemo = 1,MAX_CHEMO
@@ -474,19 +511,13 @@ do iextra = 1,N_EXTRA-1
 	nvars = nvars + 1
 	var_index(nvars) = MAX_CHEMO + iextra
 enddo
+vmin(1:MAX_CHEMO+N_EXTRA) = 1.0e10
+vmax(1:MAX_CHEMO+N_EXTRA) = -1.0e10
 cfse_min = 1.0e20
 k = 0
 do kcell = 1,nlist
 	if (cell_list(kcell)%state == DEAD) cycle
-!	k = k+1
-!	facs_data(k) = cell_list(kcell)%CFSE
-!	k = k+1
-!	facs_data(k) = cell_list(kcell)%dVdt
-!	k = k+1
-!	facs_data(k) = cell_list(kcell)%conc(OXYGEN)
-!	if (cell_list(kcell)%conc(OXYGEN) <= 0.00001 .or. cell_list(kcell)%dVdt < 2.0e-6) then
-!		write(nflog,'(2i6,2e12.3)') istep,kcell,cell_list(kcell)%dVdt,cell_list(kcell)%conc(OXYGEN)
-!	endif
+	Vcell_pL = cm3_pL*cell_list(kcell)%V
 	do ivar = 1,nvars
 		ichemo = var_index(ivar)
 		if (ichemo == 0) then
@@ -495,14 +526,19 @@ do kcell = 1,nlist
 		elseif (ichemo <= MAX_CHEMO) then
 			val = cell_list(kcell)%Cin(ichemo)
 		elseif (ichemo == GROWTH_RATE) then
-			val = cell_list(kcell)%dVdt
+			val = cm3_pL*cell_list(kcell)%dVdt
 		elseif (ichemo == CELL_VOLUME) then
-			val = cell_list(kcell)%V
+			val = Vcell_pL
 		elseif (ichemo == O2_BY_VOL) then
-			val = cell_list(kcell)%V*cell_list(kcell)%Cin(OXYGEN)
+			val = Vcell_pL*cell_list(kcell)%Cin(OXYGEN)
+		endif
+		if (volscale .and. (ichemo >= DRUG_A .and. ichemo <= DRUG_B + 2)) then
+			val = val*Vcell_pL
 		endif
 		k = k+1
 		facs_data(k) = val
+		vmin(ichemo+1) = min(val,vmin(ichemo+1))
+		vmax(ichemo+1) = max(val,vmax(ichemo+1))
 	enddo
 enddo
 end subroutine
@@ -517,22 +553,24 @@ end subroutine
 !                          3 = type 2
 ! Stack three cases in vmax() and histo_data()
 !-----------------------------------------------------------------------------------------
-subroutine get_histo(nhisto, histo_data, vmin, vmax, histo_data_log, vmin_log, vmax_log) BIND(C)
+subroutine get_histo(nhisto, histo_data, vmin, vmax, histo_data_log, vmin_log, vmax_log, volume_scaling) BIND(C)
 !DEC$ ATTRIBUTES DLLEXPORT :: get_histo
 use, intrinsic :: iso_c_binding
-integer(c_int),value :: nhisto
+integer(c_int),value :: nhisto, volume_scaling
 real(c_double) :: vmin(*), vmax(*), histo_data(*)
 real(c_double) :: vmin_log(*), vmax_log(*), histo_data_log(*)
-real(REAL_KIND) :: val, val_log
+real(REAL_KIND) :: val, val_log, Vcell_pL
 integer :: n(3), i, ih, k, kcell, ict, ichemo, ivar, nvars, var_index(32)
 integer,allocatable :: cnt(:,:,:)
 real(REAL_KIND),allocatable :: dv(:,:), valmin(:,:), valmax(:,:)
 integer,allocatable :: cnt_log(:,:,:)
 real(REAL_KIND),allocatable :: dv_log(:,:), valmin_log(:,:), valmax_log(:,:)
+logical :: volscale
 !real(REAL_KIND) :: vmin_log(100), vmax_log(100)
 !real(REAL_KIND),allocatable :: histo_data_log(:)
 
-!write(nflog,*) 'get_histo'
+volscale = (volume_scaling == 1)
+write(nflog,*) 'get_histo: histogram using volume scaling for drugs: ',volume_scaling,' ',volscale
 nvars = 1	! CFSE
 var_index(nvars) = 0
 do ichemo = 1,MAX_CHEMO
@@ -565,6 +603,7 @@ valmax_log = -1.0e10
 n = 0
 do kcell = 1,nlist
 	if (cell_list(kcell)%state == DEAD) cycle
+	Vcell_pL = cm3_pL*cell_list(kcell)%V
 	ict = cell_list(kcell)%celltype
 	do ivar = 1,nvars
 		ichemo = var_index(ivar)
@@ -573,11 +612,14 @@ do kcell = 1,nlist
 		elseif (ichemo <= MAX_CHEMO) then
 			val = cell_list(kcell)%Cin(ichemo)
 		elseif (ichemo == GROWTH_RATE) then
-			val = cell_list(kcell)%dVdt
+			val = cm3_pL*cell_list(kcell)%dVdt
 		elseif (ichemo == CELL_VOLUME) then
-			val = Vcell_pL*cell_list(kcell)%V
+			val = Vcell_pL
 		elseif (ichemo == O2_BY_VOL) then
-			val = cell_list(kcell)%Cin(OXYGEN)*Vcell_pL*cell_list(kcell)%V
+			val = cell_list(kcell)%Cin(OXYGEN)*Vcell_pL
+		endif
+		if (volscale .and. (ichemo >= DRUG_A .and. ichemo <= DRUG_B + 2)) then
+			val = val*Vcell_pL
 		endif
 		valmax(ict+1,ivar) = max(valmax(ict+1,ivar),val)	! cell type 1 or 2
 		valmax(1,ivar) = max(valmax(1,ivar),val)			! both
@@ -597,8 +639,8 @@ enddo
 do ivar = 1,nvars
 	ichemo = var_index(ivar)
 	if (ichemo == CELL_VOLUME) then
-		valmin(:,ivar) = Vcell_pL*0.8
-		valmin_log(:,ivar) = log10(Vcell_pL*0.8)
+		valmin(:,ivar) = 0.75
+		valmin_log(:,ivar) = log10(0.75)
 	else
 		valmin(:,ivar) = 0
 	endif
@@ -612,6 +654,7 @@ dv_log = (valmax_log - valmin_log)/nhisto
 !write(nflog,'(e12.3)') dv_log
 do kcell = 1,nlist
 	if (cell_list(kcell)%state == DEAD) cycle
+	Vcell_pL = cm3_pL*cell_list(kcell)%V
 	ict = cell_list(kcell)%celltype
 	do ivar = 1,nvars
 		ichemo = var_index(ivar)
@@ -620,11 +663,14 @@ do kcell = 1,nlist
 		elseif (ichemo <= MAX_CHEMO) then
 			val = cell_list(kcell)%Cin(ichemo)
 		elseif (ichemo == GROWTH_RATE) then
-			val = cell_list(kcell)%dVdt
+			val = cm3_pL*cell_list(kcell)%dVdt
 		elseif (ichemo == CELL_VOLUME) then
-			val = Vcell_pL*cell_list(kcell)%V
+			val = Vcell_pL
 		elseif (ichemo == O2_BY_VOL) then
-			val = cell_list(kcell)%Cin(OXYGEN)*Vcell_pL*cell_list(kcell)%V
+			val = cell_list(kcell)%Cin(OXYGEN)*Vcell_pL
+		endif
+		if (volscale .and. (ichemo >= DRUG_A .and. ichemo <= DRUG_B + 2)) then
+			val = val*Vcell_pL
 		endif
 		k = (val-valmin(1,ivar))/dv(1,ivar) + 1
 		k = min(k,nhisto)
@@ -1251,9 +1297,9 @@ do kcell = 1,nlist
         ncsum(ks) = ncsum(ks) + 1
         csum(ks,CFSE) = csum(ks,CFSE) + cp%CFSE
         csum(ks,1:MAX_CHEMO) = csum(ks,1:MAX_CHEMO) + cp%Cin
-        csum(ks,GROWTH_RATE) = csum(ks,GROWTH_RATE) + cp%dVdt
-        csum(ks,CELL_VOLUME) = csum(ks,CELL_VOLUME) + Vcell_pL*cp%V
-        csum(ks,O2_BY_VOL) = csum(ks,O2_BY_VOL) + cp%Cin(OXYGEN)*Vcell_pL*cp%V
+        csum(ks,GROWTH_RATE) = csum(ks,GROWTH_RATE) + cm3_pL*cp%dVdt
+        csum(ks,CELL_VOLUME) = csum(ks,CELL_VOLUME) + cm3_pL*cp%V
+        csum(ks,O2_BY_VOL) = csum(ks,O2_BY_VOL) + cp%Cin(OXYGEN)*cm3_pL*cp%V
     endif
 enddo
 do ks = 1,ns
@@ -1398,19 +1444,19 @@ do ichemo = 0,nvars-1
 			endif
         elseif (ichemo == GROWTH_RATE) then	
 			if (kcell > 0) then
-				ex_conc(k) = cell_list(kcell)%dVdt
+				ex_conc(k) = cm3_pL*cell_list(kcell)%dVdt
 			else
 				ex_conc(k) = 0
 			endif
         elseif (ichemo == CELL_VOLUME) then	
 			if (kcell > 0) then
-				ex_conc(k) = Vcell_pL*cell_list(kcell)%V
+				ex_conc(k) = cm3__pL*cell_list(kcell)%V
 			else
 				ex_conc(k) = 0
 			endif
         elseif (ichemo == O2_BY_VOL) then	
 			if (kcell > 0) then
-				ex_conc(k) = allstate(i,OXYGEN)*Vcell_pL*cell_list(kcell)%V
+				ex_conc(k) = allstate(i,OXYGEN)*cm3_pL*cell_list(kcell)%V
 			else
 				ex_conc(k) = 0
 			endif

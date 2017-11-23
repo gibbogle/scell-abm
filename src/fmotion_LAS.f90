@@ -128,26 +128,27 @@ fave = sum(fsump(0:tMnodes-1))/sum(navep(0:tMnodes-1))
 
 ! Adjust GAS time step
 if (.not.use_cell_radius) then
-do
-	if (dt_move*fave/kdrag > delta_max) then
-		ndt = ndt/2
-!		write(*,'(a,5e12.3,i4)') 'fmover: -ndt: ',dt_move,fmax,kdrag,dt_move*fmax/kdrag,delta_min,ndt
-		if (ndt <= 1) then
-			ndt = 1
-			dt_move = ndt*delta_tmove
-			exit
+	do
+		if (dt_move*fave/kdrag > delta_max) then
+	!		ndt = ndt - 1
+			ndt = ndt/2
+	!		write(*,'(a,5e12.3,i4)') 'fmover: -ndt: ',dt_move,fmax,kdrag,dt_move*fmax/kdrag,delta_min,ndt
+			if (ndt <= 1) then
+				ndt = 1
+				dt_move = ndt*delta_tmove
+				exit
+			endif
+		elseif (dt_move*fave/kdrag < delta_min) then
+			ndt = ndt + 1
+	!		write(*,'(a,5e12.3,i4)') 'fmover: +ndt: ',dt_move,fmax,kdrag,dt_move*fmax/kdrag,delta_min,ndt
+			if (ndt >= ndt_max) then
+				ndt = ndt_max
+				dt_move = ndt*delta_tmove
+				exit
+			endif
 		endif
-	elseif (dt_move*fave/kdrag < delta_min) then
-		ndt = ndt + 1
-!		write(*,'(a,5e12.3,i4)') 'fmover: +ndt: ',dt_move,fmax,kdrag,dt_move*fmax/kdrag,delta_min,ndt
-		if (ndt >= ndt_max) then
-			ndt = ndt_max
-			dt_move = ndt*delta_tmove
-			exit
-		endif
-	endif
-	exit
-enddo
+		exit
+	enddo
 else
 	dt_move = RAVERAGE*kdrag/(fave*30)
 	ndt = min(30.,dt_move/delta_tmove)
