@@ -414,6 +414,7 @@ do idrug = 1,Ndrugs_used
             drug(idrug)%kill_model(ictyp,im) = ival
             read(nf,*) ival
             drug(idrug)%sensitises(ictyp,im) = (ival == 1)
+            drug(idrug)%Vmax(ictyp,im) = drug(idrug)%Vmax(ictyp,im)/60						! /min -> /sec
             drug(idrug)%Kmet0(ictyp,im) = drug(idrug)%Kmet0(ictyp,im)/60					! /min -> /sec
             drug(idrug)%KO2(ictyp,im) = 1.0e-3*drug(idrug)%KO2(ictyp,im)					! um -> mM
             drug(idrug)%kill_duration(ictyp,im) = 60*drug(idrug)%kill_duration(ictyp,im)	! min -> sec
