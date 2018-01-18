@@ -148,6 +148,7 @@ public:
     bool dropped;
     bool bottom_added;
     bool show_bottom;
+    double bottom_radius;
     double opacity[10];
     QColor celltype_colour[10];
     QString casename;

@@ -328,7 +328,7 @@ void MyVTK::MakeWellBottom()
         // Create a circle
         vtkSmartPointer<vtkRegularPolygonSource> polygonSource = vtkSmartPointer<vtkRegularPolygonSource>::New();
         polygonSource->SetNumberOfSides(50);
-        polygonSource->SetRadius(200);
+        polygonSource->SetRadius(100);
         polygonSource->SetCenter(0, 0, 0);
         vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         mapper->SetInputConnection(polygonSource->GetOutputPort());;
@@ -473,6 +473,7 @@ void MyVTK::renderCells()
         if (show_bottom) {
             sqactor->SetPosition(Global::droppedcentre[1],0,Global::droppedcentre[0]);
             if (!bottom_added) {
+                sqactor->SetScale(bottom_radius/100);
                 ren->AddActor(sqactor);
                 bottom_added = true;
             }
@@ -552,6 +553,7 @@ void MyVTK::process_Tcells()
 {
     int i, tag, maxtag;
     double r, g, b;
+    double xmin, xmax;
 	CELL_POS cp;
 	int axis_centre = -2;	// identifies the ellipsoid centre
 	int axis_end    = -3;	// identifies the ellipsoid extent in 5 directions
@@ -595,6 +597,8 @@ void MyVTK::process_Tcells()
 
     // This is the render loop.  Here we need to traverse the list in order of distance (z), maximum first.
     // We need order[] such that cp = TCpos_list[order[i]]
+    xmin = 1.0e10;
+    xmax = 0;
     for (i=0; i<np; i++) {
         cp = TCpos_list[i];
         tag = cp.tag;
@@ -655,9 +659,12 @@ void MyVTK::process_Tcells()
 //        }
         ap->actor->SetPosition(cp.x, cp.y, cp.z);
         ap->actor->SetScale(cp.diameter);
+        xmin = qMin(cp.x,xmin);
+        xmax = qMax(cp.x,xmax);
 //        sprintf(msg,"x,y,z,r,r,g,b: %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f",cp.x, cp.y, cp.z,cp.diameter,r,g,b);
 //        LOG_MSG(msg);
 	}
+    bottom_radius = (xmax-xmin)/2;
     for (int k=0; k<T_Actor_list.length(); k++) {
         ap = &T_Actor_list[k];
         if (ap->active && !in_pos_list[k]) {
