@@ -509,20 +509,18 @@ After contact is made the force is non-zero until x > xc2 - this is the effect o
 "Use the FD solver in the far field"},
 
 {"USE_DROP", 0, 0, 1,
-"Account for drop deformation",
-"Account for drop deformation when it is released to sit at the bottom of the well"},
+"Drop the spheroid",
+"Release the spheroid to sit at the bottom of the well"},
 
-{"NDROP", 1000, 0, 0,
+{"NDROP", 1100, 0, 0,
 "Dropping cell count",
 "Number of cells in the spheroid when it is dropped."},
 
-{"DROP_ALPHA", 0.4, 0, 0,
-"Contact_diameter/diameter",
-"Drop parameter alpha = initial (surface contact diameter)/(blob diameter).  Must be < 1."},
-
-{"DROP_BETA", 0.6, 0, 0,
-"Height/diameter",
-"Drop parameter beta = initial (blob height)/(blob diameter).  Must be < 1."},
+{"FWALL_DIST_FACTOR", 200, 0, 0,
+"Fwall distance factor",
+"Fwall is computed as the max wall repulsive force on a cell.  This force, linearly ramping down with z to 0, is applied to all cells with z < (this factor)*(cell average radius) \n\
+A small value (e.g. 10) gives a more squashed spheroid, while a large value (e.g. 200) gives a more spherical spheroid \n\
+(This measure is needed to overcome limitations in the way the model computes cell motion.)"},
 
     {"SAVE_PROFILE_DATA",0,0,1,
      "Save profile data",

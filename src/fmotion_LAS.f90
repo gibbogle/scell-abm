@@ -238,7 +238,7 @@ subroutine forces_LAS(force,fmax,ok)
 real(REAL_KIND) :: fmax, force(:,:,:)
 logical :: ok
 integer :: k1, kcell, kpar, nd, nr, nc(0:8), kfrom(0:8), kto(0:8), tMnodes
-real(REAL_KIND) :: F(3,2), r(3), amp, fsum, fwall_prev
+real(REAL_KIND) :: F(3,2), r(3), amp, fsum, fwall_prev, zz, fz
 !real(REAL_KIND),allocatable :: cell_fmax(:)
 logical :: badforce
 
@@ -273,8 +273,8 @@ endif
 !cell_fmax = 0
 fmax = 0
 fsum = 0
-!fwall_prev = fwall
-!fwall = 0
+fwall_prev = fwall
+fwall = 0
 badforce = .false.
 call omp_set_num_threads(tMnodes)
 !$omp parallel do private(k1,kcell,F,amp,ok)
@@ -287,16 +287,29 @@ do kpar = 0,tMnodes-1
 			exit
 		endif
 	    call get_random_dr(r)
-	    F(:,1) = F(:,1) + frandom*r		! + fwall_prev*[0,0,1]
+	    zz = cell_list(kcell)%centre(3,1)/(fwall_dist_factor*Raverage)
+	    if (zz > 1) then
+			fz = 0
+		else
+			fz = fwall_prev*(1 - zz)
+		endif
+!	    if (fwall > 0) write(*,*) 'fwall_prev: ',kcell,fwall_prev
+	    F(:,1) = F(:,1) + frandom*r		 + fz*[0,0,1]	!+ fwall_prev*[0,0,1]
 	    force(:,k1,1) = F(:,1)
 	    if (.not.cell_list(kcell)%Iphase) then
 			call get_random_dr(r)
-			F(:,2) = F(:,2) + frandom*r	! + fwall_prev*[0,0,1]
+			zz = cell_list(kcell)%centre(3,2)/(fwall_dist_factor*Raverage)
+			if (zz > 1) then
+				fz = 0
+			else
+				fz = fwall_prev*(1 - zz)
+			endif
+			F(:,2) = F(:,2) + frandom*r	 + fz*[0,0,1]	!+ fwall_prev*[0,0,1]
 		    force(:,k1,2) = F(:,2)
         endif
     enddo
 enddo
-!omp end parallel do
+!omp end parallel do 
 !call omp_set_num_threads(Mnodes)
 !fmax = maxval(cell_fmax(:))
 !if (ncells > 50e10 ) then
@@ -391,8 +404,8 @@ if (Mphase) then	! compute force between separating spheres, based on deviation 
 	F(:,1) = F(:,1) + dF*v	! dF acts in the direction of v on sphere #1 when dF > 0
 	F(:,2) = F(:,2) - dF*v	! dF acts in the direction of -v on sphere #2 when dF > 0 
 endif
-fwall = 0
-return
+!fwall = 0
+!return
 
 ! Check for wall force (bottom of the well) NOT USED
 ! For now the bottom is a plane
@@ -403,19 +416,21 @@ do isphere1 = 1,nspheres1
 	d = c1(3)
 	incontact = (d < R1)
 	v = [0, 0, 1]
-	if (R1 < 1.5*d) then
+	if (R1 > 0.9*d) then	! was 1.5
 		dF = get_force(R1,R1,2*d,incontact,ok)	! returns magnitude and sign of force 
 		if (dF > 0) then
 			fwall = max(fwall,dF)
+!			write(nflog,'(a,i6,2e12.3,7f7.3)') 'wall force: ',kcell,d,R1,dF,F(:,1)
+		elseif (dF < 0) then
+			dF = wall_attraction_factor*dF
+!			write(nflog,*) 'wall attraction: ',kcell, dF
+			if (isphere1 == 1) F(:,isphere1) = F(:,isphere1) + dF*v
+			if (Mphase .and. isphere1 == 2) F(:,isphere1) = F(:,isphere1) + dF*v
 		endif
-!		if (dF < 0) then
-!			dF = wall_attraction_factor*dF
-!		endif
-!		if (isphere1 == 1) F(:,isphere1) = F(:,isphere1) + dF*v
-!		if (Mphase .and. isphere1 == 2) F(:,isphere1) = F(:,isphere1) + dF*v
 	endif
 enddo
 end subroutine
+
 !-----------------------------------------------------------------------------------------
 ! Each cell has a varindex, and for Mphase the second sphere is varindex+1
 !-----------------------------------------------------------------------------------------

@@ -146,6 +146,8 @@ public:
 	bool save_image;
     bool display_celltype[10];
     bool dropped;
+    bool bottom_added;
+    bool show_bottom;
     double opacity[10];
     QColor celltype_colour[10];
     QString casename;

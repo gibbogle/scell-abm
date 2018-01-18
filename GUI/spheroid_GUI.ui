@@ -42,7 +42,7 @@ padding: 8px
     <item row="0" column="0">
      <widget class="QStackedWidget" name="stackedWidget">
       <property name="currentIndex">
-       <number>3</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="page_input">
        <layout class="QVBoxLayout" name="verticalLayout">
@@ -79,7 +79,7 @@ padding: 8px
            <enum>QTabWidget::West</enum>
           </property>
           <property name="currentIndex">
-           <number>6</number>
+           <number>7</number>
           </property>
           <property name="elideMode">
            <enum>Qt::ElideNone</enum>
@@ -7903,7 +7903,7 @@ padding: 8px
               <string>Cell count for dropping</string>
              </property>
             </widget>
-            <widget class="QLineEdit" name="line_DROP_ALPHA">
+            <widget class="QLineEdit" name="line_FWALL_DIST_FACTOR">
              <property name="geometry">
               <rect>
                <x>40</x>
@@ -7913,7 +7913,7 @@ padding: 8px
               </rect>
              </property>
             </widget>
-            <widget class="QMyLabel" name="label_DROP_ALPHA">
+            <widget class="QMyLabel" name="label_FWALL_DIST_FACTOR">
              <property name="geometry">
               <rect>
                <x>90</x>
@@ -7923,30 +7923,7 @@ padding: 8px
               </rect>
              </property>
              <property name="text">
-              <string>Contact_diameter/diameter</string>
-             </property>
-            </widget>
-            <widget class="QLineEdit" name="line_DROP_BETA">
-             <property name="geometry">
-              <rect>
-               <x>40</x>
-               <y>70</y>
-               <width>41</width>
-               <height>20</height>
-              </rect>
-             </property>
-            </widget>
-            <widget class="QMyLabel" name="label_DROP_BETA">
-             <property name="geometry">
-              <rect>
-               <x>90</x>
-               <y>70</y>
-               <width>131</width>
-               <height>21</height>
-              </rect>
-             </property>
-             <property name="text">
-              <string>Height/diameter</string>
+              <string>label_FWALL_DIST_FACTOR</string>
              </property>
             </widget>
            </widget>
@@ -8719,6 +8696,22 @@ padding: 8px
          <enum>Qt::Vertical</enum>
         </property>
        </widget>
+       <widget class="QCheckBox" name="checkBox_show_bottom">
+        <property name="geometry">
+         <rect>
+          <x>990</x>
+          <y>430</y>
+          <width>121</width>
+          <height>18</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Show well bottom?</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
       </widget>
       <widget class="QWidget" name="page_2D">
        <property name="sizePolicy">
@@ -9466,7 +9459,7 @@ padding: 8px
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../vspheroid-abm/GUI/icons.qrc">
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/001_29.png</normaloff>:/icons/001_29.png</iconset>
    </property>
    <property name="text">
@@ -9481,7 +9474,7 @@ padding: 8px
   </action>
   <action name="action_run">
    <property name="icon">
-    <iconset resource="../../vspheroid-abm/GUI/icons.qrc">
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/001_59.png</normaloff>:/icons/001_59.png</iconset>
    </property>
    <property name="text">
@@ -9493,7 +9486,7 @@ padding: 8px
   </action>
   <action name="action_inputs">
    <property name="icon">
-    <iconset resource="../../vspheroid-abm/GUI/icons.qrc">
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/001_45.png</normaloff>:/icons/001_45.png</iconset>
    </property>
    <property name="text">
@@ -9505,7 +9498,7 @@ padding: 8px
   </action>
   <action name="action_outputs">
    <property name="icon">
-    <iconset resource="../../vspheroid-abm/GUI/icons.qrc">
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/Display2.png</normaloff>:/icons/Display2.png</iconset>
    </property>
    <property name="text">
@@ -9520,7 +9513,7 @@ padding: 8px
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../vspheroid-abm/GUI/icons.qrc">
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/cell2.png</normaloff>:/icons/cell2.png</iconset>
    </property>
    <property name="text">
@@ -9532,7 +9525,7 @@ padding: 8px
   </action>
   <action name="action_pause">
    <property name="icon">
-    <iconset resource="../../vspheroid-abm/GUI/icons.qrc">
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/001_07.png</normaloff>:/icons/001_07.png</iconset>
    </property>
    <property name="text">
@@ -9617,7 +9610,7 @@ padding: 8px
   </action>
   <action name="action_field">
    <property name="icon">
-    <iconset resource="../../vspheroid-abm/GUI/icons.qrc">
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/color.jpg</normaloff>:/icons/color.jpg</iconset>
    </property>
    <property name="text">
@@ -9634,7 +9627,7 @@ padding: 8px
   </action>
   <action name="action_FACS">
    <property name="icon">
-    <iconset resource="../../vspheroid-abm/GUI/icons.qrc">
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/FACS_234.png</normaloff>:/icons/FACS_234.png</iconset>
    </property>
    <property name="text">
@@ -9720,7 +9713,9 @@ padding: 8px
   <tabstop>spin_SEED1</tabstop>
   <tabstop>spin_SEED2</tabstop>
  </tabstops>
- <resources/>
+ <resources>
+  <include location="icons.qrc"/>
+ </resources>
  <connections/>
  <buttongroups>
   <buttongroup name="buttonGroup_drugtype"/>

@@ -457,3 +457,10 @@ void MainWindow::on_checkBox_volume_scaling_toggled(bool checked)
         LOG_MSG("volume_scaling: off");
     }
 }
+
+//-----------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------
+void MainWindow::on_checkBox_show_bottom_toggled(bool checked)
+{
+    vtk->show_bottom = checked;
+}

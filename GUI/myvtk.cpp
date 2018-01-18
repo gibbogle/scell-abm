@@ -142,7 +142,9 @@ MyVTK::MyVTK(QWidget *page, QWidget *key_page)
 //    ren->GetActiveCamera()->SetFocalPoint(x0, x0, x0);
 //    ren->ResetCamera();
 
-    MakeWellBottom();
+    if (show_bottom) {
+        MakeWellBottom();
+    }
 }
 
 //-----------------------------------------------------------------------------------------
@@ -308,6 +310,8 @@ void MyVTK::createMappers()
     */
 }
 
+//-----------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------
 void MyVTK::MakeWellBottom()
 {
     bool use_circle = true;
@@ -324,7 +328,7 @@ void MyVTK::MakeWellBottom()
         // Create a circle
         vtkSmartPointer<vtkRegularPolygonSource> polygonSource = vtkSmartPointer<vtkRegularPolygonSource>::New();
         polygonSource->SetNumberOfSides(50);
-        polygonSource->SetRadius(100);
+        polygonSource->SetRadius(200);
         polygonSource->SetCenter(0, 0, 0);
         vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
         mapper->SetInputConnection(polygonSource->GetOutputPort());;
@@ -333,7 +337,6 @@ void MyVTK::MakeWellBottom()
         sqactor->RotateX(90);
         sqactor->SetPosition(600, 0, 600);
         sqactor->SetMapper(mapper);
-
     } else {
         double **pt;
         pt = (double **)malloc(4*sizeof(double *));
@@ -417,6 +420,7 @@ void MyVTK::get_cell_positions()
 void MyVTK::init()
 {
     dropped = false;
+    bottom_added = false;
     T_Actor_list.clear();
 }
 
@@ -450,26 +454,35 @@ void MyVTK::renderCells()
     just_dropped = false;
 //    LOG_QMSG("renderCells");
     if (Global::dropped) {
-        LOG_MSG("dropped");
         just_dropped = !dropped;
         dropped = true;
     }
-//    sprintf(msg,"Global_dropped, dropped, just_dropped: %d %d %d",Global::dropped,dropped,just_dropped);
-//    LOG_MSG(msg)
     if (first_VTK || just_dropped) {
 		LOG_MSG("Initializing the renderer");
         sprintf(msg,"NX: %d DELTA_X: %6.1f",Global::NX,Global::DELTA_X);
         LOG_MSG(msg);
-        if (just_dropped) {
-            sqactor->SetPosition(Global::droppedcentre[1],0,Global::droppedcentre[0]);
-            ren->AddActor(sqactor);
-        }
+//        if (just_dropped) {
+//            sqactor->SetPosition(Global::droppedcentre[1],0,Global::droppedcentre[0]);
+//            ren->AddActor(sqactor);
+//        }
 
         ren->ResetCamera();
-//        ren->GetActiveCamera()->SetPosition(0, 0, 0);
-//        ren->GetActiveCamera()->SetFocalPoint(x0, x0, x0);
     }
-//    ren->GetActiveCamera()->SetPosition(x0, x0, -100);
+
+    if (dropped) {
+        if (show_bottom) {
+            sqactor->SetPosition(Global::droppedcentre[1],0,Global::droppedcentre[0]);
+            if (!bottom_added) {
+                ren->AddActor(sqactor);
+                bottom_added = true;
+            }
+        } else {
+            if (bottom_added) {
+                ren->RemoveActor(sqactor);
+                bottom_added = false;
+            }
+        }
+    }
     iren->Render();
     first_VTK = false;
 }

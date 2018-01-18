@@ -223,8 +223,9 @@ read(nfcell,*) iuse_par_relax
 read(nfcell,*) iuse_FD
 read(nfcell,*) iuse_drop
 read(nfcell,*) Ndrop
-read(nfcell,*) alpha_shape
-read(nfcell,*) beta_shape
+!read(nfcell,*) alpha_shape
+!read(nfcell,*) beta_shape
+read(nfcell,*) fwall_dist_factor
 read(nfcell,*) isaveprofiledata
 read(nfcell,*) saveprofile%filebase
 read(nfcell,*) saveprofile%dt

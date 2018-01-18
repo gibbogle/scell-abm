@@ -148,6 +148,7 @@ MainWindow::MainWindow(QWidget *parent)
     timer = new QTimer(this);
     vtk = new MyVTK(mdiArea_VTK, widget_key);
     vtk->init();
+    vtk->show_bottom = checkBox_show_bottom->isChecked();
 
     setupCellColours();
     QRect rect;

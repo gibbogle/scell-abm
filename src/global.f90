@@ -275,11 +275,12 @@ real(REAL_KIND) :: d_nbr_limit
 
 logical :: use_dropper
 integer :: Ndrop
-real(REAL_KIND) :: alpha_shape, beta_shape	! squashed sphere shape parameters
-real(REAL_KIND) :: adrop, bdrop, cdrop		! drop shape transformation parameters
-integer :: zmin     						! drop lower bound at drop time = lower limit of blob thereafter
+!real(REAL_KIND) :: alpha_shape, beta_shape	! squashed sphere shape parameters
+!real(REAL_KIND) :: adrop, bdrop, cdrop		! drop shape transformation parameters
+!integer :: zmin     						! drop lower bound at drop time = lower limit of blob thereafter
 logical :: is_dropped
-real(REAL_KIND) :: wall_attraction_factor = 0
+real(REAL_KIND) :: wall_attraction_factor = 1
+real(REAL_KIND) :: fwall_dist_factor = 200
 
 integer :: Nradiation_tag(MAX_CELLTYPES), Nanoxia_tag(MAX_CELLTYPES), Naglucosia_tag(MAX_CELLTYPES)
 integer :: Ndrug_tag(MAX_DRUGTYPES,MAX_CELLTYPES)

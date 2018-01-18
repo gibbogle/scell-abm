@@ -134,6 +134,7 @@ private slots:
     void on_comboBox_CELLCOLOUR_2_currentIndexChanged(int index);
     void on_checkBox_celltypecolours2D_toggled(bool checked);
     void on_checkBox_only2colours2D_toggled(bool checked);
+    void on_checkBox_show_bottom_toggled(bool checked);
 
     void on_cbox_SAVE_PROFILE_DATA_toggled(bool checked);
     void on_cbox_SAVE_SLICE_DATA_toggled(bool checked);
