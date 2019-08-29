@@ -416,7 +416,7 @@ do isphere1 = 1,nspheres1
 	d = c1(3)
 	incontact = (d < R1)
 	v = [0, 0, 1]
-	if (R1 > 0.9*d) then	! was 1.5
+	if (R1 > 0.9*d) then
 		dF = get_force(R1,R1,2*d,incontact,ok)	! returns magnitude and sign of force 
 		if (dF > 0) then
 			fwall = max(fwall,dF)
